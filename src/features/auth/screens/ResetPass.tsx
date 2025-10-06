@@ -1,0 +1,383 @@
+import { useDispatch } from 'react-redux';
+import { setUser } from '../../../slices/authSlice';
+
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import CustomInput from '../../../components/CustomInput';
+import { AuthStackParamList } from '../AuthNavigator';
+import { useResetPassword } from '../hooks/useAuth';
+
+const { width, height } = Dimensions.get('window');
+const wp = (percentage: number) => (width * percentage) / 100;
+const hp = (percentage: number) => (height * percentage) / 100;
+
+type ResetPassProps = NativeStackScreenProps<AuthStackParamList, 'ResetPass'>;
+
+const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
+  const resetPassword = useResetPassword();
+
+  const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [slideAnim] = useState<Animated.Value>(new Animated.Value(-300));
+  const [apiError, setApiError] = useState<string>('');
+  const [isEmptyError, setIsEmptyError] = useState<boolean>(false);
+  const [apiErrorBorder, setApiErrorBorder] = useState<boolean>(false);
+
+  const phoneNumber = route?.params?.phoneNumber;
+  const otp = route?.params?.otp;
+
+  const handleFocus = (fieldName: string) => setFocusedField(fieldName);
+
+  const handlePasswordChange = (text: string) => {
+    if (isEmptyError) setIsEmptyError(false);
+    if (apiErrorBorder) setApiErrorBorder(false);
+    if (apiError) setApiError('');
+    setPassword(text);
+  };
+
+  const handleConfirmPasswordChange = (text: string) => {
+    if (isEmptyError) setIsEmptyError(false);
+    if (apiErrorBorder) setApiErrorBorder(false);
+    if (apiError) setApiError('');
+    setConfirmPassword(text);
+  };
+
+  const showSuccessPopup = () => {
+    setShowSuccessModal(true);
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+
+    setTimeout(() => {
+      hideSuccessPopup();
+      navigation.navigate('LoginScreen');
+    }, 3000);
+  };
+
+  const hideSuccessPopup = () => {
+    Animated.timing(slideAnim, {
+      toValue: -300,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => setShowSuccessModal(false));
+  };
+
+  const dispatch = useDispatch();
+
+  const handleSubmit = () => {
+    console.log('Reset Password Submit:', {
+      password,
+      confirmPassword,
+      phoneNumber,
+      otp,
+    });
+
+    setApiError('');
+    setIsEmptyError(false);
+    setApiErrorBorder(false);
+    setFocusedField(null);
+
+    const isPasswordEmpty = !password?.trim();
+    const isConfirmPasswordEmpty = !confirmPassword?.trim();
+
+    if (isPasswordEmpty || isConfirmPasswordEmpty) {
+      setIsEmptyError(true);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setIsEmptyError(true);
+      return;
+    }
+
+    if (!phoneNumber || !otp) {
+      Alert.alert(
+        'Error',
+        'Missing required information. Please retry the forgot password process.',
+      );
+      return;
+    }
+
+    resetPassword.mutate(
+      { phoneNumber, otp, newPassword: password },
+      {
+        onSuccess: (response: any) => {
+          console.log('✅ Reset password success:', response);
+
+          const data = response?.data || response;
+          const { accessToken, refreshToken, user } = data || {};
+
+          if (accessToken && user) {
+            dispatch(
+              setUser({
+                user,
+                accessToken,
+                refreshToken,
+              }),
+            );
+            console.log('✅ User state updated after reset:', user);
+          } else {
+            console.warn('⚠️ Unexpected reset response shape:', response);
+          }
+
+          showSuccessPopup();
+        },
+        onError: (err: any) => {
+          console.log('❌ Reset password API error:', err);
+          const errorMessage =
+            err?.response?.data?.message ||
+            err?.message ||
+            'Failed to reset password. Please try again.';
+          setApiError(errorMessage);
+          setApiErrorBorder(true);
+        },
+      },
+    );
+  };
+
+  return (
+    <LinearGradient
+      colors={['#FFF4FD', '#fef3f9']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+      style={styles.container}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.mainContainer}>
+            {/* Back Button */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={wp(6)} color="#000" />
+            </TouchableOpacity>
+
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.title}>Reset Password</Text>
+              <Text style={styles.subtitle}>
+                Enter your new password below to reset your account password.
+              </Text>
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <CustomInput
+                label="New Password"
+                placeholder="Enter new password"
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={handlePasswordChange}
+                onBlur={() => setFocusedField(null)}
+                onFocus={() => handleFocus('password')}
+                focused={focusedField === 'password'}
+                error={isEmptyError || apiErrorBorder}
+                showErrorText={false}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye' : 'eye-off'}
+                  size={wp(5)}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Confirm Password Input */}
+            <View style={styles.inputContainer}>
+              <CustomInput
+                label="Confirm Password"
+                placeholder="Confirm password"
+                secureTextEntry={!showConfirmPassword}
+                value={confirmPassword}
+                onChangeText={handleConfirmPasswordChange}
+                onBlur={() => setFocusedField(null)}
+                onFocus={() => handleFocus('confirmPassword')}
+                focused={focusedField === 'confirmPassword'}
+                error={isEmptyError || apiErrorBorder}
+                showErrorText={false}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <Ionicons
+                  name={showConfirmPassword ? 'eye' : 'eye-off'}
+                  size={wp(5)}
+                  color="#6a5f5fff"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                resetPassword.isPending && styles.disabledButton,
+              ]}
+              onPress={handleSubmit}
+              disabled={resetPassword.isPending}
+              activeOpacity={0.8}
+            >
+              <View style={styles.buttonContent}>
+                {resetPassword.isPending && (
+                  <ActivityIndicator
+                    size="small"
+                    color="#fff"
+                    style={styles.loader}
+                  />
+                )}
+                <Text style={styles.buttonText}>
+                  {resetPassword.isPending ? 'Resetting...' : 'Reset Password'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={hideSuccessPopup}
+      >
+        <View style={styles.fullScreenModal}>
+          <View style={styles.successContent}>
+            <Image
+              source={require('../../../assets/images/ThannkTick.png')}
+              style={styles.thankTickImage}
+              resizeMode="contain"
+            />
+          </View>
+        </View>
+      </Modal>
+    </LinearGradient>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  keyboardAvoidingView: { flex: 1 },
+  scrollView: { flex: 1 },
+  mainContainer: { paddingHorizontal: 30 },
+  scrollContent: {
+    paddingHorizontal: wp(6),
+    paddingBottom: hp(25),
+    minHeight: height + hp(10),
+  },
+  backButton: {
+    backgroundColor: '#fff',
+    width: wp(10),
+    height: wp(10),
+    borderRadius: wp(5),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: hp(5),
+    marginBottom: hp(2),
+  },
+  header: { marginTop: hp(5), marginBottom: hp(4) },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#C539A5',
+    marginBottom: hp(0.1),
+  },
+  subtitle: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#444',
+    lineHeight: hp(2.2),
+  },
+  submitButton: {
+    marginTop: hp(3),
+    marginBottom: hp(4),
+    backgroundColor: '#C539A5',
+    borderRadius: wp(3),
+    paddingVertical: hp(1.8),
+    paddingHorizontal: wp(8),
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+    elevation: 0,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loader: {
+    marginRight: wp(2),
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: wp(4.5),
+    fontWeight: 'bold',
+  },
+  inputContainer: {
+    position: 'relative',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: wp(2),
+    top: wp(10),
+    padding: wp(1),
+    zIndex: 1,
+  },
+  fullScreenModal: {
+    flex: 1,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thankTickImage: {
+    width: wp(60),
+    height: wp(60),
+  },
+});
+
+export default ResetPass;
