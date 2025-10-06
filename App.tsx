@@ -1,41 +1,43 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
+ * Main React Native App
  */
+
+import 'react-native-get-random-values';
+import 'react-native-url-polyfill/auto';
 
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
-import { Provider, useDispatch, useSelector } from 'react-redux';
-enableScreens();
 
+import { Provider } from 'react-redux';
 import AppNavigator from './src/app/navigation/AppNavigator';
 import AuthNavigator from './src/features/auth/AuthNavigator';
-import { AppDispatch, RootState, store } from './src/slices';
-import { hydrateAuth } from './src/slices/authSlice';
+import { supabase } from './src/services/supabase';
+import { store } from './src/slices';
 
-// ⚡ create a react-query client
+enableScreens();
+
+// ⚡ React Query client
 const queryClient = new QueryClient();
 
-// 🔐 Handles deciding whether user is logged in or not
 const AuthGate = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated, loading } = useSelector(
-    (state: RootState) => state.auth,
-  );
+  const [user, setUser] = useState<any>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
 
-  // Run hydration once on startup
   useEffect(() => {
-    dispatch(hydrateAuth());
-  }, [dispatch]);
+    const checkSupabaseSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user ?? null);
+      setCheckingSession(false);
+    };
 
-  // 🌀 Show loader until hydration completes
-  if (loading) {
+    checkSupabaseSession();
+  }, []);
+
+  if (checkingSession) {
     return (
       <View
         style={{
@@ -50,25 +52,14 @@ const AuthGate = () => {
     );
   }
 
-  // ✅ Authenticated → AppNavigator | Not Authenticated → AuthNavigator
-  console.log(
-    '[AuthGate] Render → isAuthenticated:',
-    isAuthenticated,
-    '| loading:',
-    loading,
-  );
-
-  // ✅ Authenticated → AppNavigator | Not Authenticated → AuthNavigator
   return (
     <NavigationContainer>
-      {isAuthenticated ? <AppNavigator /> : <AuthNavigator />}
+      {user ? <AppNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );
 };
 
-function App() {
-  // const isDarkMode = useColorScheme() === 'dark';
-
+const App = () => {
   return (
     <SafeAreaProvider>
       <Provider store={store}>
@@ -78,6 +69,6 @@ function App() {
       </Provider>
     </SafeAreaProvider>
   );
-}
+};
 
 export default App;
