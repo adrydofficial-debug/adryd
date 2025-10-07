@@ -1,10 +1,12 @@
 // src/features/auth/screens/ForgotPassword.tsx
+
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Formik, FormikHelpers } from 'formik';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -20,10 +22,12 @@ import * as Yup from 'yup';
 import CustomInput from '../../../components/CustomInput';
 import OTPModal from '../../../components/OTPModal';
 import { AuthStackParamList } from '../AuthNavigator';
-import { useForgotPassword } from '../hooks/useAuth';
-import { ForgotPasswordRequest } from '../types';
+import {
+  useForgotPassword,
+  useLogin,
+  useResetPassword,
+} from '../hooks/useAuth';
 
-// ---------- Layout helpers ----------
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -32,8 +36,13 @@ const hp = (percentage: number) => (height * percentage) / 100;
 const validationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
     .required('Phone number is required')
-    .min(13, 'Phone number must be at least 10 digits')
     .matches(/^\+92[0-9]{10}$/, 'Phone number must be in format +92XXXXXXXXXX'),
+  newPassword: Yup.string()
+    .required('New password is required')
+    .min(6, 'Password must be at least 6 characters'),
+  confirmPassword: Yup.string()
+    .oneOf([Yup.ref('newPassword')], 'Passwords must match')
+    .required('Please confirm your password'),
 });
 
 // ---------- Component ----------
@@ -41,88 +50,72 @@ const ForgotPassword: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
 
-  const forgotPassword = useForgotPassword();
+  const forgotPassword = useForgotPassword(); // sends OTP
+  const resetPassword = useResetPassword(); // verifies OTP + updates password
+  const login = useLogin(); // Logs in with new password
+
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [apiError, setApiError] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [isEmptyError, setIsEmptyError] = useState(false);
-  const [apiErrorBorder, setApiErrorBorder] = useState(false);
-
-  // ---------- Input Handling ----------
-  const handleFocus = (fieldName: string) => {
-    setFocusedField(fieldName);
-  };
-
-  const handlePhoneNumberChange = (
-    text: string,
-    setFieldValue: (field: string, value: any) => void,
-  ) => {
-    if (isEmptyError) setIsEmptyError(false);
-    if (apiError) setApiError('');
-    if (apiErrorBorder) setApiErrorBorder(false);
-
-    const cleaned = text.replace(/[^0-9+]/g, '');
-    if (!cleaned.startsWith('+92')) {
-      setFieldValue('phoneNumber', '+92');
-      return;
-    }
-    if (cleaned.length <= 13) {
-      setFieldValue('phoneNumber', cleaned);
-    }
-  };
 
   // ---------- Submit ----------
   const handleSubmit = (
-    values: ForgotPasswordRequest,
-    { setSubmitting }: FormikHelpers<ForgotPasswordRequest>,
+    values: {
+      phoneNumber: string;
+      newPassword: string;
+      confirmPassword: string;
+    },
+    { setSubmitting }: FormikHelpers<any>,
   ) => {
-    setApiError('');
-    setIsEmptyError(false);
-    setApiErrorBorder(false);
-    setFocusedField(null);
-
-    const isPhoneNumberEmpty =
-      !values.phoneNumber ||
-      values.phoneNumber === '+92' ||
-      values.phoneNumber.length < 13;
-
-    if (isPhoneNumberEmpty) {
-      setIsEmptyError(true);
-      return;
-    }
-
     forgotPassword.mutate(
-      { phoneNumber: values.phoneNumber },
+      { phone: values.phoneNumber },
       {
         onSuccess: () => {
           setSubmitting(false);
           setPhoneNumber(values.phoneNumber);
+          setNewPassword(values.newPassword);
           setShowOTPModal(true);
         },
         onError: (err: any) => {
           setSubmitting(false);
           console.warn('Forgot Password error:', err);
-          const errorMessage =
+          Alert.alert(
+            'Error',
             err?.response?.data?.message ||
-            err?.message ||
-            'Failed to send reset instructions. Please try again.';
-          setApiError(errorMessage);
-          setApiErrorBorder(true);
+              err?.message ||
+              'Failed to send OTP. Please try again.',
+          );
         },
       },
     );
   };
 
-  const handleOTPVerify = (otp: string) => {
-    setShowOTPModal(false);
-    navigation.navigate('ResetPass', { phoneNumber, otp });
+  // ---------- OTP Verify ----------
+  const handleOTPVerify = async (otp: string) => {
+    try {
+      await resetPassword.mutateAsync({
+        phone: phoneNumber,
+        otp,
+        newPassword,
+      });
+
+      // ✅ Automatically log the user in after reset
+      await login.mutateAsync({ phone: phoneNumber, password: newPassword });
+
+      setShowOTPModal(false);
+      Alert.alert('Success', 'Your password has been reset!');
+      // ❌ No need to navigate; App.tsx will pick up new session and reroute
+    } catch (error) {
+      console.warn('Reset Password error:', error);
+      Alert.alert('Error', 'Invalid or expired OTP. Please try again.');
+    }
   };
 
   const handleResendOTP = async (): Promise<void> => {
     await new Promise<void>((resolve, reject) => {
       forgotPassword.mutate(
-        { phoneNumber },
+        { phone: phoneNumber },
         {
           onSuccess: () => resolve(),
           onError: err => reject(err),
@@ -131,7 +124,6 @@ const ForgotPassword: React.FC = () => {
     });
   };
 
-  // ---------- Render ----------
   return (
     <LinearGradient
       colors={['#FFF4FD', '#fef3f9']}
@@ -159,44 +151,79 @@ const ForgotPassword: React.FC = () => {
           </TouchableOpacity>
 
           <View style={styles.mainContainer}>
-            {/* Header */}
             <View style={styles.header}>
               <Text style={styles.title}>Forgot Password</Text>
               <Text style={styles.subtitle}>
-                Enter your phone number (Without +92) and we'll send you an OTP
-                on WhatsApp to reset your password.
+                Enter your phone number and new password. We'll send you an OTP
+                on WhatsApp to confirm the reset.
               </Text>
             </View>
 
-            <Formik<ForgotPasswordRequest>
-              initialValues={{ phoneNumber: '+92' }}
+            <Formik
+              initialValues={{
+                phoneNumber: '+923236102030',
+                newPassword: '6AJ$kk3m9',
+                confirmPassword: '6AJ$kk3m9',
+              }}
               validationSchema={validationSchema}
               onSubmit={handleSubmit}
             >
               {({
+                handleChange,
                 handleBlur,
-                handleSubmit: formikHandleSubmit,
+                handleSubmit: formikSubmit,
                 values,
+                errors,
+                touched,
                 isSubmitting,
-                setFieldValue,
               }) => (
                 <>
                   <CustomInput
                     label="Phone Number"
-                    placeholder="3XXXXXXXXX"
+                    placeholder="+923XXXXXXXXX"
                     keyboardType="phone-pad"
                     value={values.phoneNumber}
-                    onChangeText={text =>
-                      handlePhoneNumberChange(text, setFieldValue)
-                    }
-                    onBlur={() => {
-                      setFocusedField(null);
-                      handleBlur('phoneNumber');
-                    }}
-                    onFocus={() => handleFocus('phoneNumber')}
+                    onChangeText={handleChange('phoneNumber')}
+                    onBlur={() => handleBlur('phoneNumber')}
+                    onFocus={() => setFocusedField('phoneNumber')}
                     focused={focusedField === 'phoneNumber'}
-                    error={isEmptyError || apiErrorBorder}
-                    showErrorText={false}
+                    error={
+                      touched.phoneNumber && errors.phoneNumber
+                        ? errors.phoneNumber
+                        : undefined
+                    }
+                  />
+
+                  <CustomInput
+                    label="New Password"
+                    placeholder="Enter new password"
+                    secureTextEntry
+                    value={values.newPassword}
+                    onChangeText={handleChange('newPassword')}
+                    onBlur={() => handleBlur('newPassword')}
+                    onFocus={() => setFocusedField('newPassword')}
+                    focused={focusedField === 'newPassword'}
+                    error={
+                      touched.newPassword && errors.newPassword
+                        ? errors.newPassword
+                        : undefined
+                    }
+                  />
+
+                  <CustomInput
+                    label="Confirm Password"
+                    placeholder="Re-enter new password"
+                    secureTextEntry
+                    value={values.confirmPassword}
+                    onChangeText={handleChange('confirmPassword')}
+                    onBlur={() => handleBlur('confirmPassword')}
+                    onFocus={() => setFocusedField('confirmPassword')}
+                    focused={focusedField === 'confirmPassword'}
+                    error={
+                      touched.confirmPassword && errors.confirmPassword
+                        ? errors.confirmPassword
+                        : undefined
+                    }
                   />
 
                   <TouchableOpacity
@@ -205,7 +232,7 @@ const ForgotPassword: React.FC = () => {
                       (isSubmitting || forgotPassword.isPending) &&
                         styles.disabledButton,
                     ]}
-                    onPress={formikHandleSubmit as any}
+                    onPress={formikSubmit as any}
                     disabled={isSubmitting || forgotPassword.isPending}
                     activeOpacity={0.8}
                   >
@@ -220,7 +247,7 @@ const ForgotPassword: React.FC = () => {
                       <Text style={styles.buttonText}>
                         {isSubmitting || forgotPassword.isPending
                           ? 'Sending...'
-                          : 'Submit'}
+                          : 'Continue'}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -228,7 +255,6 @@ const ForgotPassword: React.FC = () => {
               )}
             </Formik>
 
-            {/* Footer */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>Remember your password? </Text>
               <TouchableOpacity

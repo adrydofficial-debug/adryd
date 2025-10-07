@@ -17,18 +17,18 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useDispatch } from 'react-redux';
 import * as Yup from 'yup';
 import CustomInput from '../../../components/CustomInput';
-import { setLoginError, setUser } from '../../../slices/authSlice';
+import { useAuthStore } from '../../../store/authStore';
 import { AuthStackParamList } from '../AuthNavigator';
 import { useLogin } from '../hooks/useAuth';
 import { LoginCredentials } from '../types';
 
 const { width, height } = Dimensions.get('window');
-const wp = (percentage: number) => (width * percentage) / 100;
-const hp = (percentage: number) => (height * percentage) / 100;
+const wp = (p: number) => (width * p) / 100;
+const hp = (p: number) => (height * p) / 100;
 
+// ✅ Yup validation
 const loginValidationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
     .required('Phone number is required')
@@ -39,29 +39,24 @@ const loginValidationSchema = Yup.object().shape({
 const LoginScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
-  const dispatch = useDispatch();
-
   const loginMutation = useLogin();
+  const setUser = useAuthStore(s => s.setUser);
+
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [apiError, setApiError] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
-  const handleFocus = (fieldName: string) => setFocusedField(fieldName);
-
-  const handleBlur = (
-    fieldName: string,
-    formikBlur: (field: string) => void,
-  ) => {
+  const handleFocus = (field: string) => setFocusedField(field);
+  const handleBlur = (field: string, formikBlur: (f: string) => void) => {
     setFocusedField(null);
-    formikBlur(fieldName);
+    formikBlur(field);
   };
 
   const handlePhoneNumberChange = (
     text: string,
-    setFieldValue: (field: string, value: any) => void,
+    setFieldValue: (f: string, v: any) => void,
   ) => {
-    if (apiError) setApiError(false);
+    if (apiError) setApiError(null);
     const cleaned = text.replace(/[^0-9+]/g, '');
     if (!cleaned.startsWith('+92')) {
       setFieldValue('phoneNumber', '+92');
@@ -74,7 +69,7 @@ const LoginScreen: React.FC = () => {
     text: string,
     handleChange: (value: string) => void,
   ) => {
-    if (apiError) setApiError(false);
+    if (apiError) setApiError(null);
     handleChange(text);
   };
 
@@ -82,44 +77,26 @@ const LoginScreen: React.FC = () => {
     values: LoginCredentials,
     { validateForm, setTouched }: FormikHelpers<LoginCredentials>,
   ) => {
-    setApiError(false);
+    setApiError(null);
     setTouched({ phoneNumber: true, password: true });
     const errors = await validateForm();
     if (Object.keys(errors).length > 0) return;
 
-    setIsLoading(true);
-    setFocusedField(null);
-
     loginMutation.mutate(
       {
-        phoneNumber: values.phoneNumber,
+        phone: values.phoneNumber,
         password: values.password,
       },
       {
-        onSuccess: (response: any) => {
-          setIsLoading(false);
-          console.log('✅ Login success:', response);
-
-          const data = response?.data || response; // handle both shapes
-          const { accessToken, refreshToken, user } = data || {};
-
-          if (accessToken && user) {
-            dispatch(
-              setUser({
-                user,
-                accessToken,
-                refreshToken,
-              }),
-            );
-          } else {
-            console.warn('⚠️ Unexpected login response shape:', response);
+        onSuccess: user => {
+          if (user) {
+            setUser(user);
+            console.log('✅ Login success:', user);
           }
         },
         onError: (error: any) => {
           console.log('❌ Login failed:', error);
-          setIsLoading(false);
-          setApiError(true);
-          dispatch(setLoginError(error?.message || 'Login failed'));
+          setApiError(error?.message || 'Login failed');
         },
       },
     );
@@ -168,6 +145,7 @@ const LoginScreen: React.FC = () => {
                 setFieldValue,
               }) => (
                 <>
+                  {/* Phone input */}
                   <CustomInput
                     label="Phone Number"
                     placeholder="3XXXXXXXXX"
@@ -185,7 +163,7 @@ const LoginScreen: React.FC = () => {
                     showErrorText={false}
                   />
 
-                  {/* Password Input */}
+                  {/* Password input */}
                   <View style={styles.passwordContainer}>
                     <Text style={styles.inputLabel}>Your Password</Text>
                     <View style={styles.passwordInputContainer}>
@@ -222,6 +200,7 @@ const LoginScreen: React.FC = () => {
                     </View>
                   </View>
 
+                  {/* Forgot password */}
                   <TouchableOpacity
                     style={styles.forgotPasswordContainer}
                     onPress={() => navigation.navigate('ForgotPassword')}
@@ -231,17 +210,18 @@ const LoginScreen: React.FC = () => {
                     </Text>
                   </TouchableOpacity>
 
+                  {/* Login button */}
                   <TouchableOpacity
                     style={[
                       styles.loginButton,
-                      isLoading && styles.disabledButton,
+                      loginMutation.isPending && styles.disabledButton,
                     ]}
                     onPress={() => handleSubmit()}
-                    disabled={isLoading}
+                    disabled={loginMutation.isPending}
                     activeOpacity={0.8}
                   >
                     <View style={styles.buttonContent}>
-                      {isLoading && (
+                      {loginMutation.isPending && (
                         <ActivityIndicator
                           size="small"
                           color="#fff"
@@ -249,7 +229,7 @@ const LoginScreen: React.FC = () => {
                         />
                       )}
                       <Text style={styles.buttonText}>
-                        {isLoading ? 'Logging in...' : 'Login'}
+                        {loginMutation.isPending ? 'Logging in...' : 'Login'}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -275,6 +255,7 @@ const LoginScreen: React.FC = () => {
   );
 };
 
+// 🔹 Styles
 const styles = StyleSheet.create({
   container: { flex: 1 },
   keyboardAvoidingView: { flex: 1 },

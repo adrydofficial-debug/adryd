@@ -1,10 +1,9 @@
-import {Formik} from 'formik';
-import React, {useState} from 'react';
+import { Formik } from 'formik';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -17,13 +16,14 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Yup from 'yup';
 import CustomInput from '../../../components/CustomInput';
-import {useRegister} from '../hooks/useAuth';
-import {RegisterRequest} from '../types';
+import OTPModal from '../../../components/OTPModal';
+import { supabase } from '../../../services/supabase';
+import { useRegister, useVerifyOtp } from '../hooks/useAuth';
 
 // ----------------------
 // Helpers
 // ----------------------
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
 
@@ -57,31 +57,34 @@ interface PasswordValidation {
 const validationSchema = Yup.object().shape({
   password: Yup.string()
     .matches(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-      'Password must contain one uppercase, one lowercase, one number, and one special character',
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
+      'Must include uppercase, lowercase, number, and special character',
     )
     .required('Password is required'),
+  phoneNumber: Yup.string()
+    .matches(/^\+92\d{10}$/, 'Invalid phone number')
+    .required('Phone number is required'),
 });
 
 // ----------------------
 // Component
 // ----------------------
-const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
+const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const registerMutation = useRegister();
-  const [showSuccess, setShowSuccess] = useState(false);
+  const verifyOtpMutation = useVerifyOtp();
+
+  const [showOtpModal, setShowOtpModal] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [userDataForVerify, setUserDataForVerify] =
-    useState<RegisterFormValues | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [passwordValidation, setPasswordValidation] =
-    useState<PasswordValidation>({
-      hasUppercase: false,
-      hasLowercase: false,
-      hasNumber: false,
-      hasSpecial: false,
-    });
+  const [phone, setPhone] = useState('');
+  const [, setPasswordValidation] = useState<PasswordValidation>({
+    hasUppercase: false,
+    hasLowercase: false,
+    hasNumber: false,
+    hasSpecial: false,
+  });
 
   // ----------------------
   // Handlers
@@ -94,126 +97,102 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
       hasSpecial: /[@$!%*?&]/.test(password),
     };
     setPasswordValidation(validation);
-    return validation;
   };
 
-  const handleFocus = (fieldName: string) => {
-    setFocusedField(fieldName);
-    if (apiError) setApiError(false);
-  };
-
-  const handlePhoneNumberChange = (
-    text: string,
-    setFieldValue: (field: string, value: string) => void,
-  ) => {
-    if (apiError) setApiError(false);
+  const handlePhoneChange = (text: string, setFieldValue: any) => {
+    setApiError(false);
     const cleaned = text.replace(/[^0-9+]/g, '');
     if (!cleaned.startsWith('+92')) {
       setFieldValue('phoneNumber', '+92');
       return;
     }
-    if (cleaned.length <= 13) {
-      setFieldValue('phoneNumber', cleaned);
-    }
-  };
-
-  const handlePasswordChange = (
-    text: string,
-    handleChange: (value: string) => void,
-  ) => {
-    if (apiError) setApiError(false);
-    handleChange(text);
+    if (cleaned.length <= 13) setFieldValue('phoneNumber', cleaned);
   };
 
   const handleRegister = (values: RegisterFormValues) => {
     setApiError(false);
-    setFocusedField(null);
-
-    const isUsernameEmpty = !values.username?.trim();
-    const isCompanyNameEmpty = !values.companyName?.trim();
-    const isPhoneNumberEmpty = values.phoneNumber === '+92';
-    const isPasswordEmpty = !values.password?.trim();
-
-    if (
-      isUsernameEmpty ||
-      isCompanyNameEmpty ||
-      isPhoneNumberEmpty ||
-      isPasswordEmpty
-    ) {
-      setApiError(true);
-      return;
-    }
-
     setIsLoading(true);
 
-    // Preserve full payload like JS version
-    const payload: RegisterRequest = {
-      name: values.username,
-      phoneNumber: values.phoneNumber,
+    const payload = {
+      phone: values.phoneNumber,
       password: values.password,
     };
 
     registerMutation.mutate(payload, {
       onSuccess: () => {
         setIsLoading(false);
-        setUserDataForVerify(values);
-        setShowSuccess(true);
-
-        setTimeout(() => {
-          setShowSuccess(false);
-          navigation.navigate('VerificationCode', values);
-        }, 1800);
+        setPhone(values.phoneNumber);
+        setShowOtpModal(true); // show OTP modal instead of navigating away
       },
       onError: err => {
-        console.warn('Registration error:', err);
+        console.warn('Register error:', err);
         setIsLoading(false);
         setApiError(true);
       },
     });
   };
 
+  const handleVerifyOtp = (otp: string) => {
+    verifyOtpMutation.mutate(
+      { phone, otp },
+      {
+        onSuccess: () => {
+          setShowOtpModal(false);
+          navigation.navigate('Home'); // redirect after success
+        },
+        onError: err => {
+          console.warn('OTP verify error:', err);
+        },
+      },
+    );
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      await supabase.auth.signInWithOtp({ phone });
+    } catch (error) {
+      console.warn('Resend OTP error:', error);
+    }
+  };
+
   // ----------------------
   // JSX
   // ----------------------
   return (
-    <LinearGradient
-      colors={['#FFF4FD', '#fef3f9']}
-      start={{x: 0, y: 0}}
-      end={{x: 0, y: 1}}
-      style={styles.container}>
+    <LinearGradient colors={['#FFF4FD', '#fef3f9']} style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidingView}>
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+        >
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}>
+            onPress={() => navigation.goBack()}
+          >
             <Ionicons name="arrow-back" size={wp(6)} color="#000" />
           </TouchableOpacity>
 
           <View style={styles.mainContainer}>
-            <View style={styles.header}>
-              <Text style={styles.title}>Register</Text>
-              <Text style={styles.subtitle}>
-                Create an <Text style={styles.highlight}>Account</Text> to
-                access all the features of{' '}
-                <Text style={styles.highlight}>Adryd.</Text>
-              </Text>
-            </View>
+            <Text style={styles.title}>Register</Text>
+            <Text style={styles.subtitle}>
+              Create an <Text style={styles.highlight}>Account</Text> to access
+              all features of <Text style={styles.highlight}>Adryd</Text>.
+            </Text>
 
             <Formik
               initialValues={{
-                username: '',
-                password: '',
-                companyName: '',
-                phoneNumber: '+92',
+                username: 'Han Lee',
+                password: '6AJ$kk3m8',
+                companyName: 'Facility',
+                phoneNumber: '+923236102030',
               }}
               validationSchema={validationSchema}
-              onSubmit={handleRegister}>
+              onSubmit={handleRegister}
+            >
               {({
                 handleChange,
                 handleBlur,
@@ -229,14 +208,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
                     placeholder="Enter Username"
                     value={values.username}
                     onChangeText={handleChange('username')}
-                    onBlur={() => {
-                      setFocusedField(null);
-                      handleBlur('username');
-                    }}
-                    onFocus={() => handleFocus('username')}
+                    onBlur={handleBlur('username')}
                     focused={focusedField === 'username'}
+                    onFocus={() => setFocusedField('username')}
                     error={apiError}
-                    showErrorText={false}
                   />
 
                   <CustomInput
@@ -244,14 +219,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
                     placeholder="Enter Company Name"
                     value={values.companyName}
                     onChangeText={handleChange('companyName')}
-                    onBlur={() => {
-                      setFocusedField(null);
-                      handleBlur('companyName');
-                    }}
-                    onFocus={() => handleFocus('companyName')}
+                    onBlur={handleBlur('companyName')}
                     focused={focusedField === 'companyName'}
+                    onFocus={() => setFocusedField('companyName')}
                     error={apiError}
-                    showErrorText={false}
                   />
 
                   <CustomInput
@@ -260,49 +231,40 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
                     keyboardType="phone-pad"
                     value={values.phoneNumber}
                     onChangeText={text =>
-                      handlePhoneNumberChange(text, setFieldValue)
+                      handlePhoneChange(text, setFieldValue)
                     }
-                    onBlur={() => {
-                      setFocusedField(null);
-                      handleBlur('phoneNumber');
-                    }}
-                    onFocus={() => handleFocus('phoneNumber')}
+                    onBlur={handleBlur('phoneNumber')}
+                    onFocus={() => setFocusedField('phoneNumber')}
                     focused={focusedField === 'phoneNumber'}
-                    error={apiError}
-                    showErrorText={false}
+                    error={!!errors.phoneNumber || apiError}
                   />
 
-                  {/* Password Input */}
+                  {/* Password */}
                   <View style={styles.passwordContainer}>
                     <Text style={styles.inputLabel}>Password</Text>
                     <View style={styles.passwordInputContainer}>
                       <TextInput
                         style={[
                           styles.passwordInput,
-                          (touched.password && errors.password) || apiError
-                            ? styles.inputError
-                            : undefined,
-                          focusedField === 'password'
-                            ? styles.passwordInputFocused
-                            : undefined,
+                          errors.password &&
+                            touched.password &&
+                            styles.inputError,
                         ]}
                         placeholder="Enter Password"
                         secureTextEntry={!showPassword}
                         value={values.password}
                         onChangeText={text => {
-                          handlePasswordChange(text, handleChange('password'));
+                          handleChange('password')(text);
                           validatePassword(text);
                         }}
-                        onBlur={() => {
-                          setFocusedField(null);
-                          handleBlur('password');
-                        }}
-                        onFocus={() => handleFocus('password')}
+                        onBlur={handleBlur('password')}
+                        onFocus={() => setFocusedField('password')}
                         placeholderTextColor="#999"
                       />
                       <TouchableOpacity
                         style={styles.eyeIconContainer}
-                        onPress={() => setShowPassword(!showPassword)}>
+                        onPress={() => setShowPassword(!showPassword)}
+                      >
                         <Ionicons
                           name={showPassword ? 'eye' : 'eye-off'}
                           size={wp(5)}
@@ -310,51 +272,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
                         />
                       </TouchableOpacity>
                     </View>
-
-                    {/* Password Rules */}
-                    {values.password.length > 0 && (
-                      <View style={styles.passwordValidationContainer}>
-                        {[
-                          {
-                            key: 'hasUppercase',
-                            label: 'One uppercase letter (A-Z)',
-                          },
-                          {
-                            key: 'hasLowercase',
-                            label: 'One lowercase letter (a-z)',
-                          },
-                          {key: 'hasNumber', label: 'One number (0-9)'},
-                          {
-                            key: 'hasSpecial',
-                            label: 'One special character (@$!%*?&)',
-                          },
-                        ].map(({key, label}) => {
-                          const valid =
-                            passwordValidation[key as keyof PasswordValidation];
-                          return (
-                            <View style={styles.validationItem} key={key}>
-                              <Ionicons
-                                name={
-                                  valid ? 'checkmark-circle' : 'close-circle'
-                                }
-                                size={wp(4)}
-                                color={valid ? '#4CAF50' : '#ff4444'}
-                              />
-                              <Text
-                                style={[
-                                  styles.validationText,
-                                  {
-                                    color: valid ? '#4CAF50' : '#ff4444',
-                                  },
-                                ]}>
-                                {label}
-                              </Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    )}
-
                     {touched.password && errors.password && (
                       <Text style={styles.errorText}>{errors.password}</Text>
                     )}
@@ -367,7 +284,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
                     ]}
                     onPress={handleSubmit as any}
                     disabled={isLoading}
-                    activeOpacity={0.8}>
+                  >
                     <View style={styles.buttonContent}>
                       {isLoading && (
                         <ActivityIndicator
@@ -389,7 +306,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account?</Text>
               <TouchableOpacity
-                onPress={() => navigation.navigate('LoginScreen')}>
+                onPress={() => navigation.navigate('LoginScreen')}
+              >
                 <Text style={styles.loginLink}> Login</Text>
               </TouchableOpacity>
             </View>
@@ -397,42 +315,30 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Success Modal */}
-      <Modal
-        visible={showSuccess}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowSuccess(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalIcon}>
-              <Ionicons name="checkmark-circle" size={wp(15)} color="#4CAF50" />
-            </View>
-            <Text style={styles.modalTitle}>OTP Sent</Text>
-            <Text style={styles.modalMessage}>
-              We sent an OTP to {userDataForVerify?.phoneNumber}. Enter it on
-              the next screen to finish registration.
-            </Text>
-            <View style={styles.modalCountdown}>
-              <Text style={styles.modalCountdownText}>Redirecting…</Text>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* OTP Modal */}
+      <OTPModal
+        visible={showOtpModal}
+        phoneNumber={phone}
+        onClose={() => setShowOtpModal(false)}
+        onVerify={handleVerifyOtp}
+        onResend={handleResendOtp}
+      />
     </LinearGradient>
   );
 };
 
+// ----------------------
+// Styles
+// ----------------------
 const styles = StyleSheet.create({
-  container: {flex: 1},
-  keyboardAvoidingView: {flex: 1},
-  scrollView: {flex: 1},
-  mainContainer: {paddingHorizontal: 30},
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
   scrollContent: {
     paddingHorizontal: wp(6),
-    paddingBottom: hp(35),
-    minHeight: height + hp(20),
+    paddingBottom: hp(20),
+    minHeight: height + hp(10),
   },
+  mainContainer: { paddingHorizontal: 20 },
   backButton: {
     backgroundColor: '#fff',
     width: wp(10),
@@ -441,201 +347,58 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: hp(5),
-    marginBottom: hp(2),
   },
-  header: {marginTop: hp(2), marginBottom: hp(3)},
   title: {
     fontSize: 26,
     fontWeight: '700',
     color: '#C539A5',
-    marginBottom: hp(0.1),
+    marginTop: hp(2),
   },
   subtitle: {
     fontSize: 14,
-    fontWeight: '400',
     color: '#444',
+    marginBottom: hp(3),
     lineHeight: hp(2.2),
   },
-  highlight: {color: '#C539A5', fontWeight: 'bold'},
+  highlight: { color: '#C539A5', fontWeight: 'bold' },
   registerButton: {
-    marginTop: hp(2),
     backgroundColor: '#C539A5',
-    paddingVertical: hp(1.5),
-    paddingHorizontal: wp(6),
+    paddingVertical: hp(1.6),
     borderRadius: wp(3),
     alignItems: 'center',
-    justifyContent: 'center',
+    marginTop: hp(3),
   },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: wp(4),
-    fontWeight: 'bold',
-  },
-  loader: {
-    marginRight: wp(2),
-  },
+  disabledButton: { opacity: 0.7 },
+  buttonContent: { flexDirection: 'row', alignItems: 'center' },
+  buttonText: { color: '#fff', fontSize: wp(4), fontWeight: 'bold' },
+  loader: { marginRight: wp(2) },
   grayLine: {
     height: 1,
     backgroundColor: '#e2d1d1',
-    marginTop: hp(3),
-    marginBottom: hp(0),
+    marginTop: hp(4),
   },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: hp(3),
-    marginBottom: hp(5),
-  },
-  footerText: {fontSize: wp(3.8), color: '#444'},
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: hp(3) },
+  footerText: { color: '#444', fontSize: wp(3.8) },
   loginLink: {
-    fontSize: wp(3.8),
     color: '#C539A5',
     fontWeight: 'bold',
     textDecorationLine: 'underline',
   },
-  errorContainer: {
-    backgroundColor: '#fff5f5',
-    borderRadius: wp(3),
-    padding: wp(4),
-    marginBottom: hp(2),
-    borderWidth: 1,
-    borderColor: '#ff4444',
-  },
-  errorIcon: {alignItems: 'center', marginBottom: hp(1)},
-  errorTitle: {
-    fontSize: wp(4.5),
-    fontWeight: 'bold',
-    color: '#ff4444',
-    textAlign: 'center',
-    marginBottom: hp(1),
-  },
-  errorMessage: {
-    fontSize: wp(3.8),
-    color: '#d32f2f',
-    textAlign: 'center',
-    marginBottom: hp(2),
-  },
-  retryButton: {
-    backgroundColor: '#ff4444',
-    paddingVertical: hp(1.2),
-    paddingHorizontal: wp(6),
-    borderRadius: wp(2),
-    alignSelf: 'center',
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontSize: wp(3.8),
-    fontWeight: 'bold',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    borderRadius: wp(4),
-    padding: wp(6),
-    marginHorizontal: wp(8),
-    alignItems: 'center',
-    elevation: 5,
-  },
-  modalIcon: {marginBottom: hp(2)},
-  modalTitle: {
-    fontSize: wp(5.5),
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    textAlign: 'center',
-    marginBottom: hp(1.5),
-  },
-  modalMessage: {
-    fontSize: wp(4),
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: wp(5.5),
-    marginBottom: hp(2),
-  },
-  modalCountdown: {
-    backgroundColor: '#4CAF50',
-    borderRadius: wp(2),
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(4),
-  },
-  modalCountdownText: {
-    color: '#fff',
-    fontSize: wp(3.8),
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  passwordContainer: {marginBottom: hp(2)},
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#595959',
-    marginBottom: 8,
-  },
-  passwordInputContainer: {
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  passwordContainer: { marginBottom: hp(2) },
+  inputLabel: { fontSize: 14, color: '#595959', marginBottom: 8 },
+  passwordInputContainer: { flexDirection: 'row', alignItems: 'center' },
   passwordInput: {
     borderWidth: 1,
     borderColor: '#e2d1d1',
     borderRadius: wp(3),
     paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
-    paddingRight: wp(12),
-    fontSize: 12,
-    color: '#000',
-    backgroundColor: '#fff',
-    flex: 1,
     height: hp(6),
+    flex: 1,
+    fontSize: 12,
   },
-  eyeIconContainer: {
-    position: 'absolute',
-    right: wp(4),
-    padding: wp(1),
-    zIndex: 1,
-  },
-  inputError: {borderColor: '#ff4444'},
-  passwordInputFocused: {
-    borderColor: '#C539A5',
-    borderWidth: 2,
-  },
-  passwordValidationContainer: {
-    marginTop: hp(1),
-    padding: wp(3),
-    backgroundColor: '#f8f9fa',
-    borderRadius: wp(2),
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-  },
-  validationItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: hp(0.8),
-  },
-  validationText: {
-    fontSize: wp(3.5),
-    marginLeft: wp(2),
-    fontWeight: '500',
-  },
-  errorText: {
-    color: '#ff4444',
-    fontSize: wp(3.5),
-    marginTop: hp(0.5),
-    marginLeft: wp(1),
-  },
+  inputError: { borderColor: '#ff4444' },
+  eyeIconContainer: { position: 'absolute', right: wp(4) },
+  errorText: { color: '#ff4444', fontSize: wp(3.5), marginTop: hp(0.5) },
 });
 
 export default RegisterScreen;

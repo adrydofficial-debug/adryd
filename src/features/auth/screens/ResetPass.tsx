@@ -1,6 +1,3 @@
-import { useDispatch } from 'react-redux';
-import { setUser } from '../../../slices/authSlice';
-
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import {
@@ -33,22 +30,21 @@ type ResetPassProps = NativeStackScreenProps<AuthStackParamList, 'ResetPass'>;
 const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
   const resetPassword = useResetPassword();
 
-  const [password, setPassword] = useState<string>('');
-  const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState<boolean>(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
-  const [slideAnim] = useState<Animated.Value>(new Animated.Value(-300));
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [slideAnim] = useState(new Animated.Value(-300));
   const [apiError, setApiError] = useState<string>('');
-  const [isEmptyError, setIsEmptyError] = useState<boolean>(false);
-  const [apiErrorBorder, setApiErrorBorder] = useState<boolean>(false);
+  const [isEmptyError, setIsEmptyError] = useState(false);
+  const [apiErrorBorder, setApiErrorBorder] = useState(false);
 
   const phoneNumber = route?.params?.phoneNumber;
   const otp = route?.params?.otp;
 
-  const handleFocus = (fieldName: string) => setFocusedField(fieldName);
+  const handleFocus = (field: string) => setFocusedField(field);
 
   const handlePasswordChange = (text: string) => {
     if (isEmptyError) setIsEmptyError(false);
@@ -75,7 +71,7 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
     setTimeout(() => {
       hideSuccessPopup();
       navigation.navigate('LoginScreen');
-    }, 3000);
+    }, 2500);
   };
 
   const hideSuccessPopup = () => {
@@ -86,31 +82,15 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
     }).start(() => setShowSuccessModal(false));
   };
 
-  const dispatch = useDispatch();
-
   const handleSubmit = () => {
-    console.log('Reset Password Submit:', {
-      password,
-      confirmPassword,
-      phoneNumber,
-      otp,
-    });
-
-    setApiError('');
-    setIsEmptyError(false);
-    setApiErrorBorder(false);
-    setFocusedField(null);
-
-    const isPasswordEmpty = !password?.trim();
-    const isConfirmPasswordEmpty = !confirmPassword?.trim();
-
-    if (isPasswordEmpty || isConfirmPasswordEmpty) {
+    if (!password.trim() || !confirmPassword.trim()) {
       setIsEmptyError(true);
       return;
     }
 
     if (password !== confirmPassword) {
-      setIsEmptyError(true);
+      setApiError('Passwords do not match.');
+      setApiErrorBorder(true);
       return;
     }
 
@@ -123,36 +103,15 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
     }
 
     resetPassword.mutate(
-      { phoneNumber, otp, newPassword: password },
+      { phone: phoneNumber, otp, newPassword: password },
       {
-        onSuccess: (response: any) => {
-          console.log('✅ Reset password success:', response);
-
-          const data = response?.data || response;
-          const { accessToken, refreshToken, user } = data || {};
-
-          if (accessToken && user) {
-            dispatch(
-              setUser({
-                user,
-                accessToken,
-                refreshToken,
-              }),
-            );
-            console.log('✅ User state updated after reset:', user);
-          } else {
-            console.warn('⚠️ Unexpected reset response shape:', response);
-          }
-
+        onSuccess: () => {
           showSuccessPopup();
         },
         onError: (err: any) => {
-          console.log('❌ Reset password API error:', err);
-          const errorMessage =
-            err?.response?.data?.message ||
-            err?.message ||
-            'Failed to reset password. Please try again.';
-          setApiError(errorMessage);
+          const message =
+            err?.message || 'Failed to reset password. Please try again.';
+          setApiError(message);
           setApiErrorBorder(true);
         },
       },
@@ -245,6 +204,9 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
 
+            {/* Error Message */}
+            {apiError ? <Text style={styles.errorText}>{apiError}</Text> : null}
+
             {/* Submit Button */}
             <TouchableOpacity
               style={[
@@ -275,7 +237,7 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
       {/* Success Modal */}
       <Modal
         visible={showSuccessModal}
-        transparent={false}
+        transparent
         animationType="fade"
         onRequestClose={hideSuccessPopup}
       >
@@ -297,12 +259,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   keyboardAvoidingView: { flex: 1 },
   scrollView: { flex: 1 },
-  mainContainer: { paddingHorizontal: 30 },
   scrollContent: {
     paddingHorizontal: wp(6),
     paddingBottom: hp(25),
     minHeight: height + hp(10),
   },
+  mainContainer: { paddingHorizontal: 30 },
   backButton: {
     backgroundColor: '#fff',
     width: wp(10),
@@ -326,6 +288,20 @@ const styles = StyleSheet.create({
     color: '#444',
     lineHeight: hp(2.2),
   },
+  inputContainer: { position: 'relative' },
+  eyeIcon: {
+    position: 'absolute',
+    right: wp(2),
+    top: wp(10),
+    padding: wp(1),
+    zIndex: 1,
+  },
+  errorText: {
+    color: '#E63946',
+    textAlign: 'center',
+    marginTop: 5,
+    fontSize: 13,
+  },
   submitButton: {
     marginTop: hp(3),
     marginBottom: hp(4),
@@ -346,23 +322,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loader: {
-    marginRight: wp(2),
-  },
+  loader: { marginRight: wp(2) },
   buttonText: {
     color: '#fff',
     fontSize: wp(4.5),
     fontWeight: 'bold',
-  },
-  inputContainer: {
-    position: 'relative',
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: wp(2),
-    top: wp(10),
-    padding: wp(1),
-    zIndex: 1,
   },
   fullScreenModal: {
     flex: 1,

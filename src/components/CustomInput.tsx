@@ -5,12 +5,13 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TextInputProps,
   TextStyle,
   View,
   ViewStyle,
 } from 'react-native';
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
 
@@ -19,8 +20,8 @@ interface CustomInputProps {
   placeholder?: string;
   value: string;
   onChangeText: (text: string) => void;
-  onBlur?: () => void;
-  onFocus?: () => void;
+  onBlur?: TextInputProps['onBlur'];
+  onFocus?: TextInputProps['onFocus'];
   secureTextEntry?: boolean;
   keyboardType?:
     | 'default'
@@ -40,7 +41,10 @@ interface CustomInputProps {
   containerStyle?: ViewStyle;
   inputStyle?: TextStyle;
   labelStyle?: TextStyle;
-  error?: string | boolean;
+
+  /** ✅ allow null safely */
+  error?: string | boolean | null;
+
   focused?: boolean;
   showErrorText?: boolean;
 }
@@ -62,22 +66,24 @@ const CustomInput: React.FC<CustomInputProps> = ({
   focused = false,
   showErrorText = true,
 }) => {
-  // Check if this is a phone number input with +92 prefix
   const isPhoneInput =
     keyboardType === 'phone-pad' && value && value.startsWith('+92');
 
   return (
     <View style={[styles.inputContainer, containerStyle]}>
       {label && <Text style={[styles.label, labelStyle]}>{label}</Text>}
+
       {isPhoneInput ? (
         <View
           style={[
             styles.phoneInputWrapper,
             error ? styles.phoneInputWrapperError : undefined,
             focused ? styles.phoneInputWrapperFocused : undefined,
-          ]}>
+          ]}
+        >
           <Text
-            style={[styles.phonePrefix, focused && styles.phonePrefixFocused]}>
+            style={[styles.phonePrefix, focused && styles.phonePrefixFocused]}
+          >
             +92
           </Text>
           <TextInput
@@ -114,6 +120,7 @@ const CustomInput: React.FC<CustomInputProps> = ({
           placeholderTextColor={placeholderTextColor}
         />
       )}
+
       {error && showErrorText && (
         <Text style={styles.errorText}>{String(error)}</Text>
       )}

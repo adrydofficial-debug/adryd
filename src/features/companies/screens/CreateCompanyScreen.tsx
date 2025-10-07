@@ -17,6 +17,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Yup from 'yup';
+import LogoutButton from '../../../components/LogoutButton';
 import { useBusinessCategoriesWithGroups, useCreateCompany } from '../hooks';
 import { CreateCompanyRequest } from '../types';
 
@@ -394,6 +395,7 @@ const CreateCompanyScreen: React.FC<CreateCompanyScreenProps> = ({
               </View>
             )}
           </Formik>
+          <LogoutButton style={{ marginTop: 30 }} />
         </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
