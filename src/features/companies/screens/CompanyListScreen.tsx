@@ -1,6 +1,7 @@
 // src/features/companies/screens/CompanyListScreen.tsx
+// accepts type of screen using enums
 
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -13,10 +14,10 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {useCompanies, useDeleteCompany, useBusinessCategoriesWithGroups} from '../hooks';
-import {Company} from '../types';
+import { useCompanies, useDeleteCompany } from '../hooks';
+import { Company } from '../types';
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface CompanyListScreenProps {
   onCompanyPress?: (company: Company) => void;
@@ -54,11 +55,12 @@ const CompanyListScreen: React.FC<CompanyListScreenProps> = ({
     deleteCompanyMutation.mutate(companyId);
   };
 
-  const renderCompanyItem = ({item}: {item: Company}) => (
+  const renderCompanyItem = ({ item }: { item: Company }) => (
     <TouchableOpacity
       style={styles.companyCard}
       onPress={() => onCompanyPress?.(item)}
-      activeOpacity={0.8}>
+      activeOpacity={0.8}
+    >
       <View style={styles.companyHeader}>
         <View style={styles.companyInfo}>
           <Text style={styles.companyName}>{item.company_name}</Text>
@@ -69,17 +71,19 @@ const CompanyListScreen: React.FC<CompanyListScreenProps> = ({
         <View style={styles.companyActions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => onCompanyPress?.(item)}>
+            onPress={() => onCompanyPress?.(item)}
+          >
             <Ionicons name="eye" size={20} color="#C539A5" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => handleDeleteCompany(item.id)}>
+            onPress={() => handleDeleteCompany(item.id)}
+          >
             <Ionicons name="trash" size={20} color="#ff4444" />
           </TouchableOpacity>
         </View>
       </View>
-      
+
       <View style={styles.companyDetails}>
         <View style={styles.detailRow}>
           <Ionicons name="mail" size={16} color="#666" />
@@ -107,8 +111,9 @@ const CompanyListScreen: React.FC<CompanyListScreenProps> = ({
           <Text
             style={[
               styles.verificationText,
-              {color: item.is_verified ? '#4CAF50' : '#FF9800'},
-            ]}>
+              { color: item.is_verified ? '#4CAF50' : '#FF9800' },
+            ]}
+          >
             {item.is_verified ? 'Verified' : 'Pending'}
           </Text>
         </View>
@@ -164,9 +169,10 @@ const CompanyListScreen: React.FC<CompanyListScreenProps> = ({
     <View style={styles.container}>
       <LinearGradient
         colors={['#C539A5', '#fffdffff']}
-        start={{x: 0, y: 0}}
-        end={{x: 0, y: 1}}
-        style={styles.header}>
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.header}
+      >
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Companies</Text>
           <TouchableOpacity style={styles.addButton} onPress={onCreateCompany}>
