@@ -19,6 +19,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Yup from 'yup';
 import CustomInput from '../../../components/CustomInput';
+import DrawerComponent from '../../../components/DrawerComponent';
 import { useAuthStore } from '../../../store/authStore';
 import { AuthStackParamList } from '../AuthNavigator';
 import { useLogin } from '../hooks/useAuth';
@@ -45,6 +46,7 @@ const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   const handleFocus = (field: string) => setFocusedField(field);
   const handleBlur = (field: string, formikBlur: (f: string) => void) => {
@@ -120,7 +122,9 @@ const LoginScreen: React.FC = () => {
         >
           <View style={styles.mainContainer}>
             <View style={styles.header}>
-              <Text style={styles.title}>Login</Text>
+              <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.7}>
+                <Text style={styles.title}>Login</Text>
+              </TouchableOpacity>
               <Text style={styles.subtitle}>
                 Login now and turn your{' '}
                 <Text style={styles.highlight}>ideas</Text> into reality.
@@ -251,6 +255,7 @@ const LoginScreen: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <DrawerComponent visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
     </LinearGradient>
   );
 };

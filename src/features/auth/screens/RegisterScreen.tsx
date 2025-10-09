@@ -19,6 +19,7 @@ import CustomInput from '../../../components/CustomInput';
 import OTPModal from '../../../components/OTPModal';
 import { supabase } from '../../../services/supabase';
 import { useRegister, useVerifyOtp } from '../hooks/useAuth';
+import BackButton from '../../../components/BackButton';
 
 // ----------------------
 // Helpers
@@ -169,13 +170,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={wp(6)} color="#000" />
-          </TouchableOpacity>
-
+          <BackButton/>
           <View style={styles.mainContainer}>
             <Text style={styles.title}>Register</Text>
             <Text style={styles.subtitle}>

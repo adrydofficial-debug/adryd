@@ -27,7 +27,7 @@ import {
   useLogin,
   useResetPassword,
 } from '../hooks/useAuth';
-
+import BackButton from '../../../components/BackButton';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -143,12 +143,7 @@ const ForgotPassword: React.FC = () => {
           bounces
           scrollEventThrottle={16}
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={wp(6)} color="#000" />
-          </TouchableOpacity>
+          <BackButton/>
 
           <View style={styles.mainContainer}>
             <View style={styles.header}>

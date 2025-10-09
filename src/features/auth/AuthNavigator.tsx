@@ -5,13 +5,14 @@ import ForgotPasswordScreen from './screens/ForgotPassword';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import ResetPassScreen from './screens/ResetPass';
-
+import UpdateProfile from '../Profile/screens/UpdateProfile';
 // 🔹 Define navigation param types
 export type AuthStackParamList = {
   LoginScreen: undefined;
   RegisterScreen: undefined;
   ForgotPassword: undefined;
   ResetPass: { phoneNumber: string; otp: string };
+  UpdateProfile: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -22,6 +23,7 @@ const AuthNavigator = () => (
     <Stack.Screen name="RegisterScreen" component={RegisterScreen} />
     <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     <Stack.Screen name="ResetPass" component={ResetPassScreen} />
+    <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
   </Stack.Navigator>
 );
 

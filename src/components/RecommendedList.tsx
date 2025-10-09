@@ -50,7 +50,7 @@ const recommendedData: RecommendedItem[] = [
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
-    image: require('../images/bannerBg.png'),
+    image: require('../assets/images/bannerBg.png'),
   },
   {
     id: '2',
@@ -58,7 +58,7 @@ const recommendedData: RecommendedItem[] = [
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
-    image: require('../images/bannerBg.png'),
+    image: require('../assets/images/bannerBg.png'),
   },
   {
     id: '3',
@@ -66,7 +66,7 @@ const recommendedData: RecommendedItem[] = [
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
-    image: require('../images/bannerBg.png'),
+    image: require('../assets/images/bannerBg.png'),
   },
 ];
 
@@ -104,7 +104,7 @@ const RecommendedList: React.FC<RecommendedListProps> = ({
         ? {
             uri: `https://adryd-backend-production.up.railway.app${item.image_url}`,
           }
-        : require('../images/bannerBg.png'));
+        : require('../assets/images/bannerBg.png'));
     const title = item.title || 'Unknown';
     const location = item.location || 'Unknown Location';
     const distance = item.distance || '1.6 km';

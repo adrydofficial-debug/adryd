@@ -20,7 +20,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomInput from '../../../components/CustomInput';
 import { AuthStackParamList } from '../AuthNavigator';
 import { useResetPassword } from '../hooks/useAuth';
-
+import BackButton from '../../../components/BackButton';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -137,12 +137,7 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
         >
           <View style={styles.mainContainer}>
             {/* Back Button */}
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={wp(6)} color="#000" />
-            </TouchableOpacity>
+           <BackButton/>
 
             {/* Header */}
             <View style={styles.header}>

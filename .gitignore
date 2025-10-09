@@ -75,3 +75,10 @@ yarn-error.log
 !.yarn/versions
 
 src/config.ts
+
+# API Keys and Secrets - DO NOT COMMIT
+src/config/apiKeys.ts
+src/config/secrets.ts
+.env
+.env.local
+.env.production
