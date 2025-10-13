@@ -1,4 +1,4 @@
-import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import {
   fetchBoards,
   fetchBoardsByCategory,
@@ -6,9 +6,9 @@ import {
   fetchNearestBoards,
   fetchRecommendedBoards,
   PaginatedResponse,
-} from './api';
-import {Board} from './types/Board';
-import {BoardGroup} from './types/BoardGroup';
+} from './api/api';
+import { Board } from './types/Board';
+import { BoardGroup } from './types/BoardGroup';
 
 interface Filters {
   pageSize?: number;
@@ -22,7 +22,7 @@ interface Filters {
 export const useBoards = (filters: Filters = {}) =>
   useInfiniteQuery<PaginatedResponse<Board>, Error>({
     queryKey: ['boards', filters],
-    queryFn: async ({pageParam = 1}) =>
+    queryFn: async ({ pageParam = 1 }) =>
       fetchBoards({
         ...filters,
         page: pageParam,
@@ -47,8 +47,8 @@ export const useGroups = (params: Filters = {}) =>
 export const useRecommendedBoards = (filters: Filters = {}) =>
   useInfiniteQuery<PaginatedResponse<Board>, Error>({
     queryKey: ['recommendedBoards', filters],
-    queryFn: async ({pageParam = 0}) =>
-      fetchRecommendedBoards({...filters, offset: pageParam}),
+    queryFn: async ({ pageParam = 0 }) =>
+      fetchRecommendedBoards({ ...filters, offset: pageParam }),
     getNextPageParam: lastPage =>
       lastPage?.meta?.has_more
         ? lastPage.meta.offset! + lastPage.meta.limit!
@@ -60,8 +60,8 @@ export const useRecommendedBoards = (filters: Filters = {}) =>
 export const useNearestBoards = (filters: Filters = {}) =>
   useInfiniteQuery<PaginatedResponse<Board>, Error>({
     queryKey: ['nearestBoards', filters],
-    queryFn: async ({pageParam = 0}) =>
-      fetchNearestBoards({...filters, offset: pageParam}),
+    queryFn: async ({ pageParam = 0 }) =>
+      fetchNearestBoards({ ...filters, offset: pageParam }),
     getNextPageParam: lastPage =>
       lastPage?.meta?.has_more
         ? lastPage.meta.offset! + lastPage.meta.limit!
@@ -77,8 +77,8 @@ export const useBoardsByCategory = (
 ) =>
   useInfiniteQuery<PaginatedResponse<Board>, Error>({
     queryKey: ['boardsByCategory', categoryId, filters],
-    queryFn: async ({pageParam = 0}) =>
-      fetchBoardsByCategory(categoryId!, {...filters, offset: pageParam}),
+    queryFn: async ({ pageParam = 0 }) =>
+      fetchBoardsByCategory(categoryId!, { ...filters, offset: pageParam }),
     getNextPageParam: lastPage =>
       lastPage?.meta?.has_more
         ? lastPage.meta.offset! + lastPage.meta.limit!
