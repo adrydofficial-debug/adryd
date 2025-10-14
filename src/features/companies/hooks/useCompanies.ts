@@ -1,165 +1,76 @@
-import { useState, useEffect } from 'react';
-import { companiesApi } from '../api';
-import { Company, GetCompaniesQuery, CompanySearchFilters, CompanyStats } from '../types';
-import { ApiResponse, PaginatedResponse } from '../types/response';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { companiesApi, companyCategoriesApi } from '../api/api';
+import {
+  Company,
+  CompanyCategory,
+  CompanyCategoryGroup,
+} from '../domain/entities';
 
-// Hook for fetching companies with pagination
-export const useCompanies = (query?: GetCompaniesQuery) => {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
+/* -------------------------------------------------------------------------- */
+/* 🏢 COMPANIES HOOKS                                                        */
+/* -------------------------------------------------------------------------- */
+
+export function useCompanies() {
+  return useQuery<Company[]>({
+    queryKey: ['companies'],
+    queryFn: companiesApi.getCompanies,
   });
+}
 
-  const fetchCompanies = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await companiesApi.getCompanies(query);
-      setCompanies(response.data);
-      setPagination(response.pagination);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch companies');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCompanies();
-  }, [query?.page, query?.limit, query?.search, query?.category_id, query?.group_id]);
-
-  const refetch = () => {
-    fetchCompanies();
-  };
-
-  return {
-    companies,
-    loading,
-    error,
-    pagination,
-    refetch,
-  };
-};
-
-// Hook for fetching a single company
-export const useCompany = (id: number) => {
-  const [company, setCompany] = useState<Company | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchCompany = async () => {
-    if (!id) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await companiesApi.getCompanyById(id);
-      setCompany(response.data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch company');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCompany();
-  }, [id]);
-
-  const refetch = () => {
-    fetchCompany();
-  };
-
-  return {
-    company,
-    loading,
-    error,
-    refetch,
-  };
-};
-
-// Hook for searching companies
-export const useCompanySearch = (filters: CompanySearchFilters) => {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
+export function useCompany(id?: number) {
+  return useQuery<Company>({
+    queryKey: ['company', id],
+    queryFn: () => companiesApi.getCompanyById(id!),
+    enabled: !!id, // don’t fetch until ID exists
   });
+}
 
-  const searchCompanies = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await companiesApi.searchCompanies(filters);
-      setCompanies(response.data);
-      setPagination(response.pagination);
-    } catch (err: any) {
-      setError(err.message || 'Failed to search companies');
-    } finally {
-      setLoading(false);
-    }
-  };
+/* -------------------------------------------------------------------------- */
+/* 🔧 MUTATIONS (CREATE / UPDATE / DELETE)                                    */
+/* -------------------------------------------------------------------------- */
 
-  const clearSearch = () => {
-    setCompanies([]);
-    setPagination({
-      page: 1,
-      limit: 10,
-      total: 0,
-      totalPages: 0,
-    });
-  };
+export function useCreateCompany() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: companiesApi.createCompany,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
+  });
+}
 
-  return {
-    companies,
-    loading,
-    error,
-    pagination,
-    searchCompanies,
-    clearSearch,
-  };
-};
+export function useUpdateCompany() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Company> }) =>
+      companiesApi.updateCompany(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['company', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
+  });
+}
 
-// Hook for company statistics
-export const useCompanyStats = () => {
-  const [stats, setStats] = useState<CompanyStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function useDeleteCompany() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => companiesApi.deleteCompany(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
+  });
+}
 
-  const fetchStats = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await companiesApi.getCompanyStats();
-      setStats(response.data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch company statistics');
-    } finally {
-      setLoading(false);
-    }
-  };
+/* -------------------------------------------------------------------------- */
+/* 🧩 COMPANY CATEGORY HOOKS                                                 */
+/* -------------------------------------------------------------------------- */
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const refetch = () => {
-    fetchStats();
-  };
-
-  return {
-    stats,
-    loading,
-    error,
-    refetch,
-  };
-};
+export function useCompanyCategoryGroups() {
+  return useQuery<{
+    groups: CompanyCategoryGroup[];
+    categories: CompanyCategory[];
+  }>({
+    queryKey: ['company-category-groups'],
+    queryFn: companyCategoriesApi.getCategoryGroups,
+  });
+}

@@ -1,3 +1,4 @@
+//src/features/companies/domain/mappers.ts
 import {
   CompanyCategoryGroupsResponse,
   CompanyResponse,

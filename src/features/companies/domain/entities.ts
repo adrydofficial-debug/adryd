@@ -1,5 +1,4 @@
 // src/features/companies/domain/entities.ts
-
 export interface Company {
   id: number;
   company_name: string;
