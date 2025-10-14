@@ -23,6 +23,7 @@ import TermsIcon from '../assets/images/Terms.svg';
 import ContactIcon from '../assets/images/Chat.svg';
 import Logout from '../assets/images/Logout.svg';
 import EditSquare from '../assets/images/EditSquare.svg';
+import { useAuthStore } from '../store/authStore';
 
 type DrawerItem = {
   id: number;
@@ -44,6 +45,7 @@ const DRAWER_WIDTH = Math.min(width * 0.82, 340);
 const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) => {
   const navigation = useNavigation();
   const { data: profile } = useProfile();
+  const logout = useAuthStore(s => s.logout);
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
@@ -86,7 +88,15 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
       id: 1,
       title: 'Security',
       subtitle: 'Phone number & Password',
-      onPress: () => {},
+      onPress: () => {
+        onClose();
+        try {
+          navigation.navigate('ChangePassword' as never);
+          console.log('✅ Navigation to ChangePassword successful');
+        } catch (error) {
+          console.error('❌ Navigation error:', error);
+        }
+      },
       // color: '#E91E63',
       icon: 'security',
     },
@@ -94,7 +104,15 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
       id: 2,
       title: 'Companies',
       subtitle: 'Saved Your Business',
-      onPress: () => {},
+      onPress: () => {
+        onClose(); // Close the drawer first
+        try {
+          navigation.navigate('PreviousCompanyScreen' as never);
+          console.log('✅ Navigation to PreviousCompanyScreen successful');
+        } catch (error) {
+          console.error('❌ Navigation error:', error);
+        }
+      },
       // color: '#9C27B0',
       icon: 'companies',
     },
@@ -211,7 +229,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
                style={styles.editButton} 
                activeOpacity={0.7} 
                onPress={() => {
-                 console.log('🔧 Edit button pressed - attempting navigation to UpdateProfile');
+                
                  onClose(); // Close the drawer first
                  try {
                    navigation.navigate('UpdateProfile' as never);
@@ -233,7 +251,20 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
           <View style={styles.menuCard}>{supportItems.map(i => renderMenuItem(i, false))}</View>
 
           <View style={styles.menuCard}>
-            <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} onPress={onClose} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={[styles.menuItem, styles.logoutItem]}
+              onPress={async () => {
+                try {
+                  onClose();
+                  await logout();
+                  // AuthGate will switch to AuthNavigator; for safety, attempt nav
+                  navigation.navigate('LoginScreen' as never);
+                } catch (e) {
+                  console.error('Logout error:', e);
+                }
+              }}
+              activeOpacity={0.7}
+            >
               <View style={styles.menuItemLeft}>
                 <View style={styles.iconContainer}>
                   <Logout width={22} height={22} />
@@ -281,7 +312,8 @@ const styles = StyleSheet.create({
     padding: width * 0.04,
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop:20
+    marginVertical:30
+ 
   },
   profileImageContainer: {
     width: width * 0.15,

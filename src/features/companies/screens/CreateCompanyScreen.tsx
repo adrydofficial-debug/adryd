@@ -26,7 +26,7 @@ import CustomInput from '../../../components/CustomInput';
 import BusinessCategoryDropdown from '../../../components/BusinessCategoryDropdown';
 import {Company} from '../types';
 // import {AppScreens} from '../../../app/navigation/AppNavigator';
-import {useCreateCompany, useCompanyCategoryGroups} from '../hooks';
+import {useCreateCompany, useCompanyCategoryGroups} from '../hooks/useCompanies';
 import {supabase} from '../../../services/supabase';
 
 const {width, height} = Dimensions.get('window');
@@ -112,13 +112,13 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       { label: 'Food Trucks', value: '8' },
     ];
     
-    if (!categoriesData || categoriesData.length === 0) {
+    if (!categoriesData || !categoriesData.groups || categoriesData.groups.length === 0) {
       console.log('Using test data');
       return testData;
     }
     
-    const data = categoriesData.flatMap(group => 
-      group.categories?.map(category => ({
+    const data = categoriesData.groups.flatMap((group: any) => 
+      group.categories?.map((category: any) => ({
         label: category.name,
         value: category.id.toString(),
       })) || []
