@@ -1,4 +1,4 @@
-// src/components/RecommendedList.tsx
+// src/components/BoardList.tsx
 import React from 'react';
 import {
   Dimensions,
@@ -20,7 +20,7 @@ const CARD_WIDTH = (200 / BASE_WIDTH) * width;
 const CARD_HEIGHT = (210 / BASE_HEIGHT) * height;
 
 // 🔹 Data item type
-export interface RecommendedItem {
+export interface BoardItem {
   id: string;
   title?: string;
   description?: string;
@@ -34,16 +34,16 @@ export interface RecommendedItem {
 }
 
 // 🔹 Props type
-interface RecommendedListProps {
-  data?: RecommendedItem[];
+interface BoardListProps {
+  data?: BoardItem[];
   heading: string;
   subHeading?: string;
   navigation?: any;
-  onPressDetail?: (item: RecommendedItem) => void;
+  onPressDetail?: (item: BoardItem) => void;
 }
 
 // 🔹 Default static data
-const recommendedData: RecommendedItem[] = [
+const boardData: BoardItem[] = [
   {
     id: '1',
     title: 'BILL BOARD',
@@ -70,13 +70,13 @@ const recommendedData: RecommendedItem[] = [
   },
 ];
 
-const RecommendedList: React.FC<RecommendedListProps> = ({
-  data = recommendedData,
+const BoardList: React.FC<BoardListProps> = ({
+  data = boardData,
   heading,
   subHeading,
   navigation,
 }) => {
-  const handleCardPress = (item: RecommendedItem) => {
+  const handleCardPress = (item: BoardItem) => {
     if (navigation) {
       navigation.navigate('CategoryScreen', {
         categoryId: item.id,
@@ -97,7 +97,7 @@ const RecommendedList: React.FC<RecommendedListProps> = ({
     }
   };
 
-  const renderItem = ({item}: {item: RecommendedItem}) => {
+  const renderItem = ({item}: {item: BoardItem}) => {
     const imageSource =
       item.image ||
       (item.image_url
@@ -259,4 +259,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RecommendedList;
+export default BoardList;

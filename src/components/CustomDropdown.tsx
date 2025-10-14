@@ -1,16 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  Animated,
   Dimensions,
-  Modal,
-  FlatList,
-  ScrollView,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Dropdown } from 'react-native-element-dropdown';
 
 const { width, height } = Dimensions.get('window');
 
@@ -31,7 +26,6 @@ interface CustomDropdownProps {
   error?: string;
   containerStyle?: any;
   required?: boolean;
-  searchable?: boolean;
   maxHeight?: number;
 }
 
@@ -45,31 +39,14 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   error,
   containerStyle,
   required = false,
-  searchable = false,
-  maxHeight = 200,
+  maxHeight = 300,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchText, setSearchText] = useState('');
-  const [filteredOptions, setFilteredOptions] = useState(options);
-  const [groupedOptions, setGroupedOptions] = useState<{[key: string]: DropdownOption[]}>({});
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-
-  const selectedOption = options.find(option => option.value === selectedValue);
-
-  useEffect(() => {
-    if (searchable) {
-      const filtered = options.filter(option =>
-        option.label.toLowerCase().includes(searchText.toLowerCase())
-      );
-      setFilteredOptions(filtered);
-    } else {
-      setFilteredOptions(options);
-    }
-  }, [searchText, options, searchable]);
-
-  useEffect(() => {
+  // Build a derived list with grouped options
+  const dataWithGroups: DropdownOption[] = React.useMemo(() => {
+    if (!Array.isArray(options) || options.length === 0) return [];
+    
     // Group options by category
-    const grouped = filteredOptions.reduce((acc, option) => {
+    const grouped = options.reduce((acc, option) => {
       const group = option.group || 'Other';
       if (!acc[group]) {
         acc[group] = [];
@@ -77,73 +54,48 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
       acc[group].push(option);
       return acc;
     }, {} as {[key: string]: DropdownOption[]});
-    setGroupedOptions(grouped);
-  }, [filteredOptions]);
 
-  useEffect(() => {
-    Animated.timing(rotateAnim, {
-      toValue: isOpen ? 1 : 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }, [isOpen, rotateAnim]);
+    const output: DropdownOption[] = [];
+    
+    // Add "All" option first
+    output.push({
+      label: 'All',
+      value: 'all',
+      group: 'All',
+    });
 
+    // Add separator after "All"
+    output.push({
+      label: '__sep__all',
+      value: '__sep__all',
+      group: 'separator',
+    });
 
-  const toggleDropdown = () => {
-    if (!disabled) {
-      setIsOpen(!isOpen);
-    }
-  };
-
-  const handleSelect = (value: string) => {
-    onSelect(value);
-    setIsOpen(false);
-    setSearchText('');
-  };
-
-  const rotate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '180deg'],
-  });
-
-  const renderOption = (item: DropdownOption) => (
-    <TouchableOpacity
-      style={[
-        styles.optionItem,
-        item.disabled && styles.disabledOption,
-        selectedValue === item.value && styles.selectedOption,
-      ]}
-      onPress={() => !item.disabled && handleSelect(item.value)}
-      disabled={item.disabled}
-    >
-      <View style={styles.optionContent}>
-        <Text style={styles.bulletPoint}>•</Text>
-        <Text
-          style={[
-            styles.optionText,
-            item.disabled && styles.disabledOptionText,
-            selectedValue === item.value && styles.selectedOptionText,
-          ]}
-        >
-          {item.label}
-        </Text>
-      </View>
-      {selectedValue === item.value && (
-        <Ionicons name="checkmark" size={20} color="#C539A5" />
-      )}
-    </TouchableOpacity>
-  );
-
-  const renderGroup = (groupName: string, groupOptions: DropdownOption[]) => (
-    <View key={groupName} style={styles.groupContainer}>
-      {groupOptions.map((option, index) => (
-        <View key={option.value}>
-          {renderOption(option)}
-          {index < groupOptions.length - 1 && <View style={styles.optionSeparator} />}
-        </View>
-      ))}
-    </View>
-  );
+    // Add grouped options
+    Object.entries(grouped).forEach(([groupName, groupOptions]) => {
+      // Add group header
+      output.push({
+        label: groupName,
+        value: `__group__${groupName}`,
+        group: 'header',
+      });
+      
+      // Add group options
+      groupOptions.forEach((option, index) => {
+        output.push(option);
+        // Add separator after every 5 items within a group
+        if ((index + 1) % 5 === 0 && index < groupOptions.length - 1) {
+          output.push({
+            label: `__sep__${groupName}_${index}`,
+            value: `__sep__${groupName}_${index}`,
+            group: 'separator',
+          });
+        }
+      });
+    });
+    
+    return output;
+  }, [options]);
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -151,100 +103,80 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
         {label}
         {required && <Text style={styles.required}> *</Text>}
       </Text>
-
-      <TouchableOpacity
-        style={[
-          styles.dropdown,
-          error && styles.errorDropdown,
-          disabled && styles.disabledDropdown,
-        ]}
-        onPress={toggleDropdown}
-        disabled={disabled}
-      >
-        <Text
-          style={[
-            styles.dropdownText,
-            !selectedOption && styles.placeholderText,
-            disabled && styles.disabledText,
-          ]}
-        >
-          {selectedOption ? selectedOption.label : placeholder}
-        </Text>
-        <Animated.View style={{ transform: [{ rotate }] }}>
-          <Ionicons
-            name="chevron-down"
-            size={20}
-            color={disabled ? '#999' : '#666'}
-          />
-        </Animated.View>
-      </TouchableOpacity>
-
-      {error && <Text style={styles.errorText}>{error}</Text>}
-
-      <Modal
-        visible={isOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsOpen(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setIsOpen(false)}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.dropdownList}>
-              <View style={styles.dropdownHeader}>
-                <Text style={styles.dropdownTitle}>{label}</Text>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setIsOpen(false)}
-                >
-                  <Ionicons name="close" size={24} color="#666" />
-                </TouchableOpacity>
+      
+      <Dropdown
+        style={[styles.dropdown, error && styles.errorDropdown, disabled && styles.disabledDropdown]}
+        placeholderStyle={styles.placeholderStyle}
+        selectedTextStyle={styles.selectedTextStyle}
+        iconStyle={styles.iconStyle}
+        data={dataWithGroups}
+        search={false}
+        maxHeight={maxHeight}
+        labelField="label"
+        valueField="value"
+        placeholder={placeholder}
+        value={selectedValue}
+        onChange={item => {
+          // Ignore taps on separator and header rows
+          if (item.group === 'separator' || item.group === 'header') return;
+          onSelect(item.value);
+        }}
+        renderItem={(item: DropdownOption) => {
+          if (item.group === 'separator') {
+            return <View style={styles.separatorLine} />;
+          }
+          if (item.group === 'header') {
+            return (
+              <View style={styles.groupHeaderContainer}>
+                <Text style={styles.groupHeader}>{item.label}</Text>
               </View>
-
-              <ScrollView
-                style={[styles.optionsList, { maxHeight }]}
-                showsVerticalScrollIndicator={true}
-                nestedScrollEnabled={true}
-              >
-                {Object.entries(groupedOptions).map(([groupName, groupOptions]) =>
-                  renderGroup(groupName, groupOptions)
-                )}
-              </ScrollView>
+            );
+          }
+          if (item.value === 'all') {
+            return (
+              <View style={styles.allOptionContainer}>
+                <Text style={styles.allOptionText}>{item.label}</Text>
+              </View>
+            );
+          }
+          return (
+            <View style={styles.dropdownItem}>
+              <Text style={styles.bulletPoint}>•</Text>
+              <Text style={styles.itemText}>{item.label}</Text>
             </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+          );
+        }}
+        dropdownPosition="auto"
+        containerStyle={styles.dropdownContainer}
+        itemContainerStyle={styles.itemContainer}
+        activeColor="#f8f0ff"
+      />
+      
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: width * 0.04,
     color: '#333',
     marginBottom: 8,
+    fontWeight: '500',
   },
   required: {
     color: '#ff4444',
   },
   dropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    height: 50,
     backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 15,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    minHeight: 50,
+    borderColor: '#ddd',
   },
   errorDropdown: {
     borderColor: '#ff4444',
@@ -253,104 +185,84 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderColor: '#e0e0e0',
   },
-  dropdownText: {
+  placeholderStyle: {
+    fontSize: 16,
+    color: '#999',
+  },
+  selectedTextStyle: {
     fontSize: 16,
     color: '#333',
-    flex: 1,
   },
-  placeholderText: {
-    color: '#999',
-  },
-  disabledText: {
-    color: '#999',
+  iconStyle: {
+    width: 20,
+    height: 20,
   },
   errorText: {
     fontSize: 12,
     color: '#ff4444',
     marginTop: 4,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: width * 0.9,
-    height: height * 0.6,
+  dropdownContainer: {
+    width: width * 0.62,
+    alignSelf: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
     backgroundColor: '#fff',
-    borderRadius: 16,
-    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  dropdownList: {
-    flex: 1,
+  itemContainer: {
+    borderRadius: 8,
   },
-  dropdownHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  allOptionContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-    backgroundColor: '#f8f9fa',
+    paddingVertical: 12,
   },
-  dropdownTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  optionsList: {
-    flex: 1,
-  },
-  optionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  selectedOption: {
-    backgroundColor: '#f8f0ff',
-  },
-  disabledOption: {
-    opacity: 0.5,
-  },
-  optionText: {
+  allOptionText: {
     fontSize: 16,
-    color: '#333',
-    flex: 1,
-  },
-  selectedOptionText: {
-    color: '#C539A5',
     fontWeight: '600',
+    color: '#C539A5',
   },
-  disabledOptionText: {
-    color: '#999',
+  groupHeaderContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
   },
-  groupContainer: {
-    marginBottom: 8,
+  groupHeader: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
   },
-  optionContent: {
+  dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  itemText: {
+    fontSize: 16,
+    color: '#595959',
     flex: 1,
   },
   bulletPoint: {
     fontSize: 16,
     color: '#666',
-    marginRight: 8,
+    marginRight: 10,
     width: 12,
+    textAlign: 'center',
   },
-  optionSeparator: {
+  separatorLine: {
     height: 1,
-    backgroundColor: '#f0f0f0',
-    marginLeft: 20,
+    backgroundColor: '#D9D9D9',
+    marginHorizontal: 20,
+    marginVertical: 6,
   },
 });
 

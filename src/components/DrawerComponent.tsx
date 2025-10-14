@@ -9,9 +9,11 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Circle, Path } from 'react-native-svg';
+import { useProfile } from '../features/Profile/hooks/useProfile';
 import SecurityIcon from '../assets/images/security.svg';
 import CompaniesIcon from '../assets/images/Companys.svg';
 import FavoriteIcon from '../assets/images/favorite.svg';
@@ -41,6 +43,7 @@ const DRAWER_WIDTH = Math.min(width * 0.82, 340);
 
 const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) => {
   const navigation = useNavigation();
+  const { data: profile } = useProfile();
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
@@ -184,12 +187,25 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
           <View style={styles.profileCard}>
             <View style={styles.profileImageContainer}>
               <View style={styles.profileImage}>
-                <Text style={styles.profileImageText}>MU</Text>
+                {profile?.avatar_url ? (
+                  <Image 
+                    source={{ uri: profile.avatar_url }} 
+                    style={styles.profileImageAvatar}
+                  />
+                ) : (
+                  <Text style={styles.profileImageText}>
+                    {profile?.username?.charAt(0).toUpperCase() || 'U'}
+                  </Text>
+                )}
               </View>
             </View>
             <View style={styles.profileCenter}>
-              <Text style={styles.profileName}>Muhammd Umair</Text>
-              <Text style={styles.profilePhone}>+923074074031</Text>
+              <Text style={styles.profileName}>
+                {profile?.username || 'User'}
+              </Text>
+              <Text style={styles.profilePhone}>
+                {profile?.phone || 'No phone number'}
+              </Text>
             </View>
              <TouchableOpacity 
                style={styles.editButton} 
@@ -290,6 +306,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  profileImageAvatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: width * 0.06,
   },
   profileCenter: { flex: 1 },
   profileName: {

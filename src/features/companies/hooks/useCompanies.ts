@@ -1,137 +1,165 @@
-// src/features/companies/hooks/useCompanies.ts
+import { useState, useEffect } from 'react';
+import { companiesApi } from '../api';
+import { Company, GetCompaniesQuery, CompanySearchFilters, CompanyStats } from '../types';
+import { ApiResponse, PaginatedResponse } from '../types/response';
 
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {
-  createCompanyRequest,
-  getCompaniesRequest,
-  getCompanyRequest,
-  updateCompanyRequest,
-  deleteCompanyRequest,
-  getCompanyGroupsRequest,
-  getCompanyCategoriesRequest,
-  getCompanyCategoriesByGroupRequest,
-  getBusinessCategoriesWithGroupsRequest,
-} from '../api';
-import {
-  CreateCompanyRequest,
-  UpdateCompanyRequest,
-  GetCompaniesParams,
-  GetCompanyGroupsParams,
-  GetCompanyCategoriesParams,
-} from '../types';
-
-// Query Keys
-export const companyKeys = {
-  all: ['companies'] as const,
-  lists: () => [...companyKeys.all, 'list'] as const,
-  list: (params: GetCompaniesParams) => [...companyKeys.lists(), params] as const,
-  details: () => [...companyKeys.all, 'detail'] as const,
-  detail: (id: number) => [...companyKeys.details(), id] as const,
-  groups: () => [...companyKeys.all, 'groups'] as const,
-  groupsList: (params: GetCompanyGroupsParams) => [...companyKeys.groups(), params] as const,
-  categories: () => [...companyKeys.all, 'categories'] as const,
-  categoriesList: (params: GetCompanyCategoriesParams) => [...companyKeys.categories(), params] as const,
-  categoriesByGroup: (groupId: number, params?: Omit<GetCompanyCategoriesParams, 'group_id'>) => 
-    [...companyKeys.categories(), 'byGroup', groupId, params] as const,
-  categoriesWithGroups: () => [...companyKeys.categories(), 'withGroups'] as const,
-};
-
-// Get Companies
-export const useCompanies = (params?: GetCompaniesParams) => {
-  return useQuery({
-    queryKey: companyKeys.list(params || {}),
-    queryFn: () => getCompaniesRequest(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+// Hook for fetching companies with pagination
+export const useCompanies = (query?: GetCompaniesQuery) => {
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
   });
+
+  const fetchCompanies = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await companiesApi.getCompanies(query);
+      setCompanies(response.data);
+      setPagination(response.pagination);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch companies');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompanies();
+  }, [query?.page, query?.limit, query?.search, query?.category_id, query?.group_id]);
+
+  const refetch = () => {
+    fetchCompanies();
+  };
+
+  return {
+    companies,
+    loading,
+    error,
+    pagination,
+    refetch,
+  };
 };
 
-// Get Company by ID
+// Hook for fetching a single company
 export const useCompany = (id: number) => {
-  return useQuery({
-    queryKey: companyKeys.detail(id),
-    queryFn: () => getCompanyRequest(id),
-    enabled: !!id,
-    staleTime: 5 * 60 * 1000,
-  });
+  const [company, setCompany] = useState<Company | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCompany = async () => {
+    if (!id) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await companiesApi.getCompanyById(id);
+      setCompany(response.data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch company');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCompany();
+  }, [id]);
+
+  const refetch = () => {
+    fetchCompany();
+  };
+
+  return {
+    company,
+    loading,
+    error,
+    refetch,
+  };
 };
 
-// Get Company Groups
-export const useCompanyGroups = (params?: GetCompanyGroupsParams) => {
-  return useQuery({
-    queryKey: companyKeys.groupsList(params || {}),
-    queryFn: () => getCompanyGroupsRequest(params),
-    staleTime: 10 * 60 * 1000, // 10 minutes
+// Hook for searching companies
+export const useCompanySearch = (filters: CompanySearchFilters) => {
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
   });
+
+  const searchCompanies = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await companiesApi.searchCompanies(filters);
+      setCompanies(response.data);
+      setPagination(response.pagination);
+    } catch (err: any) {
+      setError(err.message || 'Failed to search companies');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setCompanies([]);
+    setPagination({
+      page: 1,
+      limit: 10,
+      total: 0,
+      totalPages: 0,
+    });
+  };
+
+  return {
+    companies,
+    loading,
+    error,
+    pagination,
+    searchCompanies,
+    clearSearch,
+  };
 };
 
-// Get Company Categories
-export const useCompanyCategories = (params?: GetCompanyCategoriesParams) => {
-  return useQuery({
-    queryKey: companyKeys.categoriesList(params || {}),
-    queryFn: () => getCompanyCategoriesRequest(params),
-    staleTime: 10 * 60 * 1000,
-  });
-};
+// Hook for company statistics
+export const useCompanyStats = () => {
+  const [stats, setStats] = useState<CompanyStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-// Get Company Categories by Group
-export const useCompanyCategoriesByGroup = (
-  groupId: number,
-  params?: Omit<GetCompanyCategoriesParams, 'group_id'>,
-) => {
-  return useQuery({
-    queryKey: companyKeys.categoriesByGroup(groupId, params),
-    queryFn: () => getCompanyCategoriesByGroupRequest(groupId, params),
-    enabled: !!groupId,
-    staleTime: 10 * 60 * 1000,
-  });
-};
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await companiesApi.getCompanyStats();
+      setStats(response.data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch company statistics');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-// Get Business Categories with Groups (nested structure)
-export const useBusinessCategoriesWithGroups = () => {
-  return useQuery({
-    queryKey: companyKeys.categoriesWithGroups(),
-    queryFn: getBusinessCategoriesWithGroupsRequest,
-    staleTime: 15 * 60 * 1000, // 15 minutes - this data changes less frequently
-  });
-};
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
-// Create Company
-export const useCreateCompany = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: createCompanyRequest,
-    onSuccess: () => {
-      // Invalidate and refetch companies list
-      queryClient.invalidateQueries({queryKey: companyKeys.lists()});
-    },
-  });
-};
+  const refetch = () => {
+    fetchStats();
+  };
 
-// Update Company
-export const useUpdateCompany = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({id, data}: {id: number; data: UpdateCompanyRequest}) =>
-      updateCompanyRequest(id, data),
-    onSuccess: (_, {id}) => {
-      // Invalidate specific company and companies list
-      queryClient.invalidateQueries({queryKey: companyKeys.detail(id)});
-      queryClient.invalidateQueries({queryKey: companyKeys.lists()});
-    },
-  });
-};
-
-// Delete Company
-export const useDeleteCompany = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: deleteCompanyRequest,
-    onSuccess: () => {
-      // Invalidate companies list
-      queryClient.invalidateQueries({queryKey: companyKeys.lists()});
-    },
-  });
+  return {
+    stats,
+    loading,
+    error,
+    refetch,
+  };
 };
