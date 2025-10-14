@@ -121,8 +121,8 @@ const CustomInput: React.FC<CustomInputProps> = ({
         />
       )}
 
-      {error && showErrorText && (
-        <Text style={styles.errorText}>{String(error)}</Text>
+      {error && showErrorText && typeof error === 'string' && (
+        <Text style={styles.errorText}>{error}</Text>
       )}
     </View>
   );

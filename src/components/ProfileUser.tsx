@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Dimensions,
   Alert,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import { launchImageLibrary, ImageLibraryOptions, Asset } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -14,29 +16,66 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 const { width } = Dimensions.get('window');
 
 interface ProfileUserProps {
-  firstName?: string;
-  lastName?: string;
+  username?: string;
   avatarUri?: string;
   onImageSelected?: (imageUri: string) => void;
   containerStyle?: any;
 }
 
 const ProfileUser: React.FC<ProfileUserProps> = ({
-  firstName = '',
-  lastName = '',
+  username = '',
   avatarUri,
   onImageSelected,
   containerStyle,
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(avatarUri || null);
 
-  const getInitials = (first: string, last: string): string => {
-    const firstInitial = first.charAt(0).toUpperCase();
-    const lastInitial = last.charAt(0).toUpperCase();
-    return `${firstInitial}${lastInitial}`;
+  const getInitials = (username: string): string => {
+    const firstInitial = username.charAt(0).toUpperCase();
+    return firstInitial;
   };
 
-  const pickImage = () => {
+  const requestGalleryPermission = async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') {
+      return true;
+    }
+
+    try {
+      // Android 13+ (API 33+) does NOT require runtime permission for the system photo picker
+      // Let the picker run directly to avoid blocked prompts on newer Android
+      const androidVersion = Number(Platform.Version);
+      if (androidVersion >= 33) {
+        return true;
+      }
+
+      // Android 12 and below requires READ_EXTERNAL_STORAGE
+      const permission = PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
+
+      const hasPermission = await PermissionsAndroid.check(permission);
+      if (hasPermission) return true;
+
+      const status = await PermissionsAndroid.request(permission, {
+        title: 'Photo Library Access',
+        message: 'We need access to your photos to update your profile picture.',
+        buttonPositive: 'Allow',
+        buttonNegative: 'Deny',
+        buttonNeutral: 'Ask Me Later',
+      });
+
+      return status === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.error('Permission request error:', err);
+      return false;
+    }
+  };
+
+  const pickImage = async () => {
+    const permitted = await requestGalleryPermission();
+    if (!permitted) {
+      Alert.alert('Permission required', 'Please allow photo access to select an image.');
+      return;
+    }
+
     const options: ImageLibraryOptions = {
       mediaType: 'photo',
       quality: 0.8,
@@ -53,14 +92,15 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
         const asset: Asset = response.assets[0];
         if (asset.uri) {
           setSelectedImage(asset.uri);
+          // Defer persistence to the Update Profile screen save button
           onImageSelected?.(asset.uri);
         }
       }
     });
   };
 
-  const initials = getInitials(firstName, lastName);
-  const displayName = `${firstName} ${lastName}`.trim() || 'Your Name';
+  const initials = getInitials(username);
+  const displayName = username.trim() || 'Your Username';
 
   return (
     <View style={[styles.headerCard, containerStyle]}>
@@ -82,9 +122,10 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
           onPress={pickImage} 
           activeOpacity={0.8} 
           style={styles.cameraBadge}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <View style={styles.cameraCircle}>
-            <Ionicons name="camera" size={16} color="#fff" />
+            <Ionicons name="camera" size={18} color="#fff" />
           </View>
         </TouchableOpacity>
       </View>

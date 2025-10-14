@@ -6,6 +6,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { width } = Dimensions.get('window');
 
@@ -18,7 +19,7 @@ export interface DropdownData {
   disable?: boolean;
 }
 
-interface LibraryDropdownProps {
+interface BusinessCategoryDropdownProps {
   label: string;
   data: DropdownData[];
   value: string;
@@ -26,10 +27,10 @@ interface LibraryDropdownProps {
   placeholder?: string;
   required?: boolean;
   containerStyle?: any;
-  searchable?: boolean;
+  error?: boolean;
 }
 
-const LibraryDropdown: React.FC<LibraryDropdownProps> = ({
+const BusinessCategoryDropdown: React.FC<BusinessCategoryDropdownProps> = ({
   label,
   data,
   value,
@@ -37,11 +38,19 @@ const LibraryDropdown: React.FC<LibraryDropdownProps> = ({
   placeholder = 'Select an option',
   required = false,
   containerStyle,
-  searchable = true,
+  error = false,
 }) => {
+  console.log('BusinessCategoryDropdown - Received data:', data);
+  console.log('BusinessCategoryDropdown - Received value:', value);
+  console.log('BusinessCategoryDropdown - Received onSelect:', onSelect);
+  
   // Build a derived list with a separator item inserted after every 5 real items
   const dataWithSeparators: DropdownData[] = React.useMemo(() => {
-    if (!Array.isArray(data) || data.length === 0) return [];
+    console.log('Processing data for dropdown:', data);
+    if (!Array.isArray(data) || data.length === 0) {
+      console.log('No data available for dropdown');
+      return [];
+    }
     const output: DropdownData[] = [];
     data.forEach((item, idx) => {
       output.push(item);
@@ -56,38 +65,47 @@ const LibraryDropdown: React.FC<LibraryDropdownProps> = ({
         });
       }
     });
+    console.log('Processed data with separators:', output);
     return output;
   }, [data]);
 
   return (
     <View style={[styles.container, containerStyle]}>
-      <Text style={styles.label}>
-        {label}
-        {required && <Text style={styles.required}> *</Text>}
-      </Text>
+       {/* <Text style={styles.label}>
+        {label} */}
+        {/* {required && <Text style={styles.required}> *</Text>} */}
+      {/* </Text>  */}
       
       <Dropdown
-        style={styles.dropdown}
+        style={[styles.dropdown, error && styles.dropdownError]}
         placeholderStyle={styles.placeholderStyle}
         selectedTextStyle={styles.selectedTextStyle}
-        inputSearchStyle={styles.inputSearchStyle}
         iconStyle={styles.iconStyle}
         data={dataWithSeparators}
-        search={searchable}
+        search={false}
         maxHeight={300}
         labelField="label"
         valueField="value"
         placeholder={placeholder}
-        searchPlaceholder="Search..."
         value={value}
         onChange={item => {
+          console.log('Dropdown onChange triggered with item:', item);
           // Ignore taps on separator rows
-          if ((item as DropdownData)?.isSeparator) return;
+          if ((item as DropdownData)?.isSeparator) {
+            console.log('Ignoring separator item');
+            return;
+          }
+          console.log('Calling onSelect with value:', item.value);
           onSelect(item.value);
         }}
-        renderLeftIcon={() => (
-          <View style={styles.leftIconContainer}>
-            {/* <Text style={styles.bulletPoint}>•</Text> */}
+        // renderLeftIcon={() => (
+          // <View style={styles.leftIconContainer}>
+          //   <Ionicons name="business" size={18} color="#C539A5" />
+          // </View>
+        // )}
+        renderRightIcon={() => (
+          <View style={styles.rightIconContainer}>
+            <Ionicons name="chevron-down" size={20} color="#C539A5" />
           </View>
         )}
         renderItem={(item: DropdownData) => {
@@ -112,7 +130,9 @@ const LibraryDropdown: React.FC<LibraryDropdownProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 15,
+    marginBottom: 0,
+    zIndex: 10,
+    elevation: 10,
   },
   label: {
     fontSize: width * 0.04,
@@ -124,32 +144,39 @@ const styles = StyleSheet.create({
     color: '#ff4444',
   },
   dropdown: {
-    height: 50,
+    height: 48,
     backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 15,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    zIndex: 10,
+  },
+  dropdownError: {
+    borderColor: '#ff4444',
     borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: '#fff5f5',
   },
   placeholderStyle: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#999',
   },
   selectedTextStyle: {
-    fontSize: 16,
-    color: '#333',
-  },
-  inputSearchStyle: {
-    height: 40,
-    fontSize: 16,
+    fontSize: 12,
     color: '#333',
   },
   iconStyle: {
     width: 20,
     height: 20,
+    tintColor: '#C539A5', // Make icon more visible with brand color
   },
   leftIconContainer: {
     marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rightIconContainer: {
+    marginLeft: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -167,7 +194,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   itemText: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#595959',
     flex: 1,
   },
@@ -185,7 +212,8 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 20,
+    zIndex: 20,
   },
   itemContainer: {
     borderRadius: 8,
@@ -198,4 +226,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LibraryDropdown;
+export default BusinessCategoryDropdown;

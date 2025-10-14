@@ -29,15 +29,14 @@ const UpdateProfile: React.FC = () => {
   const updateProfile = useUpdateProfile();
 
   // State for the editable fields
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [username, setUsername] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | undefined>(undefined);
 
   // Initialize fields from profile data
   useEffect(() => {
     if (profile) {
-      setFirstName(profile.first_name || '');
-      setLastName(profile.last_name || '');
+      setUsername(profile.username || '');
+    
       if (profile.avatar_url) {
         setAvatarUri(profile.avatar_url);
       }
@@ -45,16 +44,15 @@ const UpdateProfile: React.FC = () => {
   }, [profile]);
 
   const initials = useMemo(() => {
-    const f = firstName?.[0] ?? '';
-    const l = lastName?.[0] ?? '';
-    return (f + l).toUpperCase() || 'U';
-  }, [firstName, lastName]);
+    const u = username?.[0] ?? '';
+    return u.toUpperCase() || 'U';
+  }, [username]);
 
   const handleSave = async () => {
     try {
       await updateProfile.mutateAsync({
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
+        username: username.trim(),
+        avatar_url: avatarUri, // include current selected avatar in save
       });
       
       navigation.goBack();
@@ -82,8 +80,7 @@ const UpdateProfile: React.FC = () => {
 
         {/* Avatar / Header card */}
         <ProfileUser
-          firstName={firstName}
-          lastName={lastName}
+          username={username}
           avatarUri={avatarUri}
           onImageSelected={async (imageUri) => {
             setAvatarUri(imageUri);
@@ -101,19 +98,11 @@ const UpdateProfile: React.FC = () => {
 
         {/* Form */}
         <View style={styles.form}>
-          <Text style={styles.smallLabel}>First Name</Text>
+          <Text style={styles.smallLabel}>Username</Text>
           <CustomInput
-            value={firstName}
-            onChangeText={setFirstName}
-            placeholder="First Name"
-            containerStyle={styles.inputContainerFix}
-          />
-
-          <Text style={styles.smallLabel}>Last Name</Text>
-          <CustomInput
-            value={lastName}
-            onChangeText={setLastName}
-            placeholder="Last Name"
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Username"
             containerStyle={styles.inputContainerFix}
           />
 

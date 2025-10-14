@@ -1,6 +1,3 @@
-// src/features/companies/screens/CompanyListScreen.tsx
-// accepts type of screen using enums
-
 import React, { useState } from 'react';
 import {
   ActivityIndicator,

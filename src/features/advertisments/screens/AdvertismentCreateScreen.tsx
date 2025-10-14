@@ -17,7 +17,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
 import CustomDropdown, { DropdownOption } from '../../../components/CustomDropdown';
-import LibraryDropdown, { DropdownData } from '../../../components/LibraryDropdown';
+import BusinessCategoryDropdown, { DropdownData } from '../../../components/BusinessCategoryDropdown';
 import { launchImageLibrary, ImageLibraryOptions, Asset } from 'react-native-image-picker';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -125,17 +125,21 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
     { label: 'Community Service', value: 'community_service' },
   ];
 
-  const locationOptions: DropdownData[] = [
-    { label: 'Lahore', value: 'lahore' },
-    { label: 'Karachi', value: 'karachi' },
-    { label: 'Islamabad', value: 'islamabad' },
-    { label: 'Rawalpindi', value: 'rawalpindi' },
-    { label: 'Faisalabad', value: 'faisalabad' },
-    { label: 'Multan', value: 'multan' },
-    { label: 'Peshawar', value: 'peshawar' },
-    { label: 'Quetta', value: 'quetta' },
-    { label: 'Sialkot', value: 'sialkot' },
-    { label: 'Gujranwala', value: 'gujranwala' },
+  const locationOptions: DropdownOption[] = [
+    { label: 'Lahore', value: 'lahore', group: 'Major Cities' },
+    { label: 'Karachi', value: 'karachi', group: 'Major Cities' },
+    { label: 'Islamabad', value: 'islamabad', group: 'Major Cities' },
+    { label: 'Rawalpindi', value: 'rawalpindi', group: 'Major Cities' },
+    { label: 'Faisalabad', value: 'faisalabad', group: 'Major Cities' },
+    { label: 'Multan', value: 'multan', group: 'Major Cities' },
+    { label: 'Peshawar', value: 'peshawar', group: 'Major Cities' },
+    { label: 'Quetta', value: 'quetta', group: 'Major Cities' },
+    { label: 'Sialkot', value: 'sialkot', group: 'Other Cities' },
+    { label: 'Gujranwala', value: 'gujranwala', group: 'Other Cities' },
+    { label: 'Hyderabad', value: 'hyderabad', group: 'Other Cities' },
+    { label: 'Sukkur', value: 'sukkur', group: 'Other Cities' },
+    { label: 'Larkana', value: 'larkana', group: 'Other Cities' },
+    { label: 'Nawabshah', value: 'nawabshah', group: 'Other Cities' },
   ];
 
   const requestAndroidPermission = async (): Promise<boolean> => {
@@ -298,7 +302,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                 containerStyle={styles.customInputContainer}
               />
               
-              <LibraryDropdown
+              <BusinessCategoryDropdown
                 label="Business Category"
                 placeholder="Select business category"
                 data={categoryOptions}
@@ -306,19 +310,16 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                 onSelect={setSelectedCategory}
                 required={true}
                 containerStyle={styles.customInputContainer}
-                searchable={true}
               />
 
-             
-               <CustomInput
+              <CustomDropdown
                 label="Location"
-                placeholder="Optional"
-                data={locationOptions}
-                value={selectedLocation}
+                placeholder="Select location"
+                options={locationOptions}
+                selectedValue={selectedLocation}
                 onSelect={setSelectedLocation}
-                required={true}
+                required={false}
                 containerStyle={styles.customInputContainer}
-                searchable={true}
               />
 
               <CustomInput

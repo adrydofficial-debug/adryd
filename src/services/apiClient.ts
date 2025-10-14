@@ -5,46 +5,37 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from 'axios';
-import {RefreshResponse} from '../types/responses/refresh';
-import {clearAuth, getAuth, setAuth} from './storage';
+import { supabase } from './supabase';
 
 // 🔹 Axios instance
 const apiClient: AxiosInstance = axios.create({
-  baseURL: 'https://adryd-backend-production.up.railway.app/api/v1/',
+  baseURL: 'https://adryd-backend.onrender.com',
   timeout: 10000,
   headers: {'Content-Type': 'application/json'},
 });
 
-// 🔹 Request interceptor: add token if present
+// 🔹 Request interceptor: add Supabase token if present
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    const {accessToken} = await getAuth();
-    if (accessToken && config.headers) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    // Allow requests to opt-out of auth via custom flag
+    const skipAuth = (config as any).skipAuth;
+    if (skipAuth) {
+      return config;
     }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token && config.headers) {
+        config.headers.Authorization = `Bearer ${session.access_token}`;
+      }
+    } catch (error) {
+      console.warn('Failed to get Supabase session:', error);
+    }
+
     return config;
   },
   error => Promise.reject(error),
 );
-
-// 🔹 Token refresh queue
-let isRefreshing = false;
-let failedQueue: {
-  resolve: (token: string | null) => void;
-  reject: (err: unknown) => void;
-}[] = [];
-
-const processQueue = (error: unknown, token: string | null = null) => {
-  failedQueue.forEach(p => (error ? p.reject(error) : p.resolve(token)));
-  failedQueue = [];
-};
-
-// 🔹 Refresh token request
-const refreshTokenRequest = async (
-  refreshToken: string,
-): Promise<AxiosResponse<RefreshResponse>> => {
-  return apiClient.post<RefreshResponse>('/auth/refresh', {refreshToken});
-};
 
 // 🔹 Response interceptor: handle 401 & refresh
 apiClient.interceptors.response.use(
@@ -54,50 +45,45 @@ apiClient.interceptors.response.use(
       _retry?: boolean;
     };
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        // Wait for refresh to complete
-        return new Promise<string | null>((resolve, reject) => {
-          failedQueue.push({resolve, reject});
-        }).then(token => {
-          if (originalRequest.headers && token) {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-          }
-          return apiClient(originalRequest);
-        });
-      }
+    // If this request opted out of auth, don't attempt refresh
+    const skipAuth = (originalRequest as any)?.skipAuth;
+    if (skipAuth) {
+      return Promise.reject(error);
+    }
 
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      isRefreshing = true;
 
       try {
-        const {refreshToken, user: oldUser} = await getAuth();
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
+        // Check if user is logged in first
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.warn('No user found, skipping token refresh');
+          return Promise.reject(new Error('User not authenticated'));
         }
-        if (!oldUser) {
-          throw new Error('No user available in storage');
+
+        // Try to refresh the Supabase session
+        const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          console.warn('Token refresh error:', refreshError.message);
+          return Promise.reject(new Error(`Authentication failed: ${refreshError.message}`));
         }
-        const {data} = await refreshTokenRequest(refreshToken);
 
-        // Save new tokens, keep existing user
-        await setAuth(data.accessToken, data.refreshToken, oldUser);
-
-        // Update default header for future requests
-        apiClient.defaults.headers.Authorization = `Bearer ${data.accessToken}`;
-        processQueue(null, data.accessToken);
+        if (!session?.access_token) {
+          console.warn('No access token after refresh');
+          return Promise.reject(new Error('Authentication failed: No access token'));
+        }
 
         // Retry original request with new token
         if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${session.access_token}`;
         }
         return apiClient(originalRequest);
-      } catch (err) {
-        processQueue(err, null);
-        await clearAuth();
-        return Promise.reject(err);
-      } finally {
-        isRefreshing = false;
+      } catch (err: any) {
+        console.warn('Token refresh failed:', err);
+        // Return the original error instead of the refresh error
+        return Promise.reject(error);
       }
     }
 

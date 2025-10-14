@@ -9,6 +9,7 @@ import {
   ScrollView,
   Platform,
   Alert,
+  PermissionsAndroid,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -69,14 +70,69 @@ interface FileItem {
 }
 
 interface Props {
-  navigation: NavigationProp;
+  navigation: any;
 }
 
-const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
+const CampaignUploadFiles: React.FC<any> = ({ navigation }) => {
   const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
 
+  // Request storage permissions for Android
+  const requestStoragePermission = async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') {
+      return true;
+    }
+
+    try {
+      // For Android 13+ (API 33+), request READ_MEDIA_* permissions
+      if (Platform.Version >= 33) {
+        const granted = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+          PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
+          PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO,
+        ]);
+        
+        return Object.values(granted).every(
+          permission => permission === PermissionsAndroid.RESULTS.GRANTED
+        );
+      } else {
+        // For older Android versions, request READ_EXTERNAL_STORAGE
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+          {
+            title: 'Storage Permission',
+            message: 'This app needs access to storage to select PDF files.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+        
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      }
+    } catch (err) {
+      console.warn('Permission request error:', err);
+      return false;
+    }
+  };
+
   const openFilePicker = async () => {
+    // Request permissions first
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) {
+      Alert.alert(
+        'Permission Required',
+        'Storage permission is required to select PDF files. Please grant permission in settings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Settings', onPress: () => {
+            // You can add logic to open app settings here
+            console.log('Open app settings');
+          }}
+        ]
+      );
+      return;
+    }
     if (!isDocumentPickerAvailable()) {
       if (__DEV__) {
         Alert.alert(
