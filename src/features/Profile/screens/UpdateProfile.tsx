@@ -29,13 +29,13 @@ const UpdateProfile: React.FC = () => {
   const updateProfile = useUpdateProfile();
 
   // State for the editable fields
-  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | undefined>(undefined);
 
   // Initialize fields from profile data
   useEffect(() => {
     if (profile) {
-      setUsername(profile.username || '');
+      setFullName(profile.full_name || '');
     
       if (profile.avatar_url) {
         setAvatarUri(profile.avatar_url);
@@ -44,14 +44,14 @@ const UpdateProfile: React.FC = () => {
   }, [profile]);
 
   const initials = useMemo(() => {
-    const u = username?.[0] ?? '';
+    const u = fullName?.[0] ?? '';
     return u.toUpperCase() || 'U';
-  }, [username]);
+  }, [fullName]);
 
   const handleSave = async () => {
     try {
       await updateProfile.mutateAsync({
-        username: username.trim(),
+        full_name: fullName.trim(),
         avatar_url: avatarUri, // include current selected avatar in save
       });
       
@@ -80,13 +80,16 @@ const UpdateProfile: React.FC = () => {
 
         {/* Avatar / Header card */}
         <ProfileUser
-          username={username}
+          username={fullName}
           avatarUri={avatarUri}
           onImageSelected={async (imageUri) => {
             setAvatarUri(imageUri);
-            // Save directly to Supabase
+            // Save directly to Supabase, preserving existing profile data
             try {
               await updateProfile.mutateAsync({
+                full_name: fullName.trim(),
+                first_name: profile?.first_name,
+                last_name: profile?.last_name,
                 avatar_url: imageUri,
               });
             } catch (error: any) {
@@ -98,11 +101,11 @@ const UpdateProfile: React.FC = () => {
 
         {/* Form */}
         <View style={styles.form}>
-          <Text style={styles.smallLabel}>Username</Text>
+          <Text style={styles.smallLabel}>Full Name</Text>
           <CustomInput
-            value={username}
-            onChangeText={setUsername}
-            placeholder="Username"
+            value={fullName}
+            onChangeText={setFullName}
+            placeholder="Enter your full name"
             containerStyle={styles.inputContainerFix}
           />
 

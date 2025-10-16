@@ -8,12 +8,16 @@ import {
   View,
   SafeAreaView,
   Image,
+  ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AddIcon from '../../../assets/images/add.svg';
 import AdrydLogo from '../../../assets/images/AdrydLogo.png';
 import AxoVoltLogo from '../../../assets/images/AxoVolt.png';
+import { useCompanies } from '../../companies/hooks/useCompanies';
+import { Company as ApiCompany } from '../../companies/domain/entities';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -51,31 +55,37 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
   const navigation = useNavigation();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  // Mock data for companies - in real app this would come from API/store
-  const companies: Company[] = [
-    {
-      id: '1',
-      name: 'ADRYD PVT-LTD',
-      logo: AdrydLogo,
-      color: '#C539A5',
-      business: 'Marketing',
-      ntn: '151561651654',
-      address: 'DHA Phase-4',
-      email: 'adryd@app',
-      number: '03048794564',
-    },
-    {
-      id: '2',
-      name: 'TAXX OIL PVT-LTD',
-      logo: AxoVoltLogo,
-      color: '#4CAF50',
-      business: 'Oil & Gas',
-      ntn: '123456789012',
-      address: 'Karachi Port',
-      email: 'contact@taxxoil.com',
-      number: '03012345678',
-    },
-  ];
+  // Use the companies API hook
+  const { data: apiCompanies, isLoading, error, refetch } = useCompanies();
+
+  // Convert API companies to the local Company interface
+  const companies: Company[] = React.useMemo(() => {
+    if (!apiCompanies) return [];
+    
+    console.log('PreviousCompanyScreen - API Companies:', apiCompanies);
+    
+    return apiCompanies.map((apiCompany: ApiCompany) => ({
+      id: apiCompany.id.toString(),
+      name: apiCompany.company_name,
+      logo: apiCompany.logo_url ? { uri: apiCompany.logo_url } : AdrydLogo, // Fallback to default logo
+      color: '#C539A5', // Default color, could be dynamic based on category
+      business: apiCompany.category?.name || 'Business',
+      ntn: apiCompany.company_ntn || 'N/A',
+      address: apiCompany.address || 'N/A',
+      email: apiCompany.email || 'N/A',
+      number: apiCompany.contact_number || 'N/A',
+    }));
+  }, [apiCompanies]);
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('PreviousCompanyScreen - State:', {
+      isLoading,
+      error: error?.message,
+      companiesCount: companies.length,
+      apiCompaniesCount: apiCompanies?.length || 0,
+    });
+  }, [isLoading, error, companies.length, apiCompanies?.length]);
 
   const handleBackPress = () => {
     navigation.goBack();
@@ -121,7 +131,6 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
       </View>
     </TouchableOpacity>
   );
-
   const renderCompanyCard = (company: Company) => {
     const expanded = isExpanded(company.id);
     
@@ -228,13 +237,53 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
       {/* Content */}
       <View style={styles.content}>
         {renderAddCompanyCard()}
-        <View style={styles.companyList}>
-          {companies.map((company) => (
-            <View key={company.id}>
-              {renderCompanyCard(company)}
-            </View>
-          ))}
-        </View>
+        
+        {/* Loading State */}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#C539A5" />
+            <Text style={styles.loadingText}>Loading companies...</Text>
+          </View>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>
+              Failed to load companies. Please try again.
+            </Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => refetch()}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Companies List */}
+        {!isLoading && !error && (
+          <ScrollView 
+            style={styles.companyList}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            {companies.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No companies found</Text>
+                <Text style={styles.emptySubtext}>
+                  Add your first company to get started
+                </Text>
+              </View>
+            ) : (
+              companies.map((company) => (
+                <View key={company.id}>
+                  {renderCompanyCard(company)}
+                </View>
+              ))
+            )}
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -311,6 +360,10 @@ const styles = StyleSheet.create({
   },
   companyList: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: wp(4),
+    paddingBottom: hp(2),
   },
   companyCard: {
     backgroundColor: '#FFFFFF',
@@ -424,6 +477,59 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: scaleFont(16),
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: hp(4),
+  },
+  loadingText: {
+    fontSize: scaleFont(16),
+    color: '#666',
+    marginTop: hp(1),
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: hp(4),
+    paddingHorizontal: wp(4),
+  },
+  errorText: {
+    fontSize: scaleFont(16),
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: hp(2),
+  },
+  retryButton: {
+    backgroundColor: '#C539A5',
+    paddingHorizontal: wp(6),
+    paddingVertical: hp(1.5),
+    borderRadius: scaleFont(8),
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: scaleFont(16),
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: hp(8),
+    paddingHorizontal: wp(4),
+  },
+  emptyText: {
+    fontSize: scaleFont(18),
+    color: '#333',
+    fontWeight: '600',
+    marginBottom: hp(1),
+  },
+  emptySubtext: {
+    fontSize: scaleFont(14),
+    color: '#666',
+    textAlign: 'center',
   },
 });
 

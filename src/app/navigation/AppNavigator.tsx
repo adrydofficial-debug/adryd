@@ -8,9 +8,10 @@ import ChangePassword from '../../features/Profile/screens/ChangePassword';
 import PreviousCompanyScreen from '../../features/Profile/screens/PreviousCompany';
 import CurrentLocationMinimalMap from '../../features/Location/CurrentLocationMinimalMap'
 import AdvertismentCreateScreen from '../../features/advertisments/screens/AdvertismentCreateScreen';
-import CampaignScreen from '../../features/compaignStatus/CompaignScreen';
+import CampaignScreen from '../../features/advertisments/screens/CompaignScreen';
 import CampaignUploadFiles from '../../features/advertisments/screens/AdvertismentUploadsScreen';
 import SingleBoardDetail from '../../features/boards/screens/SingleBoardDetail';
+import FilterCategoryList from '../../features/boards/screens/FilterCategoryList';
 // 🔹 Define navigation param types
 export type AppStackParamList = {
   CampaignScreen: undefined;
@@ -23,19 +24,20 @@ export type AppStackParamList = {
   UpdateProfile: undefined;
     PreviousCompanyScreen:undefined;
     ChangePassword: undefined;
+    FilterCategoryList:undefined
 
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const AppNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-
-<Stack.Screen name="CreateCompanyScreen" component={CreateCompanyScreen} />
+ {/* <Stack.Screen name="CampaignUploadFiles" component={CampaignUploadFiles} /> */}
+{/* <Stack.Screen name="CreateCompanyScreen" component={CreateCompanyScreen} /> */}
   {/* <Stack.Screen name="SingleBoardDetail" component={SingleBoardDetail} /> */}
   <Stack.Screen name="HomeScreen" component={HomeScreen} />
   <Stack.Screen name="CampaignScreen" component={CampaignScreen} />
    <Stack.Screen name="AdvertismentCreateScreen" component={AdvertismentCreateScreen} />
-   <Stack.Screen name="CampaignUploadFiles" component={CampaignUploadFiles} />
+  <Stack.Screen name="FilterCategoryList" component={FilterCategoryList} />
   <Stack.Screen name="CompaniesScreen" component={CreateCompanyScreen} />
   <Stack.Screen name="ChangePassword" component={ChangePassword} />
   <Stack.Screen name="PreviousCompanyScreen" component={PreviousCompanyScreen}/>

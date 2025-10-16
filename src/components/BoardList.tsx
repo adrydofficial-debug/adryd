@@ -40,6 +40,7 @@ interface BoardListProps {
   subHeading?: string;
   navigation?: any;
   onPressDetail?: (item: BoardItem) => void;
+  numColumns?: number; // Add numColumns prop for grid layout
 }
 
 // 🔹 Default static data
@@ -75,9 +76,13 @@ const BoardList: React.FC<BoardListProps> = ({
   heading,
   subHeading,
   navigation,
+  onPressDetail,
+  numColumns = 1, // Default to 1 column (horizontal layout)
 }) => {
   const handleCardPress = (item: BoardItem) => {
-    if (navigation) {
+    if (onPressDetail) {
+      onPressDetail(item);
+    } else if (navigation) {
       navigation.navigate('CategoryScreen', {
         categoryId: item.id,
         categoryName: item.title,
@@ -112,7 +117,10 @@ const BoardList: React.FC<BoardListProps> = ({
 
     return (
       <TouchableOpacity
-        style={styles.card}
+        style={[
+          styles.card,
+          numColumns > 1 && styles.cardGrid, // Apply grid-specific styles
+        ]}
         onPress={() => handleCardPress(item)}>
         <ImageBackground
           source={imageSource}
@@ -165,9 +173,24 @@ const BoardList: React.FC<BoardListProps> = ({
         data={data}
         renderItem={renderItem}
         keyExtractor={item => item.id}
-        horizontal
+        horizontal={numColumns === 1}
+        numColumns={numColumns > 1 ? numColumns : undefined}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{paddingHorizontal: 10}}
+        contentContainerStyle={{
+          paddingHorizontal: 10,
+          ...(numColumns > 1 && {
+            alignItems: 'center',
+            paddingVertical: 10,
+          }),
+        }}
+        columnWrapperStyle={
+          numColumns > 1
+            ? {
+                justifyContent: 'center',
+                paddingHorizontal: 5, // Reduced from 10 to 5
+              }
+            : undefined
+        }
       />
     </View>
   );
@@ -217,6 +240,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingBottom: 5,
     marginBottom: 10,
+  },
+  cardGrid: {
+    marginRight: 5, // Reduced margin for grid layout
+    marginBottom: 8, // Slightly reduced bottom margin
   },
   image: {
     width: CARD_WIDTH,

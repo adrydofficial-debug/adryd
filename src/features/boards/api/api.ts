@@ -13,12 +13,12 @@ import {
 
 // 🎯 Get all filters (groups, recommended, nearest, see all)
 export const fetchBoardFilters = () =>
-  apiClient.get<FiltersResponse>('/boards/filters').then(res => res.data);
+  apiClient.get<FiltersResponse>('/api/boards/filters').then(res => res.data);
 
 // 🔍 Get filtered boards (paginated)
 export const fetchFilteredBoards = (params: FilterBoardsParams) =>
   apiClient
-    .get<FilteredBoardsResponse>('/boards/filter', { params })
+    .get<FilteredBoardsResponse>('api/boards/filter', { params })
     .then(res => res.data);
 
 // ⭐ Rate a board

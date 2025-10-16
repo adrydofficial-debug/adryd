@@ -10,8 +10,8 @@ import {
   Image,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import CardStatus, { CardStatusProps } from '../../components/CardStatus';
-import BottomTab from '../../app/navigation/BottomTab';
+import CardStatus, { CardStatusProps } from '../../../components/CardStatus';
+import BottomTab from '../../../app/navigation/BottomTab';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -547,10 +547,10 @@ const CampaignScreen: React.FC<ActiveCampaignProps> = ({ navigation }) => {
       </ScrollView>
       
       {/* Bottom Tab Navigation */}
-      <BottomTab 
+      {/* <BottomTab 
         activeTab={activeBottomTab} 
         onTabPress={handleBottomTabPress} 
-      />
+      /> */}
     </View>
   );
 };

@@ -45,6 +45,7 @@ const DRAWER_WIDTH = Math.min(width * 0.82, 340);
 const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) => {
   const navigation = useNavigation();
   const { data: profile } = useProfile();
+  const { user } = useAuthStore();
   const logout = useAuthStore(s => s.logout);
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -121,7 +122,15 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
       id: 4,
       title: 'Favorite',
       subtitle: 'Your Favorite Campaigns',
-      onPress: () => {},
+       onPress: () => {
+        onClose(); // Close the drawer first
+        try {
+          navigation.navigate('CampaignScreen' as never);
+          console.log('✅ Navigation to PreviousCompanyScreen successful');
+        } catch (error) {
+          console.error('❌ Navigation error:', error);
+        }
+      },
       // color: '#FF5722',
       icon: 'favorite',
     },
@@ -205,21 +214,25 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
           <View style={styles.profileCard}>
             <View style={styles.profileImageContainer}>
               <View style={styles.profileImage}>
-                {profile?.avatar_url ? (
+                {user?.user_metadata?.avatar_url ? (
                   <Image 
-                    source={{ uri: profile.avatar_url }} 
+                    source={{ uri: user.user_metadata.avatar_url }} 
                     style={styles.profileImageAvatar}
                   />
                 ) : (
                   <Text style={styles.profileImageText}>
-                    {profile?.username?.charAt(0).toUpperCase() || 'U'}
+                    {(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email?.split('@')[0] || 'U')?.charAt(0).toUpperCase()}
                   </Text>
                 )}
               </View>
             </View>
             <View style={styles.profileCenter}>
               <Text style={styles.profileName}>
-                {profile?.username || 'User'}
+                {user?.user_metadata?.full_name || 
+                 user?.user_metadata?.name || 
+                 user?.user_metadata?.username || 
+                 user?.email?.split('@')[0] || 
+                 'User'}
               </Text>
               <Text style={styles.profilePhone}>
                 {profile?.phone || 'No phone number'}

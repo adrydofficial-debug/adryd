@@ -35,6 +35,10 @@ const BoardTabs: React.FC<BoardTabsProps> = ({
   const [scrollOffset, setScrollOffset] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // Debug selectedTab prop
+  console.log('BoardTabs - received selectedTab:', selectedTab);
+  console.log('BoardTabs - received tabs:', tabs.map(t => ({ id: t.id, label: t.label })));
+
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     setScrollOffset(offsetX);
@@ -54,6 +58,7 @@ const BoardTabs: React.FC<BoardTabsProps> = ({
         scrollEventThrottle={16}>
         {tabs.map(tab => {
           const isActive = selectedTab?.id === tab.id;
+          console.log(`BoardTabs - Tab: ${tab.label}, ID: ${tab.id}, Selected: ${selectedTab?.id}, IsActive: ${isActive}`);
           return (
             <TouchableOpacity
               key={`${tab.type}-${tab.id}`} // ✅ stable key
@@ -84,6 +89,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
+    borderWidth:1,
+    borderColor:'#E5E7EB'
   },
   tabActive: {
     backgroundColor: '#C539A5',

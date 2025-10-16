@@ -1,236 +1,3 @@
-// import React ,{useState}from 'react';
-// import {
-//   Dimensions,
-//   Image,
-//   ScrollView,
-//   StatusBar,
-//   StyleSheet,
-//   Text,
-//   TouchableOpacity,
-//   View,
-// } from 'react-native';
-// import LinearGradient from 'react-native-linear-gradient';
-// import {AppScreens} from '../../app/navigation/AppNavigator';
-//  import DrawerComponent from '../../components/DrawerComponent'; 
-// const {width, height} = Dimensions.get('window');
-
-// interface HomeScreenProps {
-//   navigation?: any; // You can type this more specifically
-// }
-
-// const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
-//   const handleLogout = () => {
-//     // Handle logout logic here if needed
-//     console.log('Logout pressed');
-//   };
-
-//   const navigateToCompanies = () => {
-//     navigation?.navigate(AppScreens.CompanyList);
-//   };
-
-//   const navigateToCreateCompany = () => {
-//     navigation?.navigate(AppScreens.CreateCompany);
-//   };
-
-//   const navigateToBusinessCategoriesTest = () => {
-//     navigation?.navigate(AppScreens.BusinessCategoriesTest);
-//   };
-//  const [drawerVisible, setDrawerVisible] = useState(false);
-//   return (
-//     <View style={styles.container}>
-//       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
-
-//       <LinearGradient
-//         colors={['#C539A5', '#fffdffff']}
-//         start={{x: 0, y: 0}}
-//         end={{x: 0, y: 1}}
-//         style={styles.header}>
-//         {/* Profile */}
-//         <View style={styles.profileRow}>
-//           <TouchableOpacity onPress={handleLogout}>
-//             <Image
-//               source={{uri: 'https://randomuser.me/api/portraits/men/1.jpg'}}
-//               style={styles.avatar}
-//             />
-//           </TouchableOpacity>
-//           <View style={{marginRight: 25}}>
-//              <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.7}>
-//                             <Text style={styles.title}>Login</Text>
-//                           </TouchableOpacity>
-//             <Text style={styles.greeting}>Hi</Text>
-//             <Text style={styles.name}>Welcome!</Text>
-//           </View>
-//           <View style={styles.locationRow}>
-//             <View style={styles.locationBtnCustom}>
-//               <Text style={styles.locationBtnText}>Lahore Gulberg</Text>
-//             </View>
-//           </View>
-//         </View>
-
-//         {/* Banner */}
-//         <View style={styles.bannerContainer}>
-//           <View style={styles.bannerPlaceholder}>
-//             <Text style={styles.bannerText}>Welcome to Adryd!</Text>
-//             <Text style={styles.bannerSubtext}>Your boards are ready</Text>
-//           </View>
-//         </View>
-//       </LinearGradient>
-
-//       <ScrollView style={styles.content}>
-//         <View style={styles.section}>
-//           <Text style={styles.sectionTitle}>Find your Board</Text>
-//           <Text style={styles.sectionSubtitle}>
-//             Discover amazing opportunities around you
-//           </Text>
-//       </View>
-
-//         <View style={styles.featureGrid}>
-//           <TouchableOpacity style={styles.featureCard}>
-//             <Text style={styles.featureTitle}>Recommended</Text>
-//             <Text style={styles.featureDescription}>
-//               Boards we think you'll love
-//             </Text>
-//           </TouchableOpacity>
-
-//           <TouchableOpacity style={styles.featureCard}>
-//             <Text style={styles.featureTitle}>Nearby</Text>
-//             <Text style={styles.featureDescription}>
-//               Boards close to your location
-//             </Text>
-//           </TouchableOpacity>
-
-//           <TouchableOpacity style={styles.featureCard} onPress={navigateToCompanies}>
-//             <Text style={styles.featureTitle}>Companies</Text>
-//             <Text style={styles.featureDescription}>
-//               Manage your companies
-//             </Text>
-//           </TouchableOpacity>
-
-//           <TouchableOpacity style={styles.featureCard} onPress={navigateToCreateCompany}>
-//             <Text style={styles.featureTitle}>Create Company</Text>
-//             <Text style={styles.featureDescription}>
-//               Add a new company
-//             </Text>
-//           </TouchableOpacity>
-
-//           <TouchableOpacity style={styles.featureCard} onPress={navigateToBusinessCategoriesTest}>
-//             <Text style={styles.featureTitle}>Test Categories</Text>
-//             <Text style={styles.featureDescription}>
-//               Test business categories API
-//             </Text>
-//             </TouchableOpacity>
-//           </View>
-//          <DrawerComponent visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
-//       </ScrollView>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {flex: 1, backgroundColor: '#fff'},
-//   header: {
-//     width,
-//     height: height * 0.31,
-//     paddingTop: height * 0.04,
-//     paddingHorizontal: width * 0.05,
-//   },
-//   profileRow: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     justifyContent: 'space-between',
-//     marginTop: 30,
-//   },
-//   avatar: {
-//     width: width * 0.13,
-//     height: width * 0.13,
-//     borderRadius: width * 0.065,
-//     borderWidth: 1,
-//     borderColor: '#fff',
-//   },
-//   greeting: {fontSize: 12, color: '#fff'},
-//   name: {fontSize: 18, color: '#fff', fontWeight: 'bold', marginTop: -5},
-//   locationRow: {flexDirection: 'row', alignItems: 'center'},
-//   locationBtnCustom: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     backgroundColor: '#fff',
-//     borderRadius: 20,
-//     paddingHorizontal: width * 0.03,
-//     paddingVertical: height * 0.008,
-//   },
-//   locationBtnText: {color: '#595959', fontSize: 12},
-//   bannerContainer: {
-//     width: width * 0.9,
-//     height: height * 0.18,
-//     borderRadius: 15,
-//     overflow: 'hidden',
-//     alignSelf: 'center',
-//     marginTop: 20,
-//   },
-//   bannerPlaceholder: {
-//     flex: 1,
-//     backgroundColor: 'rgba(255,255,255,0.9)',
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     borderRadius: 15,
-//   },
-//   bannerText: {
-//     fontSize: 20,
-//     fontWeight: 'bold',
-//     color: '#C539A5',
-//     marginBottom: 5,
-//   },
-//   bannerSubtext: {
-//     fontSize: 14,
-//     color: '#666',
-//   },
-//   content: {flex: 1, backgroundColor: '#fff'},
-//   section: {
-//     paddingHorizontal: 20,
-//     paddingVertical: 20,
-//   },
-//   sectionTitle: {
-//     fontSize: width * 0.055,
-//     fontWeight: 'bold',
-//     color: '#222',
-//     marginBottom: 5,
-//   },
-//   sectionSubtitle: {
-//     fontSize: 14,
-//     color: '#666',
-//   },
-//   featureGrid: {
-//     flexDirection: 'row',
-//     flexWrap: 'wrap',
-//     paddingHorizontal: 20,
-//     justifyContent: 'space-between',
-//   },
-//   featureCard: {
-//     width: (width - 60) / 2,
-//     backgroundColor: '#f8f9fa',
-//     borderRadius: 12,
-//     padding: 20,
-//     marginBottom: 15,
-//     borderWidth: 1,
-//     borderColor: '#e9ecef',
-//   },
-//   featureTitle: {
-//     fontSize: 16,
-//     fontWeight: 'bold',
-//     color: '#C539A5',
-//     marginBottom: 8,
-//   },
-//   featureDescription: {
-//     fontSize: 12,
-//     color: '#666',
-//     lineHeight: 16,
-//   },
-// });
-
-// export default HomeScreen;
-
-
-
 // src/features/boards/HomeScreen.tsx
 import React, { useEffect, useState } from 'react';
 import {
@@ -244,25 +11,17 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
 import LinearGradient from 'react-native-linear-gradient';
-import BoardTabs from '../../../components/BoardTabs';
+import BoardTabs, { Tab } from '../components/BoardTabs';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
 import PinkLocation from '../../../assets/images/PinkkLocation.svg';
-
-// ✅ Hooks
-import { useGroups, useNearestBoards, useRecommendedBoards } from '../hooks';
-
-// ✅ Shimmer
+import { useBoardFilters } from '../hooks/useBoardFilters';
+import { useAuthStore } from '../../../store/authStore';
 import LinearGradientLib from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
-
-// React Navigation types
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-
-// Example RootStackParamList (adjust based on your navigator)
 type RootStackParamList = {
   LoginScreen: undefined;
   CategoryScreen: {
@@ -283,7 +42,10 @@ type Props = {
 const { width, height } = Dimensions.get('window');
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const [selectedTab, setSelectedTab] = useState<string>('See All');
+  const [selectedTab, setSelectedTab] = useState<Tab | null>({ id: 'see-all', type: 'all', label: 'See All' });
+  
+  // Get user data from authStore
+  const { user } = useAuthStore();
 
   // Banner state
   const [currentBannerIndex, setCurrentBannerIndex] = useState<number>(0);
@@ -340,88 +102,109 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  // Data hooks
+  // Data hooks - Only use fetchBoardFilters
   const {
-    data: recommendedData,
-    isLoading: isRecommendedLoading,
-    error: recommendedError,
-    refetch: refetchRecommended,
-  } = useRecommendedBoards({ limit: 10 });
+    data: boardFiltersData,
+    isLoading: isBoardFiltersLoading,
+    error: boardFiltersError,
+    refetch: refetchBoardFilters,
+  } = useBoardFilters();
 
-  const {
-    data: nearestData,
-    isLoading: isNearestLoading,
-    error: nearestError,
-    refetch: refetchNearest,
-  } = useNearestBoards({ latitude: 31.582, longitude: 74.329, limit: 10 });
-
-  const {
-    data: groupsData,
-    isLoading: isGroupsLoading,
-    error: groupsError,
-    refetch: refetchGroups,
-  } = useGroups({ boardLimit: 5 });
-
-  // Dynamic tabs
-  const tabs: string[] = [
-    'See All',
-    'Recommend',
-    'Near',
-    ...(groupsData?.flatMap(group => [
-      group.name,
-      ...(group.categories?.map(cat => cat.name) || []),
+  // Dynamic tabs from API data
+  const tabs: Tab[] = [
+    { id: 'see-all', type: 'all', label: 'See All' },
+    { id: 'recommend', type: 'recommend', label: 'Recommend' },
+    { id: 'near', type: 'near', label: 'Near' },
+    ...(boardFiltersData?.groups?.flatMap((group: any) => [
+      { id: `group-${group.id}`, type: 'group', label: group.name },
+      ...(group.categories?.map((cat: any) => ({
+        id: `category-${cat.id}`,
+        type: 'category',
+        label: cat.name,
+      })) || []),
     ]) || []),
   ];
 
-  // Handle tab press
-  const handleTabPress = (tabName: string) => {
-    setSelectedTab(tabName);
-
-    switch (tabName) {
-      case 'See All':
-        navigation.navigate('CategoryScreen', {
-          categoryId: 'all',
-          categoryName: 'All Categories',
-          showAllCategories: true,
-          selectedTab: tabName,
-          tabs,
-        });
-        break;
-      case 'Recommend':
-        navigation.navigate('CategoryScreen', {
-          categoryId: 'recommend',
-          categoryName: 'Recommended',
-          subHeading: 'Boards',
-          selectedTab: tabName,
-          tabs,
-        });
-        break;
-      case 'Near':
-        navigation.navigate('CategoryScreen', {
-          categoryId: 'near',
-          categoryName: 'Nearest Board',
-          subHeading: 'Boards',
-          selectedTab: tabName,
-          tabs,
-        });
-        break;
-      default:
-        navigation.navigate('CategoryScreen', {
-          categoryId: tabName.toLowerCase(),
-          categoryName: tabName,
-          subHeading: 'Boards',
-          selectedTab: tabName,
-          tabs,
-        });
+  // Log user data for debugging
+  React.useEffect(() => {
+    if (user) {
+      console.log('User data:', JSON.stringify(user, null, 2));
+      console.log('User name:', user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email?.split('@')[0] || 'User');
+      console.log('User avatar:', user?.user_metadata?.avatar_url || 'No avatar');
     }
+  }, [user]);
+
+  // Log API response for debugging
+  React.useEffect(() => {
+    if (boardFiltersData) {
+      console.log('Board Filters API Response:', JSON.stringify(boardFiltersData, null, 2));
+      console.log('Generated Tabs:', tabs);
+      // Log each group and its categories
+      boardFiltersData.groups?.forEach((group: any) => {
+        console.log(`Group: ${group.name}`);
+        group.categories?.forEach((category: any) => {
+          console.log(`  Category: ${category.name} (${category.boards?.length || 0} boards)`);
+        });
+      });
+    }
+  }, [boardFiltersData, tabs]);
+  // Handle tab press
+  const handleTabPress = (tab: Tab) => {
+    setSelectedTab(tab);
+    
+    // Map tab types to correct API filter values
+    let filterValue = 'see_all'; // default
+    switch (tab.type) {
+      case 'recommend':
+        filterValue = 'recommended';
+        break;
+      case 'near':
+        filterValue = 'nearest';
+        break;
+      case 'group':
+        filterValue = 'group';
+        break;
+      case 'category':
+        filterValue = 'category';
+        break;
+      case 'all':
+      default:
+        filterValue = 'see_all';
+        break;
+    }
+    
+    // Navigate to FilterCategoryList with the selected tab and filter parameter
+    navigation.navigate('FilterCategoryList', {
+      selectedTab: tab.label,
+      categoryId: tab.id,
+      categoryName: tab.label,
+      filter: filterValue, // Pass the correct filter parameter for API call
+      tabType: tab.type, // Pass the tab type (group, category, etc.)
+    });
   };
 
   const handleDetailPress = (item: any) => {
     navigation.navigate('CampaignDetail', { item });
   };
 
-  const isLoading = isRecommendedLoading || isNearestLoading || isGroupsLoading;
-  const hasError = recommendedError || nearestError || groupsError;
+  // Convert Board to BoardItem format
+  const convertBoardToBoardItem = (board: any) => {
+    console.log('Converting board:', board);
+    return {
+      id: board.id?.toString() || 'unknown',
+      title: board.title || 'Untitled Board',
+      description: board.description || '',
+      location: board.location || 'Unknown Location',
+      distance: '1.6 km', // Default distance
+      size: board.width && board.height ? `${board.width}x${board.height}` : '12x8',
+      price: parseFloat(board.price) || 0,
+      currency: board.currency || 'USD',
+      image_url: board.image_url || null,
+    };
+  };
+
+  const isLoading = isBoardFiltersLoading;
+  const hasError = boardFiltersError;
 
   return (
     <View style={styles.container}>
@@ -443,13 +226,22 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.profileRow}>
           <TouchableOpacity onPress={handleProfilePress}>
             <Image
-              source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
+              source={{ 
+                uri: user?.user_metadata?.avatar_url || 
+                     'https://randomuser.me/api/portraits/men/1.jpg' 
+              }}
               style={styles.avatar}
             />
           </TouchableOpacity>
           <View style={{ marginRight: 25 }}>
             <Text style={styles.greeting}>Hi</Text>
-            <Text style={styles.name}>Umair!</Text>
+            <Text style={styles.name}>
+              {user?.user_metadata?.full_name || 
+               user?.user_metadata?.name || 
+               user?.user_metadata?.username ||
+               user?.email?.split('@')[0] || 
+               'User'}!
+            </Text>
           </View>
           <View style={styles.locationRow}>
             <View style={styles.locationBtnCustom}>
@@ -503,7 +295,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         />
       </View>
 
-      <ScrollView style={{ flex: 1, backgroundColor: '#fff', marginBottom: 110 }}>
+      <ScrollView style={{ flex: 1, backgroundColor: '#fff', marginBottom: 10 }}>
         {isLoading ? (
           [...Array(3)].map((_, idx) => (
             <ShimmerPlaceholder
@@ -525,9 +317,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <TouchableOpacity
               style={styles.retryButton}
               onPress={() => {
-                refetchRecommended();
-                refetchNearest();
-                refetchGroups();
+                refetchBoardFilters();
               }}
             >
               <Text style={styles.retryButtonText}>Retry</Text>
@@ -535,29 +325,81 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         ) : (
           <>
-            <BoardList
-              data={recommendedData?.pages?.flatMap(p => p.data ?? []) || []}
-              onPressDetail={handleDetailPress}
-              heading="Recommended"
-              navigation={navigation}
-            />
-            <BoardList
-              data={nearestData?.pages?.flatMap(p => p.data ?? []) || []}
-              onPressDetail={handleDetailPress}
-              heading="Nearest Board"
-              navigation={navigation}
-            />
-            {groupsData?.map(group =>
-              group.categories?.map(category => (
-                <BoardList
-                  key={category.id}
-                  data={category.boards || []}
-                  onPressDetail={handleDetailPress}
-                  heading={`${group.name} - ${category.name}`}
-                  navigation={navigation}
-                />
-              )),
+            {/* Show See All boards first */}
+            {/* {boardFiltersData?.seeAll && boardFiltersData.seeAll.length > 0 && (
+              <BoardList
+                data={boardFiltersData.seeAll.map(convertBoardToBoardItem)}
+                onPressDetail={handleDetailPress}
+                heading="All Boards"
+                navigation={navigation}
+              />
+            )} */}
+            
+            {/* Show Recommended boards */}
+            {boardFiltersData?.recommended && boardFiltersData.recommended.length > 0 && (
+              <BoardList
+                data={boardFiltersData.recommended.map(convertBoardToBoardItem)}
+                onPressDetail={handleDetailPress}
+                heading="Recommended"
+                navigation={navigation}
+              />
             )}
+            
+            {/* Show Nearest boards */}
+            {boardFiltersData?.nearest && boardFiltersData.nearest.length > 0 && (
+              <BoardList
+                data={boardFiltersData.nearest.map(convertBoardToBoardItem)}
+                onPressDetail={handleDetailPress}
+                heading="Nearest Boards"
+                navigation={navigation}
+              />
+            )}
+            
+            {/* Show boards grouped by categories (categories shown only once) */}
+            {(() => {
+              // Group all categories from all groups
+              const categoryMap = new Map();
+              
+              boardFiltersData?.groups?.forEach((group: any) => {
+                group.categories?.forEach((category: any) => {
+                  if (category.boards && category.boards.length > 0) {
+                    if (!categoryMap.has(category.id)) {
+                      categoryMap.set(category.id, {
+                        ...category,
+                        groups: []
+                      });
+                    }
+                    categoryMap.get(category.id).groups.push({
+                      id: group.id,
+                      name: group.name,
+                      description: group.description,
+                      boards: category.boards
+                    });
+                  }
+                });
+              });
+              
+              return Array.from(categoryMap.values()).map((category: any) => (
+                <View key={category.id}>
+                  {/* Category header - shown only once */}
+                  <View style={styles.categoryHeader}>
+                    <Text style={styles.categoryTitle}>{category.name}</Text>
+                  </View>
+                  
+                  {/* Groups within this category */}
+                  {category.groups.map((group: any) => (
+                    <BoardList
+                      key={`${category.id}-${group.id}`}
+                      data={group.boards.map(convertBoardToBoardItem)}
+                      onPressDetail={handleDetailPress}
+                      heading={group.name}
+                      subHeading={group.description}
+                      navigation={navigation}
+                    />
+                  ))}
+                </View>
+              ));
+            })()}
           </>
         )}
       </ScrollView>
@@ -590,7 +432,7 @@ const styles = StyleSheet.create({
       filterIcon: { width: width * 0.06, height: width * 0.06 }, 
       bannerContainer: { width: width * 0.9, height: height * 0.18, borderRadius: 15, overflow: 'hidden', alignSelf: 'center', }, 
       bannerImage: { width: '100%', height: '100%', borderRadius: 15, resizeMode: 'cover', justifyContent: 'center', alignItems: 'center', }, 
-      boardSection: { marginTop: height * 0.03, marginHorizontal: width * 0.01 },
+      boardSection: { marginTop: height * 0.03, marginHorizontal: width * 0.01, },
        boardTitle: { fontSize: width * 0.055, fontWeight: 'bold', color: '#222', marginBottom: height * 0.015, paddingHorizontal: 20, }, 
        errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 50, paddingHorizontal: 20, }, 
        errorText: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 20, }, 
@@ -606,5 +448,35 @@ const styles = StyleSheet.create({
         bulletText: { fontSize: 14, color: '#374151', }, 
         dropdownItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', }, 
         dropdownItemText: { fontSize: 14, color: '#333', fontWeight: '500', }, 
-        dropdownOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999, }, });
+        dropdownOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999, },
+       groupHeader: {
+         backgroundColor: '#f8f9fa',
+         paddingHorizontal: 20,
+         paddingVertical: 15,
+         marginTop: 10,
+         borderLeftWidth: 4,
+         borderLeftColor: '#C539A5',
+       },
+       groupTitle: {
+         fontSize: 18,
+         fontWeight: 'bold',
+         color: '#C539A5',
+         marginBottom: 5,
+       },
+       groupDescription: {
+         fontSize: 14,
+         color: '#666',
+         fontStyle: 'italic',
+       },
+       categoryHeader: {
+         paddingHorizontal: 20,
+         paddingVertical: 10,
+         marginTop: 15,
+       },
+       categoryTitle: {
+         fontSize: 18,
+         fontWeight: 'bold',
+         color: '#333',
+       },
+     });
 export default HomeScreen;

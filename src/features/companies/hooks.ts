@@ -8,7 +8,6 @@ import {
 } from './api/api';
 import { Company, CompanyCategoryGroup } from './types';
 import { PaginatedResponse } from './types/response';
-
 interface Filters {
   pageSize?: number;
   offset?: number;

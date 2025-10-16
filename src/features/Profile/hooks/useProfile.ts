@@ -168,6 +168,31 @@ export const useUpdateProfile = () => {
       // Update the profile in cache
       qc.setQueryData(['profile', user?.id], data);
       qc.invalidateQueries({ queryKey: ['profile'] });
+      
+      // Update the authStore with the new user data
+      if (user) {
+        const updatedUser = {
+          ...user,
+          user_metadata: {
+            ...user.user_metadata,
+            username: data.username,
+            full_name: data.full_name,
+            first_name: data.first_name,
+            last_name: data.last_name,
+            avatar_url: data.avatar_url,
+          }
+        };
+        
+        // Update the authStore
+        const { setUser } = useAuthStore.getState();
+        setUser(updatedUser);
+        
+        console.log('✅ Updated authStore with new user data:', updatedUser.user_metadata);
+        console.log('✅ Updated full_name:', data.full_name);
+        console.log('✅ Updated avatar_url:', data.avatar_url);
+      } else {
+        console.warn('⚠️ No user in authStore to update');
+      }
     },
   });
 };
