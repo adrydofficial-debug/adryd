@@ -11,7 +11,7 @@ import { supabase } from './supabase';
 const apiClient: AxiosInstance = axios.create({
   baseURL: 'https://adryd-backend.onrender.com',
   timeout: 10000,
-  headers: {'Content-Type': 'application/json'},
+  headers: { 'Content-Type': 'application/json' },
 });
 
 // 🔹 Request interceptor: add Supabase token if present
@@ -24,7 +24,9 @@ apiClient.interceptors.request.use(
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session?.access_token && config.headers) {
         config.headers.Authorization = `Bearer ${session.access_token}`;
       }
@@ -56,23 +58,32 @@ apiClient.interceptors.response.use(
 
       try {
         // Check if user is logged in first
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) {
           console.warn('No user found, skipping token refresh');
           return Promise.reject(new Error('User not authenticated'));
         }
 
         // Try to refresh the Supabase session
-        const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
-        
+        const {
+          data: { session },
+          error: refreshError,
+        } = await supabase.auth.refreshSession();
+
         if (refreshError) {
           console.warn('Token refresh error:', refreshError.message);
-          return Promise.reject(new Error(`Authentication failed: ${refreshError.message}`));
+          return Promise.reject(
+            new Error(`Authentication failed: ${refreshError.message}`),
+          );
         }
 
         if (!session?.access_token) {
           console.warn('No access token after refresh');
-          return Promise.reject(new Error('Authentication failed: No access token'));
+          return Promise.reject(
+            new Error('Authentication failed: No access token'),
+          );
         }
 
         // Retry original request with new token

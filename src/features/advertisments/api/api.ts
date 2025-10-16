@@ -1,79 +1,82 @@
-import apiClient from '../../../services/apiClient'; // adjust path to your axios client
+// src/features/advertisements/api/api.ts
+import apiClient from '../../../services/apiClient';
 import {
-  ChangeStatusRequest,
+  ChangeAdvertisementStatusRequest,
   CreateAdvertisementRequest,
+  GenerateUploadUrlRequest,
   UpdateAdvertisementRequest,
-  UploadUrlRequest,
 } from './types/requests';
 import {
-  AdvertisementResponse,
+  AdvertisementUploadResponse,
+  CreateAdvertisementResponse,
   PaginatedAdvertisementsResponse,
+  SingleAdvertisementResponse,
 } from './types/responses';
 
-/* Advertisements API wrapper (frontend) */
+const BASE = '/advertisements';
 
-export const advertisementsApi = {
-  // list (paginated)
-  getAdvertisements: async (params?: {
-    page?: number;
-    limit?: number;
-    status?: string;
-  }): Promise<PaginatedAdvertisementsResponse> => {
-    const query = new URLSearchParams();
-    if (params?.page) query.append('page', String(params.page));
-    if (params?.limit) query.append('limit', String(params.limit));
-    if (params?.status) query.append('status', params.status);
+export const getAdvertisements = async (
+  page = 1,
+  limit = 10,
+  status?: string,
+): Promise<PaginatedAdvertisementsResponse> => {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (status) params.append('status', status);
+  const { data } = await apiClient.get(`${BASE}?${params.toString()}`);
+  return data;
+};
 
-    const res = await apiClient.get(`/advertisements?${query.toString()}`);
-    return res.data;
-  },
+export const getAdvertisement = async (
+  id: number,
+): Promise<SingleAdvertisementResponse> => {
+  const { data } = await apiClient.get(`${BASE}/${id}`);
+  return data;
+};
 
-  // single
-  getAdvertisementById: async (id: number): Promise<AdvertisementResponse> => {
-    const res = await apiClient.get(`/advertisements/${id}`);
-    return res.data;
-  },
+export const createAdvertisement = async (
+  payload: CreateAdvertisementRequest,
+): Promise<CreateAdvertisementResponse> => {
+  const { data } = await apiClient.post(BASE, payload);
+  return data;
+};
 
-  // create (can include bookings)
-  createAdvertisement: async (
-    payload: CreateAdvertisementRequest,
-  ): Promise<AdvertisementResponse> => {
-    const res = await apiClient.post('/advertisements', payload);
-    return res.data;
-  },
+export const updateAdvertisement = async (
+  id: number,
+  payload: UpdateAdvertisementRequest,
+): Promise<SingleAdvertisementResponse> => {
+  const { data } = await apiClient.put(`${BASE}/${id}`, payload);
+  return data;
+};
 
-  // update (partial)
-  updateAdvertisement: async (
-    id: number,
-    payload: UpdateAdvertisementRequest,
-  ): Promise<AdvertisementResponse> => {
-    const res = await apiClient.put(`/advertisements/${id}`, payload);
-    return res.data;
-  },
+export const deleteAdvertisement = async (
+  id: number,
+): Promise<{ message: string }> => {
+  const { data } = await apiClient.delete(`${BASE}/${id}`);
+  return data;
+};
 
-  // delete
-  deleteAdvertisement: async (id: number): Promise<{ message: string }> => {
-    const res = await apiClient.delete(`/advertisements/${id}`);
-    return res.data;
-  },
+export const changeAdvertisementStatus = async (
+  id: number,
+  payload: ChangeAdvertisementStatusRequest,
+): Promise<SingleAdvertisementResponse> => {
+  const { data } = await apiClient.post(`${BASE}/${id}/status`, payload);
+  return data;
+};
 
-  // change status
-  changeStatus: async (id: number, payload: ChangeStatusRequest) => {
-    const res = await apiClient.post(`/advertisements/${id}/status`, payload);
-    return res.data;
-  },
+export const generateUploadUrl = async (
+  payload: GenerateUploadUrlRequest,
+): Promise<AdvertisementUploadResponse> => {
+  const { data } = await apiClient.post(`${BASE}/upload-url`, payload);
+  return data;
+};
 
-  // signed upload URL
-  getUploadUrl: async (payload: UploadUrlRequest) => {
-    const res = await apiClient.post(`/advertisements/upload-url`, payload);
-    return res.data;
-  },
-
-  // signed download URL
-  getDownloadUrl: async (key: string) => {
-    const res = await apiClient.get(
-      `/advertisements/download-url/${encodeURIComponent(key)}`,
-    );
-    return res.data;
-  },
+export const addAdvertisementMedia = async (
+  id: number,
+  media: { url: string; filename: string; size: number; type: string }[],
+): Promise<{ count: number }> => {
+  const { data } = await apiClient.post(`${BASE}/${id}/media`, { media });
+  return data;
 };

@@ -3,7 +3,7 @@ import {
   AdvertisementWithRelations,
   AdvertisementQueryParams,
   AdvertisementStatus,
-} from '../../advertisements/types';
+} from '../domain/entities';
 import {
   getAdvertisements,
   getAdvertisementById,
@@ -17,9 +17,7 @@ import {
   AdvertisementResponse,
   CreateAdvertisementResponse,
   UpdateAdvertisementResponse,
-  DeleteAdvertisementResponse,
-  ChangeStatusResponse,
-} from '../../advertisements/types/response';
+} from '../api/types/responses';
 
 // Hook for managing advertisements list
 export const useAdvertisements = (initialParams: AdvertisementQueryParams = {}) => {

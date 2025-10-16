@@ -1,118 +1,178 @@
+// src/features/advertisements/hooks/hooks.ts
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import {
-  keepPreviousData,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import { advertisementsApi } from '../api/api';
-import type {
-  Advertisement,
-  PaginatedAdvertisements,
-} from '../domain/entities';
+  addAdvertisementMedia,
+  changeAdvertisementStatus,
+  createAdvertisement,
+  deleteAdvertisement,
+  generateUploadUrl,
+  getAdvertisement,
+  getAdvertisements,
+  updateAdvertisement,
+} from '../api/api';
+import { Advertisement, AdvertisementStatus } from '../domain/entities';
 import {
   mapAdvertisement,
-  mapPaginatedAdvertisements,
+  mapCreateAdvertisementRequest,
+  mapUpdateAdvertisementRequest,
 } from '../domain/mappers';
 
-/* === Queries === */
+// --- QUERY KEYS ---
+const AD_KEYS = {
+  all: ['advertisements'] as const,
+  lists: () => [...AD_KEYS.all, 'list'] as const,
+  list: (filters: { page?: number; limit?: number; status?: string }) =>
+    [...AD_KEYS.lists(), filters] as const,
+  detail: (id: number) => [...AD_KEYS.all, 'detail', id] as const,
+};
 
-// list
-export const useAdvertisements = (opts?: {
-  page?: number;
-  limit?: number;
-  status?: string;
-}) =>
-  useQuery<PaginatedAdvertisements>({
-    queryKey: ['advertisements', opts ?? {}],
+// --- LOCAL STATE: upload URL cache ---
+let uploadCache: {
+  advertisementId: number;
+  uploadUrl: string;
+  key: string;
+  publicUrl: string;
+} | null = null;
+
+// --- HOOKS ---
+
+// Fetch paginated advertisements
+export const useAdvertisements = (
+  page = 1,
+  limit = 10,
+  status?: AdvertisementStatus,
+) => {
+  return useQuery({
+    queryKey: AD_KEYS.list({ page, limit, status }),
     queryFn: async () => {
-      const res = await advertisementsApi.getAdvertisements(opts);
-      return mapPaginatedAdvertisements(res) as PaginatedAdvertisements;
+      const res = await getAdvertisements(page, limit, status);
+      return {
+        ...res,
+        data: res.data.map(mapAdvertisement),
+      };
     },
-    placeholderData: keepPreviousData,
+    placeholderData: previousData => previousData,
   });
+};
 
-// single
-export const useAdvertisement = (id?: number) =>
-  useQuery<Advertisement>({
-    queryKey: ['advertisement', id],
+// Fetch single advertisement
+export const useAdvertisement = (id?: number) => {
+  return useQuery({
+    queryKey: id ? AD_KEYS.detail(id) : [],
     queryFn: async () => {
-      if (!id) throw new Error('Missing id');
-      const res = await advertisementsApi.getAdvertisementById(id);
-      return mapAdvertisement(res) as Advertisement;
+      if (!id) throw new Error('Advertisement ID is required');
+      const res = await getAdvertisement(id);
+      return mapAdvertisement(res);
     },
     enabled: !!id,
   });
+};
 
-/* === Mutations === */
-
+// Create new advertisement (stores upload URL)
 export const useCreateAdvertisement = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (payload: any) => {
-      const res = await advertisementsApi.createAdvertisement(payload);
-      return mapAdvertisement(res) as Advertisement;
+  const queryClient = useQueryClient();
+  const [uploadUrl, setUploadUrl] = useState<string | null>(null);
+  const [publicUrl, setPublicUrl] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async (data: Partial<Advertisement>) => {
+      const payload = mapCreateAdvertisementRequest(data);
+      const res = await createAdvertisement(payload);
+      uploadCache = {
+        advertisementId: res.advertisement.id,
+        uploadUrl: res.upload.uploadUrl,
+        key: res.upload.key,
+        publicUrl: res.upload.publicUrl,
+      };
+      setUploadUrl(res.upload.uploadUrl);
+      setPublicUrl(res.upload.publicUrl);
+      return mapAdvertisement(res.advertisement);
     },
-    onSuccess: created => {
-      qc.invalidateQueries({ queryKey: ['advertisements'] });
-      qc.setQueryData(['advertisement', created.id], created);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AD_KEYS.lists() });
+    },
+  });
+
+  return {
+    ...mutation,
+    uploadUrl,
+    publicUrl,
+  };
+};
+
+// Update advertisement
+export const useUpdateAdvertisement = (id: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: Partial<Advertisement>) => {
+      const payload = mapUpdateAdvertisementRequest(data);
+      const res = await updateAdvertisement(id, payload);
+      return mapAdvertisement(res);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AD_KEYS.detail(id) });
+      queryClient.invalidateQueries({ queryKey: AD_KEYS.lists() });
     },
   });
 };
 
-export const useUpdateAdvertisement = (id?: number) => {
-  const qc = useQueryClient();
+// Change advertisement status
+export const useChangeAdvertisementStatus = (id: number) => {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: any) => {
-      if (!id) throw new Error('Missing id');
-      const res = await advertisementsApi.updateAdvertisement(id, payload);
-      return mapAdvertisement(res) as Advertisement;
+    mutationFn: async (new_status: AdvertisementStatus) => {
+      const res = await changeAdvertisementStatus(id, { new_status });
+      return mapAdvertisement(res);
     },
-    onSuccess: updated => {
-      qc.invalidateQueries({ queryKey: ['advertisements'] });
-      if (updated.id) qc.setQueryData(['advertisement', updated.id], updated);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AD_KEYS.detail(id) });
+      queryClient.invalidateQueries({ queryKey: AD_KEYS.lists() });
     },
   });
 };
 
-export const useDeleteAdvertisement = () => {
-  const qc = useQueryClient();
+// Generate upload URL manually (in case of later uploads)
+export const useGenerateUploadUrl = () => {
   return useMutation({
-    mutationFn: async (id: number) => {
-      await advertisementsApi.deleteAdvertisement(id);
-      return id;
-    },
-    onSuccess: id => {
-      qc.invalidateQueries({ queryKey: ['advertisements'] });
-      qc.removeQueries({ queryKey: ['advertisement', id] });
+    mutationFn: generateUploadUrl,
+    onSuccess: res => {
+      uploadCache = {
+        advertisementId: 0, // unknown until media linked
+        uploadUrl: res.uploadUrl,
+        key: res.key,
+        publicUrl: res.publicUrl,
+      };
     },
   });
 };
 
-export const useChangeAdvertisementStatus = () => {
-  const qc = useQueryClient();
+// Add advertisement media
+export const useAddAdvertisementMedia = (id: number) => {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      id,
-      new_status,
-    }: {
-      id: number;
-      new_status: string;
-    }) => {
-      const res = await advertisementsApi.changeStatus(id, { new_status });
+    mutationFn: async (
+      media: { url: string; filename: string; size: number; type: string }[],
+    ) => {
+      const res = await addAdvertisementMedia(id, media);
       return res;
     },
-    onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: ['advertisements'] });
-      qc.invalidateQueries({ queryKey: ['advertisement', vars.id] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AD_KEYS.detail(id) });
     },
   });
 };
 
-/* Upload URL and download URL hooks (simple) */
-
-export const useGetUploadUrl = () =>
-  useMutation({
-    mutationFn: async (payload: { filename: string; contentType: string }) => {
-      return advertisementsApi.getUploadUrl(payload);
+// Delete advertisement
+export const useDeleteAdvertisement = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAdvertisement,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AD_KEYS.lists() });
     },
   });
+};
+
+// --- Helper to access latest upload URL globally ---
+export const getLastUploadUrl = () => uploadCache;
