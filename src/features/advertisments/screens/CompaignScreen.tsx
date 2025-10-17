@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,12 @@ import {
   TouchableOpacity,
   StatusBar,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CardStatus, { CardStatusProps } from '../../../components/CardStatus';
 import BottomTab from '../../../app/navigation/BottomTab';
+import { useAdvertisements } from '../hooks/useAdvertisements';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -73,138 +75,103 @@ interface ActiveCampaignProps {
 }
 
 const CampaignScreen: React.FC<ActiveCampaignProps> = ({ navigation }) => {
-  const [selectedTab, setSelectedTab] = useState<string>('See All');
   const [expandedCard, setExpandedCard] = useState<number | null>(1);
   const [activeBottomTab, setActiveBottomTab] = useState<string>('Boards');
+  
+  // Use the existing advertisements hook
+  const { advertisements, loading, error, refetch } = useAdvertisements();
+  
   
   const handleBottomTabPress = (tabName: string) => {
     console.log('Bottom tab pressed:', tabName);
     setActiveBottomTab(tabName);
   };
-  const tabs: string[] = ['See All', 'Active', 'Review', 'Payment', 'Blocked', 'Recent History'];
-  const paymentData: PaymentCard[] = [
-    {
-      id: 1,
-      type: 'pending',
-      title: 'Your Payment is Pending....',
-      backgroundColor: '#FFFFFF',
-      textColor: '#FEB600',
-      image: require('../../assets/images/texxolOil.png'),
-      ad: {
-        logo: 'TAXX OIL',
-        title: 'ADRYD POLE SIGN BOARD AD',
-        location: 'Lahore Gulberg',
-        date: 'September 22.2025',
-        status: 'Payment Expire after 2 days.',
-        statusColor: '#FEB600',
-        statusDot: '#FEB600',
-      },
-      payment: {
-        date: 'Sep 22.2025',
-        tax: 'Pkr 1000',
-        total: 'PKR 30.000',
-      },
-      buttons: [
-        { title: 'Cancel', type: 'cancel' },
-        { title: 'Payment', type: 'payment' },
-      ],
-    },
   
-  ];
-
-  const campaignData: CampaignCard[] = [
-    {
-      id: 1,
-      title: 'ADRYD POLE SIGN BOARD AD',
-      location: 'Lahore Gulberg',
-      date: '19 September 2025',
-      status: 'Active',
-      statusColor: '#4CAF50',
-      daysLeft: '4 Days Left',
+  // Map API status to UI status based on the correct flow
+  const mapStatusToUI = (status: string) => {
+    switch (status) {
+      case 'DRAFT':
+        return { uiStatus: 'Draft', color: '#9E9E9E', tab: 'Draft' };
+      case 'PAYMENT_PENDING':
+        return { uiStatus: 'Payment Pending', color: '#FEB600', tab: 'Payment' };
+      case 'IN_REVIEW':
+        return { uiStatus: 'Review', color: '#E91E63', tab: 'Review' };
+      case 'SCHEDULED':
+        return { uiStatus: 'Scheduled', color: '#9C27B0', tab: 'Active' };
+      case 'PUBLISHED':
+        return { uiStatus: 'Active', color: '#4CAF50', tab: 'Active' };
+      case 'COMPLETED':
+        return { uiStatus: 'Recent History', color: '#9E9E9E', tab: 'Recent History' };
+      case 'BLOCKED':
+        return { uiStatus: 'Blocked', color: '#F44336', tab: 'Blocked' };
+      default:
+        return { uiStatus: 'Draft', color: '#9E9E9E', tab: 'Draft' };
+    }
+  };
+  
+  // Get status description based on API status
+  const getStatusDescription = (status: string) => {
+    const statusDescriptions: { [key: string]: string } = {
+      'DRAFT': 'Unsubmitted advertisement, still being edited.',
+      'PAYMENT_PENDING': 'Awaiting payment before review.',
+      'IN_REVIEW': 'Being reviewed by the moderation team.',
+      'SCHEDULED': 'Set to go live at a future date.',
+      'PUBLISHED': 'Currently live and displaying content.',
+      'COMPLETED': 'Ad campaign finished successfully.',
+      'BLOCKED': 'Stopped before completion or rejected.',
+    };
+    return statusDescriptions[status] || 'Status update pending';
+  };
+  
+  
+  // Convert API advertisements to UI format
+  const campaignData: CampaignCard[] = useMemo(() => {
+    if (!advertisements || advertisements.length === 0) return [];
+    
+    return advertisements.map((ad: any) => {
+      const statusInfo = mapStatusToUI(ad.status);
+      const booking = ad.bookings?.[0];
+      const startDate = booking ? new Date(booking.start_at) : new Date(ad.created_at);
+      const endDate = booking ? new Date(booking.end_at) : null;
+      
+      
+      return {
+        id: ad.id,
+        title: ad.title,
+        location: ad.board?.location || 'Unknown Location',
+        date: startDate.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }),
+        status: statusInfo.uiStatus as any,
+        statusColor: statusInfo.color,
+        daysLeft: endDate ? `${Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))} Days Left` : 'Ongoing',
       isExpanded: false,
       details: {
-        name: 'Adryd Active Campaign',
-        days: '4 days Ad',
-        category: 'Pole Sign Board Ad',
-        location: 'Lahore Gulberg',
-        reviewTime: 'Campaign is currently running',
-        reviewStatus: 'Active',
-      } as any, // 🔹 if extra fields exist
-      payment: {
-        date: 'Sep 22.2025',
-        tax: 'Pkr 800',
-        total: 'PKR 25.000',
-      },
-    },
-    {
-      id: 2,
-      title: 'ADRYD POLE SIGN BOARD AD',
-      location: 'Lahore Gulberg',
-      date: 'September 22.2025',
-      status: 'Review',
-      statusColor: '#E91E63',
-      estimatedTime: 'Estimated time 10 to 12 day',
-      isExpanded: true,
-      details: {
-        name: 'Adryd Campaign ad',
-        days: '7 days Ad',
-        category: 'Pole Sign Board Ad',
-        location: 'Lahore Gulberg',
-        reviewTime: 'Your Review Ad Estimated time 10 to 12 Days',
-        reviewStatus: 'In Review',
+          name: ad.title,
+          days: booking ? `${Math.ceil((endDate!.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))} days Ad` : 'Ongoing',
+          category: ad.board?.title || 'Advertisement',
+          location: ad.board?.location || 'Unknown Location',
+          reviewTime: getStatusDescription(ad.status),
+          reviewStatus: statusInfo.uiStatus,
       } as any,
       payment: {
-        date: 'Sep 22.2025',
-        tax: 'Pkr 1000',
-        total: 'PKR 30.000',
-      },
-    },
-    {
-      id: 3,
-      title: 'ADRYD POLE SIGN BOARD AD',
-      location: 'Lahore Gulberg',
-      date: 'September 22.2025',
-      status: 'Blocked',
-      statusColor: '#F44336',
-      isExpanded: false,
-      details: {
-        name: 'Adryd Blocked Campaign',
-        days: '0 days Ad',
-        category: 'Pole Sign Board Ad',
-        location: 'Lahore Gulberg',
-        reviewTime: 'Campaign has been blocked',
-        reviewStatus: 'Blocked',
-      } as any,
-      payment: {
-        date: 'Sep 22.2025',
-        tax: 'Pkr 500',
-        total: 'PKR 15.000',
-      },
-    },
-    {
-      id: 4,
-      title: 'ADRYD POLE SIGN BOARD AD',
-      location: 'Lahore Gulberg',
-      date: 'September 22.2025',
-      status: 'Recent History',
-      statusColor: '#9E9E9E',
-      daysLeft: 'Complete',
-      isExpanded: false,
-      details: {
-        name: 'Adryd Recent History Campaign',
-        days: 'Completed',
-        category: 'Pole Sign Board Ad',
-        location: 'Lahore Gulberg',
-        reviewTime: 'Campaign completed successfully',
-        reviewStatus: 'Complete',
-      } as any,
-      payment: {
-        date: 'Sep 22.2025',
-        tax: 'Pkr 600',
-        total: 'PKR 18.000',
-      },
-    },
-  ];
+          date: startDate.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          }),
+          tax: `PKR ${Math.round((ad.total_payment || 0) * 0.1)}`,
+          total: `PKR ${(ad.total_payment || 0).toLocaleString()}`,
+        },
+      };
+    });
+  }, [advertisements]);
+  
+  
+  // Show all campaigns without filtering
+  const filteredData = campaignData;
 
   const toggleCardExpansion = (cardId: number) => {
     setExpandedCard(expandedCard === cardId ? null : cardId);
@@ -405,129 +372,48 @@ const CampaignScreen: React.FC<ActiveCampaignProps> = ({ navigation }) => {
           <Ionicons name="arrow-back" size={wp(6)} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {selectedTab === 'See All' ? 'All Active' : 
-           selectedTab === 'Active' ? 'All Active' :
-           selectedTab === 'Review' ? 'All Review' :
-           selectedTab === 'Payment' ? 'Payment Method' :
-           selectedTab === 'Blocked' ? 'All Blocked' :
-           selectedTab === 'Recent History' ? 'Recent History' : 'All Active'}
+          All Campaigns
         </Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <View style={styles.tabsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
-          {tabs.map((tab) => (
-            <TouchableOpacity 
-              key={tab} 
-              style={[
-                styles.tab, 
-                selectedTab === tab && styles.activeTab,
-                selectedTab === tab && tab === 'Active' && styles.activeTabGreen,
-                selectedTab === tab && tab === 'Review' && styles.activeTabPink,
-                selectedTab === tab && tab === 'Payment' && styles.activeTabPurple,
-                selectedTab === tab && tab === 'Blocked' && styles.activeTabRed,
-                selectedTab === tab && tab === 'Recent History' && styles.activeTabGray,
-              ]} 
-              onPress={() => setSelectedTab(tab)}
-            >
-              <Text style={[
-                styles.tabText, 
-                selectedTab === tab && styles.activeTabText,
-                selectedTab === tab && tab === 'Recent History' && styles.activeTabGrayText
-              ]}>{tab}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
 
-      <ScrollView style={styles.cardsContainer} showsVerticalScrollIndicator={false} contentContainerStyle={styles.cardsContent}>
-        {selectedTab === 'Payment' 
-          ? paymentData.map((item) => (
-              <CardStatus
-                key={item.id}
-                id={item.id}
-                title={item.title}
-                location={item.ad.location || ''}
-                date={item.ad.date || ''}
-                status={item.ad.status || ''}
-                statusColor={item.ad.statusColor || '#000'}
-                cardType="payment"
-                backgroundColor={item.backgroundColor}
-                textColor={item.textColor}
-                payment={item.payment}
-                ad={item.ad}
-              />
-            ))
-          : selectedTab === 'Active'
-          ? campaignData.filter(item => item.status === 'Active').map((item) => (
-              <CardStatus
-                key={item.id}
-                id={item.id}
-                title={item.title}
-                location={item.location}
-                date={item.date}
-                status={item.status}
-                statusColor={item.statusColor}
-                cardType="campaign"
-                isExpanded={expandedCard === item.id}
-                onPress={() => toggleCardExpansion(item.id)}
-                daysLeft={item.daysLeft}
-                details={item.details}
-              />
-            ))
-          : selectedTab === 'Review'
-          ? campaignData.filter(item => item.status === 'Review').map((item) => (
-              <CardStatus
-                key={item.id}
-                id={item.id}
-                title={item.title}
-                location={item.location}
-                date={item.date}
-                status={item.status}
-                statusColor={item.statusColor}
-                cardType="campaign"
-                isExpanded={expandedCard === item.id}
-                onPress={() => toggleCardExpansion(item.id)}
-                daysLeft={item.daysLeft}
-                details={item.details}
-              />
-            ))
-          : selectedTab === 'Blocked'
-          ? campaignData.filter(item => item.status === 'Blocked').map((item) => (
-              <CardStatus
-                key={item.id}
-                id={item.id}
-                title={item.title}
-                location={item.location}
-                date={item.date}
-                status={item.status}
-                statusColor={item.statusColor}
-                cardType="campaign"
-                isExpanded={expandedCard === item.id}
-                onPress={() => toggleCardExpansion(item.id)}
-                daysLeft={item.daysLeft}
-                details={item.details}
-              />
-            ))
-          : selectedTab === 'Recent History'
-          ? campaignData.filter(item => item.status === 'Recent History').map((item) => (
-              <CardStatus
-                key={item.id}
-                id={item.id}
-                title={item.title}
-                location={item.location}
-                date={item.date}
-                status={item.status}
-                statusColor={item.statusColor}
-                cardType="recent"
-                isExpanded={expandedCard === item.id}
-                onPress={() => toggleCardExpansion(item.id)}
-                daysLeft={item.daysLeft}
-                details={item.details}
-              />
-            ))
-          : campaignData.map((item) => (
+        <ScrollView style={styles.cardsContainer} showsVerticalScrollIndicator={false} contentContainerStyle={styles.cardsContent}>
+         {/* Loading State */}
+         {loading && (
+           <View style={styles.loadingContainer}>
+             <ActivityIndicator size="large" color="#C539A5" />
+             <Text style={styles.loadingText}>Loading campaigns...</Text>
+           </View>
+         )}
+
+         {/* Error State */}
+         {error && (
+           <View style={styles.errorContainer}>
+             <Text style={styles.errorText}>
+               Failed to load campaigns. Please try again.
+             </Text>
+            <TouchableOpacity 
+               style={styles.retryButton}
+               onPress={() => refetch()}
+             >
+               <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+      </View>
+         )}
+
+
+         {/* Campaign Data */}
+         {!loading && !error && (
+           <>
+             {filteredData.length === 0 ? (
+               <View style={styles.emptyContainer}>
+                 <Text style={styles.emptyText}>No campaigns found</Text>
+                 <Text style={styles.emptySubtext}>
+                   Create your first campaign to get started
+                 </Text>
+               </View>
+             ) : filteredData.map((item) => (
               <CardStatus
                 key={item.id}
                 id={item.id}
@@ -544,6 +430,8 @@ const CampaignScreen: React.FC<ActiveCampaignProps> = ({ navigation }) => {
               />
             ))
         }
+           </>
+         )}
       </ScrollView>
       
       {/* Bottom Tab Navigation */}
@@ -590,52 +478,6 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: wp(10),
-  },
-  tabsContainer: {
-    backgroundColor: '#FFF4FD',
-    paddingBottom: hp(1),
-  },
-  tabsScroll: {
-    paddingHorizontal: wp(5),
-    
-  },
-  tab: {
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1),
-    marginRight: wp(3),
-    borderTopLeftRadius: wp(2),
-    borderTopRightRadius: wp(2),
-    borderBottomRightRadius: wp(2),
-    backgroundColor: '#F5F5F5',
-  },
-  activeTab: {
-    backgroundColor: '#14a919ff',
-  },
-  activeTabGreen: {
-    backgroundColor: '#4CAF50',
-  },
-  activeTabPink: {
-    backgroundColor: '#9C27B0',
-  },
-  activeTabPurple: {
-    backgroundColor: '#FEB600',
-  },
-  activeTabRed: {
-    backgroundColor: '#F44336',
-  },
-  activeTabGray: {
-    backgroundColor: '#E0E0E0',
-  },
-  tabText: {
-    fontSize: wp(3.5),
-    fontWeight: '600',
-    color: '#666',
-  },
-  activeTabText: {
-    color: '#fff',
-  },
-  activeTabGrayText: {
-    color: '#424242',
   },
   cardsContainer: {
     flex: 1,
@@ -1038,6 +880,59 @@ const styles = StyleSheet.create({
     height: wp(0.3),
     marginRight: wp(1),
     borderRadius: wp(0.15),
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: hp(4),
+  },
+  loadingText: {
+    fontSize: wp(4),
+    color: '#666',
+    marginTop: hp(1),
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: hp(4),
+    paddingHorizontal: wp(4),
+  },
+  errorText: {
+    fontSize: wp(4),
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: hp(2),
+  },
+  retryButton: {
+    backgroundColor: '#C539A5',
+    paddingHorizontal: wp(6),
+    paddingVertical: hp(1.5),
+    borderRadius: wp(2),
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: wp(4),
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: hp(8),
+    paddingHorizontal: wp(4),
+  },
+  emptyText: {
+    fontSize: wp(5),
+    color: '#333',
+    fontWeight: '600',
+    marginBottom: hp(1),
+  },
+  emptySubtext: {
+    fontSize: wp(3.5),
+    color: '#666',
+    textAlign: 'center',
   },
 });
 

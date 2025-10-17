@@ -22,6 +22,7 @@ import LinearGradientLib from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 type RootStackParamList = {
   LoginScreen: undefined;
   CategoryScreen: {
@@ -110,6 +111,29 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     refetch: refetchBoardFilters,
   } = useBoardFilters();
 
+  // Refetch data when screen comes into focus (e.g., returning from SingleBoardDetail)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('HomeScreen focused - refetching board data');
+      // Force refetch even if data is not stale
+      refetchBoardFilters();
+    }, [refetchBoardFilters])
+  );
+
+  // Monitor refetch calls
+  React.useEffect(() => {
+    console.log('HomeScreen - refetchBoardFilters function updated');
+  }, [refetchBoardFilters]);
+
+  // Monitor loading state changes
+  React.useEffect(() => {
+    console.log('HomeScreen - Loading state changed:', {
+      isLoading: isBoardFiltersLoading,
+      hasData: !!boardFiltersData,
+      timestamp: new Date().toISOString()
+    });
+  }, [isBoardFiltersLoading, boardFiltersData]);
+
   // Dynamic tabs from API data
   const tabs: Tab[] = [
     { id: 'see-all', type: 'all', label: 'See All' },
@@ -137,7 +161,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Log API response for debugging
   React.useEffect(() => {
     if (boardFiltersData) {
-      console.log('Board Filters API Response:', JSON.stringify(boardFiltersData, null, 2));
+      console.log('HomeScreen - Board Filters data updated:', {
+        timestamp: new Date().toISOString(),
+        groupsCount: boardFiltersData.groups?.length || 0,
+        recommendedCount: boardFiltersData.recommended?.length || 0,
+        nearestCount: boardFiltersData.nearest?.length || 0,
+        seeAllCount: boardFiltersData.seeAll?.length || 0,
+      });
       console.log('Generated Tabs:', tabs);
       // Log each group and its categories
       boardFiltersData.groups?.forEach((group: any) => {
@@ -184,7 +214,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleDetailPress = (item: any) => {
-    navigation.navigate('CampaignDetail', { item });
+    navigation.navigate('SingleBoardDetail', { item });
   };
 
   // Convert Board to BoardItem format

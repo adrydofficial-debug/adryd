@@ -13,7 +13,7 @@ import {
   SingleAdvertisementResponse,
 } from './types/responses';
 
-const BASE = '/advertisements';
+const BASE = '/api/advertisements';
 
 export const getAdvertisements = async (
   page = 1,
@@ -25,6 +25,7 @@ export const getAdvertisements = async (
     limit: String(limit),
   });
   if (status) params.append('status', status);
+  
   const { data } = await apiClient.get(`${BASE}?${params.toString()}`);
   return data;
 };

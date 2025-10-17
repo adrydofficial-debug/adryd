@@ -30,7 +30,6 @@ export interface FilteredBoardsResponse {
   filter: string;
   boards: Board[];
 }
-
 // ⭐ /api/boards/:id/rate
 export interface RateBoardResponse {
   id: number;

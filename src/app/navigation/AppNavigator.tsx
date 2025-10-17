@@ -12,29 +12,32 @@ import CampaignScreen from '../../features/advertisments/screens/CompaignScreen'
 import CampaignUploadFiles from '../../features/advertisments/screens/AdvertismentUploadsScreen';
 import SingleBoardDetail from '../../features/boards/screens/SingleBoardDetail';
 import FilterCategoryList from '../../features/boards/screens/FilterCategoryList';
+import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen';
 // 🔹 Define navigation param types
 export type AppStackParamList = {
   CampaignScreen: undefined;
   AdvertismentCreateScreen: undefined;
   CampaignUploadFiles: undefined;
   CurrentLocation: undefined;
+  CurrentLocationMinimalMap: undefined;
   HomeScreen: undefined;
   CompaniesScreen: undefined;
   CreateCompanyScreen: undefined;
   UpdateProfile: undefined;
     PreviousCompanyScreen:undefined;
     ChangePassword: undefined;
-    FilterCategoryList:undefined
-
+    FavouritesScreen: undefined;
+    FilterCategoryList:undefined;
+    SingleBoardDetail: { item: any };
 };
-
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const AppNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
  {/* <Stack.Screen name="CampaignUploadFiles" component={CampaignUploadFiles} /> */}
 {/* <Stack.Screen name="CreateCompanyScreen" component={CreateCompanyScreen} /> */}
-  {/* <Stack.Screen name="SingleBoardDetail" component={SingleBoardDetail} /> */}
-  <Stack.Screen name="HomeScreen" component={HomeScreen} />
+ <Stack.Screen name="HomeScreen" component={HomeScreen} />
+<Stack.Screen name='FavouritesScreen' component={FavouritesScreen}/>
+  <Stack.Screen name="SingleBoardDetail" component={SingleBoardDetail} />
   <Stack.Screen name="CampaignScreen" component={CampaignScreen} />
    <Stack.Screen name="AdvertismentCreateScreen" component={AdvertismentCreateScreen} />
   <Stack.Screen name="FilterCategoryList" component={FilterCategoryList} />

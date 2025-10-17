@@ -77,7 +77,18 @@ export const mapRatingSummary = (
 
 // 🧭 Map FavoritesResponse → Board[]
 export const mapFavorites = (res: FavoritesResponse): Board[] =>
-  (res.data ?? []).map(mapBoard);
+  (res.data ?? []).map(board => ({
+    id: board.id,
+    title: board.title,
+    image: board.image_url || '',
+    rating: 0, // Default rating since it's not in the API response
+    totalRatings: 0, // Default since it's not in the API response
+    price: 0, // Default price since it's not in the API response
+    location: board.category?.name || 'Unknown Location',
+    description: '', // Default description
+    size: '12x8', // Default size
+    currency: 'USD', // Default currency
+  }));
 
 // 🧭 Helper: map board object
 export const mapBoard = (b: any): Board => ({

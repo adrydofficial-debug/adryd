@@ -6,17 +6,16 @@ import {
 } from '../domain/entities';
 import {
   getAdvertisements,
-  getAdvertisementById,
+  getAdvertisement,
   createAdvertisement,
   updateAdvertisement,
   deleteAdvertisement,
   changeAdvertisementStatus,
-} from '../api';
+} from '../api/api';
 import {
-  AdvertisementListResponse,
-  AdvertisementResponse,
+  PaginatedAdvertisementsResponse,
+  SingleAdvertisementResponse,
   CreateAdvertisementResponse,
-  UpdateAdvertisementResponse,
 } from '../api/types/responses';
 
 // Hook for managing advertisements list
@@ -36,7 +35,11 @@ export const useAdvertisements = (initialParams: AdvertisementQueryParams = {}) 
     setError(null);
     
     try {
-      const response: AdvertisementListResponse = await getAdvertisements(params);
+      const response: PaginatedAdvertisementsResponse = await getAdvertisements(
+        params.page || 1,
+        params.limit || 10,
+        params.status
+      );
       setAdvertisements(response.data);
       setPagination({
         total: response.total,
@@ -101,8 +104,8 @@ export const useAdvertisement = (id: number | null) => {
     setError(null);
     
     try {
-      const response: AdvertisementResponse = await getAdvertisementById(id);
-      setAdvertisement(response.data);
+      const response: SingleAdvertisementResponse = await getAdvertisement(id);
+      setAdvertisement(response as AdvertisementWithRelations);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch advertisement');
     } finally {
@@ -133,7 +136,7 @@ export const useAdvertisementMutations = () => {
     
     try {
       const response: CreateAdvertisementResponse = await createAdvertisement(data);
-      return response.data;
+      return response.advertisement as AdvertisementWithRelations;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create advertisement');
       return null;
@@ -147,8 +150,8 @@ export const useAdvertisementMutations = () => {
     setError(null);
     
     try {
-      const response: UpdateAdvertisementResponse = await updateAdvertisement(id, data);
-      return response.data;
+      const response: SingleAdvertisementResponse = await updateAdvertisement(id, data);
+      return response as AdvertisementWithRelations;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update advertisement');
       return null;

@@ -24,13 +24,13 @@ export const fetchFilteredBoards = (params: FilterBoardsParams) =>
 // ⭐ Rate a board
 export const rateBoard = (boardId: number, payload: RateBoardRequest) =>
   apiClient
-    .post<RateBoardResponse>(`/boards/${boardId}/rate`, payload)
+    .post<RateBoardResponse>(`/api/boards/${boardId}/rate`, payload)
     .then(res => res.data);
 
 // 📖 Get all ratings for a board
 export const fetchBoardRatings = (boardId: number, page = 1, limit = 10) =>
   apiClient
-    .get<BoardRatingsResponse>(`/boards/${boardId}/ratings`, {
+    .get<BoardRatingsResponse>(`/api/boards/${boardId}/ratings`, {
       params: { page, limit },
     })
     .then(res => res.data);
@@ -38,21 +38,21 @@ export const fetchBoardRatings = (boardId: number, page = 1, limit = 10) =>
 // 📊 Get rating summary
 export const fetchRatingSummary = (boardId: number) =>
   apiClient
-    .get<RatingSummaryResponse>(`/boards/${boardId}/rating-summary`)
+    .get<RatingSummaryResponse>(`/api/boards/${boardId}/rating-summary`)
     .then(res => res.data);
 
 // 💖 Toggle favorite
 export const toggleFavorite = (boardId: number) =>
-  apiClient.post(`/boards/${boardId}/favorite`).then(res => res.data);
+  apiClient.post(`/api/boards/${boardId}/favorite`).then(res => res.data);
 
 // 💖 Get favorites
 export const fetchFavorites = (page = 1, limit = 10) =>
   apiClient
-    .get<FavoritesResponse>('/boards/favorites', { params: { page, limit } })
+    .get<FavoritesResponse>('/api/boards/favorites', { params: { page, limit } })
     .then(res => res.data);
 
 // 🔍 Check if board is favorite
 export const isFavorite = (boardId: number) =>
   apiClient
-    .get<{ is_favorite: boolean }>(`/boards/${boardId}/is-favorite`)
+    .get<{ is_favorite: boolean }>(`/api/boards/${boardId}/is-favorite`)
     .then(res => res.data);
