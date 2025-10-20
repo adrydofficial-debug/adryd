@@ -31,6 +31,7 @@ export interface BoardItem {
   currency?: string;
   image?: any; // require('../images/bannerBg.png') or remote URL fallback
   image_url?: string;
+  rating?: number | string;
 }
 
 // 🔹 Props type

@@ -283,6 +283,7 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
       price: parseFloat(board.price) || 0,
       currency: board.currency || 'USD',
       image_url: board.image_url || null,
+      rating: board.rating ?? 0,
     };
   };
 
@@ -291,7 +292,7 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
   const error = filteredError || filtersError; // Include both error states
   
   const handleDetailPress = (item: BoardItem) => {
-    navigation.navigate('CampaignDetail', { item });
+    navigation.navigate('SingleBoardDetail', { item });
   };
 
   // Handle tab press

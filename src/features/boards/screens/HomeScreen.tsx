@@ -181,6 +181,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       price: parseFloat(board.price) || 0,
       currency: board.currency || 'USD',
       image_url: board.image_url || null,
+      rating: board.rating ?? 0,
     };
   };
 
