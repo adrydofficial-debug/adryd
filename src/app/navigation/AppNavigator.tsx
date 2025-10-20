@@ -35,20 +35,19 @@ const AppNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
  {/* <Stack.Screen name="CampaignUploadFiles" component={CampaignUploadFiles} /> */}
 {/* <Stack.Screen name="CreateCompanyScreen" component={CreateCompanyScreen} /> */}
- <Stack.Screen name="HomeScreen" component={HomeScreen} />
-<Stack.Screen name='FavouritesScreen' component={FavouritesScreen}/>
-  <Stack.Screen name="SingleBoardDetail" component={SingleBoardDetail} />
-  <Stack.Screen name="CampaignScreen" component={CampaignScreen} />
-   <Stack.Screen name="AdvertismentCreateScreen" component={AdvertismentCreateScreen} />
-  <Stack.Screen name="FilterCategoryList" component={FilterCategoryList} />
-  <Stack.Screen name="CompaniesScreen" component={CreateCompanyScreen} />
-  <Stack.Screen name="ChangePassword" component={ChangePassword} />
-  <Stack.Screen name="PreviousCompanyScreen" component={PreviousCompanyScreen}/>
-  <Stack.Screen name="CurrentLocation" component={CurrentLocationMinimalMap} />
-   <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
-   <Stack.Screen name="CurrentLocationMinimalMap" component={CurrentLocationMinimalMap} />
-  
 
+ <Stack.Screen name="HomeScreen" component={HomeScreen} />
+ <Stack.Screen name='FavouritesScreen' component={FavouritesScreen}/>
+ <Stack.Screen name="SingleBoardDetail" component={SingleBoardDetail} />
+ <Stack.Screen name="CampaignScreen" component={CampaignScreen} />
+ <Stack.Screen name="AdvertismentCreateScreen" component={AdvertismentCreateScreen} />
+ <Stack.Screen name="FilterCategoryList" component={FilterCategoryList} />
+ <Stack.Screen name="CompaniesScreen" component={CreateCompanyScreen} />
+ <Stack.Screen name="ChangePassword" component={ChangePassword} />
+ <Stack.Screen name="PreviousCompanyScreen" component={PreviousCompanyScreen}/>
+ <Stack.Screen name="CurrentLocation" component={CurrentLocationMinimalMap} />
+ <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
+  <Stack.Screen name="CurrentLocationMinimalMap" component={CurrentLocationMinimalMap} />
   </Stack.Navigator>
 
 );

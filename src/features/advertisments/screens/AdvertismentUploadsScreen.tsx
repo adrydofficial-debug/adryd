@@ -14,6 +14,8 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
+import { launchImageLibrary, MediaType, ImagePickerResponse } from 'react-native-image-picker';
+import { PanGestureHandler, State, GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // Types for navigation (adjust your stack names)
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -67,6 +69,8 @@ interface FileItem {
   type: string;
   size: number;
   progress: number;
+  isImage?: boolean;
+  isVideo?: boolean;
 }
 
 interface Props {
@@ -76,6 +80,7 @@ interface Props {
 const CampaignUploadFiles: React.FC<any> = ({ navigation }) => {
   const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [isDragOver, setIsDragOver] = useState<boolean>(false);
 
   // Request storage permissions for Android
   const requestStoragePermission = async (): Promise<boolean> => {
@@ -114,6 +119,78 @@ const CampaignUploadFiles: React.FC<any> = ({ navigation }) => {
       console.warn('Permission request error:', err);
       return false;
     }
+  };
+
+  const openImageVideoPicker = async () => {
+    // Request permissions first
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) {
+      Alert.alert(
+        'Permission Required',
+        'Storage permission is required to select images and videos. Please grant permission in settings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Settings', onPress: () => {
+            // You can add logic to open app settings here
+            console.log('Open app settings');
+          }}
+        ]
+      );
+      return;
+    }
+
+    const options = {
+      mediaType: 'mixed' as MediaType,
+      includeBase64: false,
+      maxHeight: 2000,
+      maxWidth: 2000,
+      quality: 0.8 as const,
+      selectionLimit: 10, // Allow multiple selection
+    };
+
+    launchImageLibrary(options, (response: ImagePickerResponse) => {
+      if (response.didCancel || response.errorMessage) {
+        return;
+      }
+
+      if (response.assets && response.assets.length > 0) {
+        const newFiles: FileItem[] = response.assets
+          .map((asset, index) => {
+            if (!asset.uri) return null;
+
+            const fileName = asset.fileName || `media_${Date.now()}_${index}`;
+            const fileSize = asset.fileSize || 0;
+            const maxSize = 25 * 1024 * 1024; // 25MB
+
+            if (fileSize > maxSize) {
+              Alert.alert(
+                'File Too Large',
+                `File "${fileName}" is too large. Maximum size is 25MB.`
+              );
+              return null;
+            }
+
+            const isImage = asset.type?.startsWith('image/') || false;
+            const isVideo = asset.type?.startsWith('video/') || false;
+
+            return {
+              id: Date.now() + index,
+              uri: asset.uri,
+              name: fileName,
+              type: asset.type || 'unknown',
+              size: fileSize,
+              progress: 100,
+              isImage,
+              isVideo,
+            } as FileItem;
+          })
+          .filter((file): file is FileItem => file !== null);
+
+        if (newFiles.length > 0) {
+          setSelectedFiles((prevFiles) => [...prevFiles, ...newFiles]);
+        }
+      }
+    });
   };
 
   const openFilePicker = async () => {
@@ -257,6 +334,19 @@ const CampaignUploadFiles: React.FC<any> = ({ navigation }) => {
     setSelectedFiles(selectedFiles.filter((file) => file.id !== fileId));
   };
 
+  const onDragHandler = (event: any) => {
+    if (event.nativeEvent.state === State.BEGAN) {
+      setIsDragOver(true);
+    } else if (event.nativeEvent.state === State.END || event.nativeEvent.state === State.CANCELLED) {
+      setIsDragOver(false);
+    }
+  };
+
+  const onDropHandler = () => {
+    setIsDragOver(false);
+    openImageVideoPicker();
+  };
+
   const renderProgressStep = (stepNumber: number, isActive: boolean, isCompleted: boolean) => (
     <View style={styles.progressStepContainer}>
       <View
@@ -281,12 +371,13 @@ const CampaignUploadFiles: React.FC<any> = ({ navigation }) => {
   );
 
   return (
-    <LinearGradient
-      colors={['#FFF4FD', '#fef3f9']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={styles.container}
-    >
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <LinearGradient
+        colors={['#FFF4FD', '#fef3f9']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.container}
+      >
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -311,19 +402,48 @@ const CampaignUploadFiles: React.FC<any> = ({ navigation }) => {
         <View style={styles.formCard}>
           {/* File Selection Area */}
           <View style={styles.uploadSection}>
-            <TouchableOpacity style={styles.uploadContainer} onPress={openFilePicker}>
+            <PanGestureHandler
+              onHandlerStateChange={onDragHandler}
+              onGestureEvent={onDragHandler}
+              onEnded={onDropHandler}
+            >
+              <TouchableOpacity 
+                style={[
+                  styles.uploadContainer,
+                  isDragOver && styles.uploadContainerDragOver
+                ]} 
+                onPress={openImageVideoPicker}
+              >
+                <Ionicons
+                  name="cloud-upload-outline"
+                  size={width * 0.08}
+                  color={isDragOver ? "#FF6B9D" : "#C539A5"}
+                  style={styles.uploadIcon}
+                />
+                <Text style={[
+                  styles.uploadText,
+                  isDragOver && styles.uploadTextDragOver
+                ]}>
+                  {isDragOver ? "Drop files here" : "Drag & drop files or "}
+                  {!isDragOver && <Text style={styles.browseText}>Browse</Text>}
+                </Text>
+                <Text style={styles.fileTypesText}>Images & Videos</Text>
+                <Text style={styles.fileSizeText}>Max file size: 25 MB</Text>
+              </TouchableOpacity>
+            </PanGestureHandler>
+            
+            {/* PDF Upload Option */}
+            {/* <TouchableOpacity style={styles.pdfUploadContainer} onPress={openFilePicker}>
               <Ionicons
-                name="cloud-upload-outline"
-                size={width * 0.08}
+                name="document-outline"
+                size={width * 0.06}
                 color="#C539A5"
-                style={styles.uploadIcon}
+                style={styles.pdfIcon}
               />
-              <Text style={styles.uploadText}>
-                Drag & drop files or <Text style={styles.browseText}>Browse</Text>
+              <Text style={styles.pdfUploadText}>
+                Upload PDF files
               </Text>
-              <Text style={styles.fileTypesText}>PDF</Text>
-              <Text style={styles.fileSizeText}>Max file size: 25 MB</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           {/* Upload Status */}
@@ -343,9 +463,21 @@ const CampaignUploadFiles: React.FC<any> = ({ navigation }) => {
                 <View key={file.id} style={styles.fileItem}>
                   <View style={styles.fileNameContainer}>
                     <View style={styles.fileInfo}>
-                      <Text style={styles.fileName} numberOfLines={1}>
-                        {file.name}
-                      </Text>
+                      <View style={styles.fileNameRow}>
+                        <Ionicons 
+                          name={
+                            file.isImage ? "image-outline" : 
+                            file.isVideo ? "videocam-outline" : 
+                            "document-outline"
+                          } 
+                          size={wp(4)} 
+                          color="#C539A5" 
+                          style={styles.fileTypeIcon}
+                        />
+                        <Text style={styles.fileName} numberOfLines={1}>
+                          {file.name}
+                        </Text>
+                      </View>
                       <Text style={styles.fileSize}>{formatFileSize(file.size)}</Text>
                     </View>
                     <TouchableOpacity style={styles.removeButton} onPress={() => removeFile(file.id)}>
@@ -378,7 +510,8 @@ const CampaignUploadFiles: React.FC<any> = ({ navigation }) => {
           buttonStyle={styles.nextButton}
         />
       </View>
-    </LinearGradient>
+      </LinearGradient>
+    </GestureHandlerRootView>
   );
 };
 
@@ -452,9 +585,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: height * 0.15,
+    marginBottom: height * 0.02,
+  },
+  uploadContainerDragOver: {
+    borderColor: '#C539A5',
+    backgroundColor: '#F8E8F5',
+    borderStyle: 'solid',
   },
   uploadIcon: {},
   uploadText: { fontSize: 12, fontWeight: '500', color: '#000', marginBottom: height * 0.005 },
+  uploadTextDragOver: { color: '#C539A5', fontWeight: 'bold' },
   browseText: { color: '#C539A5', fontWeight: 'bold' },
   fileTypesText: {
     fontSize: 10,
@@ -464,6 +604,18 @@ const styles = StyleSheet.create({
     marginBottom: height * 0.005,
   },
   fileSizeText: { fontSize: 10, color: '#999', textAlign: 'center', fontWeight: '400' },
+  pdfUploadContainer: {
+    borderWidth: 1,
+    borderColor: '#C539A5',
+    borderRadius: width * 0.03,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: height * 0.015,
+    flexDirection: 'row',
+  },
+  pdfIcon: { marginRight: wp(2) },
+  pdfUploadText: { fontSize: 12, fontWeight: '500', color: '#C539A5' },
   statusSection: { marginBottom: hp(2) },
   statusText: { fontSize: wp(4), color: '#666', fontWeight: '500' },
   filesSection: { marginBottom: hp(2) },
@@ -485,7 +637,9 @@ const styles = StyleSheet.create({
     marginBottom: hp(1),
   },
   fileInfo: { flex: 1, marginRight: wp(2) },
-  fileName: { fontSize: wp(4), color: '#333', fontWeight: '500', marginBottom: hp(0.5) },
+  fileNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: hp(0.5) },
+  fileTypeIcon: { marginRight: wp(2) },
+  fileName: { fontSize: wp(4), color: '#333', fontWeight: '500', flex: 1 },
   fileSize: { fontSize: wp(3.2), color: '#666', fontWeight: '400' },
   removeButton: { padding: wp(1) },
   progressBarContainer: {
