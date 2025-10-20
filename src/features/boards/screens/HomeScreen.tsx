@@ -1,5 +1,5 @@
 // src/features/boards/HomeScreen.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Alert,
   Dimensions,
@@ -22,7 +22,7 @@ import LinearGradientLib from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
-import { useFocusEffect } from '@react-navigation/native';
+// import { useFocusEffect } from '@react-navigation/native';
 type RootStackParamList = {
   LoginScreen: undefined;
   CategoryScreen: {
@@ -111,31 +111,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     refetch: refetchBoardFilters,
   } = useBoardFilters();
 
-  // Refetch data when screen comes into focus (e.g., returning from SingleBoardDetail)
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('HomeScreen focused - refetching board data');
-      // Force refetch even if data is not stale
-      refetchBoardFilters();
-    }, [refetchBoardFilters])
-  );
+  // Removed auto-refetch on screen focus to avoid repeated API calls.
+  // If you need manual refresh, call `refetchBoardFilters()` explicitly (e.g., pull-to-refresh or a Retry button).
 
-  // Monitor refetch calls
-  React.useEffect(() => {
-    console.log('HomeScreen - refetchBoardFilters function updated');
-  }, [refetchBoardFilters]);
-
-  // Monitor loading state changes
-  React.useEffect(() => {
-    console.log('HomeScreen - Loading state changed:', {
-      isLoading: isBoardFiltersLoading,
-      hasData: !!boardFiltersData,
-      timestamp: new Date().toISOString()
-    });
-  }, [isBoardFiltersLoading, boardFiltersData]);
-
-  // Dynamic tabs from API data
-  const tabs: Tab[] = [
+  // Dynamic tabs from API data - memoized to prevent unnecessary recalculations
+  const tabs: Tab[] = useMemo(() => [
     { id: 'see-all', type: 'all', label: 'See All' },
     { id: 'recommend', type: 'recommend', label: 'Recommend' },
     { id: 'near', type: 'near', label: 'Near' },
@@ -147,37 +127,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         label: cat.name,
       })) || []),
     ]) || []),
-  ];
+  ], [boardFiltersData?.groups]);
 
-  // Log user data for debugging
-  React.useEffect(() => {
-    if (user) {
-      console.log('User data:', JSON.stringify(user, null, 2));
-      console.log('User name:', user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email?.split('@')[0] || 'User');
-      console.log('User avatar:', user?.user_metadata?.avatar_url || 'No avatar');
-    }
-  }, [user]);
-
-  // Log API response for debugging
-  React.useEffect(() => {
-    if (boardFiltersData) {
-      console.log('HomeScreen - Board Filters data updated:', {
-        timestamp: new Date().toISOString(),
-        groupsCount: boardFiltersData.groups?.length || 0,
-        recommendedCount: boardFiltersData.recommended?.length || 0,
-        nearestCount: boardFiltersData.nearest?.length || 0,
-        seeAllCount: boardFiltersData.seeAll?.length || 0,
-      });
-      console.log('Generated Tabs:', tabs);
-      // Log each group and its categories
-      boardFiltersData.groups?.forEach((group: any) => {
-        console.log(`Group: ${group.name}`);
-        group.categories?.forEach((category: any) => {
-          console.log(`  Category: ${category.name} (${category.boards?.length || 0} boards)`);
-        });
-      });
-    }
-  }, [boardFiltersData, tabs]);
+  // Removed excessive logging to prevent console spam
   // Handle tab press
   const handleTabPress = (tab: Tab) => {
     setSelectedTab(tab);
@@ -219,7 +171,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Convert Board to BoardItem format
   const convertBoardToBoardItem = (board: any) => {
-    console.log('Converting board:', board);
     return {
       id: board.id?.toString() || 'unknown',
       title: board.title || 'Untitled Board',

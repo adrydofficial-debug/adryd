@@ -71,15 +71,8 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
     navigation.navigate('SingleBoardDetail', {item});
   };
 
-  // Refetch favorites when screen comes into focus
-  useFocusEffect(
-    React.useCallback(() => {
-      console.log('FavouritesScreen focused - refetching favorites data');
-      if (!refreshing) {
-        refetch();
-      }
-    }, [refetch, refreshing])
-  );
+  // Removed auto-refetch on screen focus to avoid repeated API calls
+  // Use pull-to-refresh or manual refresh instead
 
   const renderProgressStep = (
     stepNumber: number,

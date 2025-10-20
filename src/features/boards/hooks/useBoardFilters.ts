@@ -18,5 +18,10 @@ export const useBoardFilters = () =>
       });
       return mapFiltersResponse(res);
     },
-    staleTime: 0, // No cache - always fetch fresh data
+    // Cache and refetch behavior tuned to reduce repeated calls
+    staleTime: 1000 * 60 * 5, // 5 minutes: data considered fresh; no refetch within this window
+    gcTime: 1000 * 60 * 30, // 30 minutes: keep cache in memory
+    refetchOnMount: false, // do not refetch when component remounts if data is in cache
+    refetchOnWindowFocus: false, // do not refetch on app focus
+    refetchOnReconnect: false, // do not refetch when network reconnects
   });

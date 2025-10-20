@@ -13,8 +13,22 @@ import AppNavigator from './src/app/navigation/AppNavigator';
 import AuthNavigator from './src/features/auth/AuthNavigator';
 import { useAuthStore } from './src/store/authStore';
 enableScreens();
-// ⚡ React Query client
-const queryClient = new QueryClient();
+// ⚡ React Query client with conservative defaults to avoid auto-refetching
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
 const AuthGate = () => {
   const { user, loading, initializeSession } = useAuthStore();
   useEffect(() => {

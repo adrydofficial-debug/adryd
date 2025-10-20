@@ -29,56 +29,14 @@ export interface UpdateProfileData {
 // -----------------------------
 // 1️⃣ Get User Profile
 // -----------------------------
-export const useProfile = () => {
+export const useProfile = (enabled: boolean = true) => {
   const user = useAuthStore(s => s.user);
-  console.log('🔍 useProfile - Auth store user:', user?.id);
 
   return useQuery({
     queryKey: ['profile', user?.id],
+    enabled: enabled && !!user?.id, // Only run when enabled and we have a user ID
     queryFn: async (): Promise<UserProfile | null> => {
-      console.log('🔍 useProfile queryFn - Starting profile fetch...');
-      
-      // If no user in store, try to get current user from Supabase
-      if (!user?.id) {
-        console.log('🔍 No user in store, checking Supabase auth...');
-        const { data: userData, error } = await supabase.auth.getUser();
-        
-        console.log('🔍 Supabase auth result:', { 
-          hasUser: !!userData.user, 
-          userId: userData.user?.id,
-          error: error?.message 
-        });
-        
-        if (error || !userData.user) {
-          console.log('❌ No authenticated user found:', error?.message);
-          return null;
-        }
-
-        const currentUser = userData.user;
-        const metaData = currentUser.user_metadata || {};
-
-        console.log('📊 Current user metadata:', metaData);
-        console.log('👤 Username from metadata:', metaData.username);
-        console.log('🖼️ Avatar URL from metadata:', metaData.avatar_url);
-
-        const profileData = {
-          id: currentUser.id,
-          username: metaData.username,
-          full_name: metaData.full_name || currentUser.user_metadata?.full_name,
-          first_name: metaData.first_name,
-          last_name: metaData.last_name,
-          avatar_url: metaData.avatar_url,
-          phone: currentUser.phone || '',
-          email: currentUser.email || '',
-          created_at: currentUser.created_at,
-          updated_at: currentUser.updated_at || currentUser.created_at,
-        };
-
-        console.log('✅ Profile data created:', profileData);
-        return profileData;
-      }
-
-      // Get user data from auth.users table
+      // Get user data from Supabase
       const { data: userData, error } = await supabase.auth.getUser();
       
       if (error || !userData.user) {
@@ -87,10 +45,6 @@ export const useProfile = () => {
 
       const currentUser = userData.user;
       const metaData = currentUser.user_metadata || {};
-
-      console.log('📊 Current user metadata:', metaData);
-      console.log('👤 Username from metadata:', metaData.username);
-      console.log('🖼️ Avatar URL from metadata:', metaData.avatar_url);
 
       return {
         id: currentUser.id,
@@ -105,8 +59,10 @@ export const useProfile = () => {
         updated_at: currentUser.updated_at || currentUser.created_at,
       };
     },
-    enabled: true, // Always enabled, will handle auth check inside
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 };
 

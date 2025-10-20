@@ -44,7 +44,8 @@ const DRAWER_WIDTH = Math.min(width * 0.82, 340);
 
 const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) => {
   const navigation = useNavigation();
-  const { data: profile } = useProfile();
+  // Only fetch profile when drawer is visible to prevent unnecessary API calls
+  const { data: profile } = useProfile(visible);
   const { user } = useAuthStore();
   const logout = useAuthStore(s => s.logout);
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;

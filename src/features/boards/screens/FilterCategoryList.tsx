@@ -193,15 +193,11 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
     }
   }, [tabs, initialTab]);
 
-  // Debug selectedTab changes
-  React.useEffect(() => {
-    console.log('FilterCategoryList - selectedTab changed:', selectedTab);
-  }, [selectedTab]);
+  // Removed excessive logging to prevent console spam
 
   // Fallback: ensure we always have a selectedTab
   React.useEffect(() => {
     if (tabs.length > 0 && !selectedTab) {
-      console.log('FilterCategoryList - Fallback: Setting to first tab');
       setSelectedTab(tabs[0]);
     }
   }, [tabs, selectedTab]);
@@ -211,46 +207,22 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
     if (categorySlug && debouncedSearchQuery && tabs.length > 0) {
       const matchingTab = getTabFromCategorySlug(categorySlug);
       if (matchingTab && (!selectedTab || selectedTab.id !== matchingTab.id)) {
-        console.log('FilterCategoryList - Auto-selecting tab:', matchingTab);
         setSelectedTab(matchingTab);
       }
     } else if (!debouncedSearchQuery && selectedTab && selectedTab.type === 'category' && tabs.length > 0) {
       // Reset to default tab when search is cleared
       const defaultTab = tabs.find(tab => tab.type === 'all') || tabs[0];
       if (defaultTab) {
-        console.log('FilterCategoryList - Resetting to default tab:', defaultTab);
         setSelectedTab(defaultTab);
       }
     }
   }, [categorySlug, debouncedSearchQuery, selectedTab, tabs, boardFiltersData]);
 
-  // Log API response for debugging (same as HomeScreen)
-  React.useEffect(() => {
-    if (boardFiltersData) {
-      console.log('FilterCategoryList - Board Filters API Response:', JSON.stringify(boardFiltersData, null, 2));
-      console.log('FilterCategoryList - Generated Tabs:', tabs);
-    }
-  }, [boardFiltersData, tabs]);
-
-  // Log filtered boards API response
-  React.useEffect(() => {
-    console.log('FilterCategoryList - fetchFilteredBoards API called with filter:', filter);
-    console.log('FilterCategoryList - isLoading:', isFilteredLoading);
-    console.log('FilterCategoryList - error:', filteredError);
-    if (filteredBoardsData) {
-      console.log('FilterCategoryList - Filtered Boards API Response:', JSON.stringify(filteredBoardsData, null, 2));
-      console.log('FilterCategoryList - Total boards received:', filteredBoardsData.boards?.length || 0);
-      console.log('FilterCategoryList - Page:', filteredBoardsData.page);
-      console.log('FilterCategoryList - Total Pages:', filteredBoardsData.totalPages);
-    } else {
-      console.log('FilterCategoryList - No filteredBoardsData yet');
-    }
-  }, [filteredBoardsData, filter, isFilteredLoading, filteredError]);
+  // Removed excessive logging to prevent console spam
 
   // Refetch data when filter or search changes
   React.useEffect(() => {
     if (filter && filter !== 'seeAll') {
-      console.log('FilterCategoryList - Filter changed, refetching data with filter:', filter);
       refetchFilteredBoards();
     }
   }, [filter, refetchFilteredBoards]);
@@ -258,39 +230,24 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
   // Refetch data when search query changes
   React.useEffect(() => {
     if (debouncedSearchQuery !== undefined) {
-      console.log('FilterCategoryList - Search query changed, refetching data with search:', debouncedSearchQuery);
       refetchFilteredBoards();
     }
   }, [debouncedSearchQuery, refetchFilteredBoards]);
 
   // Get data based on selected tab - use fetchFilteredBoards API
   const getFilteredData = (): BoardItem[] => {
-    console.log('FilterCategoryList - getFilteredData called');
-    console.log('FilterCategoryList - selectedTab:', selectedTab);
-    console.log('FilterCategoryList - filteredBoardsData:', filteredBoardsData);
-    
     if (!selectedTab) {
-      console.log('FilterCategoryList - No selectedTab, returning empty array');
       return [];
     }
 
     // Primary data source: fetchFilteredBoards API
     if (filteredBoardsData?.boards && Array.isArray(filteredBoardsData.boards) && filteredBoardsData.boards.length > 0) {
-      console.log('FilterCategoryList - Using fetchFilteredBoards API data:', filteredBoardsData.boards.length, 'boards');
-      console.log('FilterCategoryList - API Response structure:', {
-        page: filteredBoardsData.page,
-        totalPages: filteredBoardsData.totalPages,
-        boardsCount: filteredBoardsData.boards.length
-      });
-      
       const mappedData = filteredBoardsData.boards.map(convertBoardToBoardItem);
-      console.log('FilterCategoryList - Mapped data:', mappedData);
       return mappedData;
     }
 
     // Fallback to boardFiltersData if fetchFilteredBoards is not working
     if (boardFiltersData) {
-      console.log('FilterCategoryList - Using boardFiltersData as fallback');
       let fallbackData: any[] = [];
       
       switch (selectedTab.label) {
@@ -307,19 +264,15 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
       }
       
       const mappedFallbackData = fallbackData.map(convertBoardToBoardItem);
-      
-      console.log('FilterCategoryList - Fallback data:', mappedFallbackData);
       return mappedFallbackData;
     }
 
     // Show empty state if no API data yet
-    console.log('FilterCategoryList - No API data available yet');
     return [];
   };
 
   // Convert Board to BoardItem format (same as HomeScreen)
   const convertBoardToBoardItem = (board: any) => {
-    console.log('FilterCategoryList - Converting board:', board);
     return {
       id: board.id?.toString() || 'unknown',
       title: board.title || 'Untitled Board',
