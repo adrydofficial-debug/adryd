@@ -20,6 +20,8 @@ export interface FilterBoardsParams {
   search?: string;
   lat?: number;
   lng?: number;
-  category_slug?: string;
-  group_slug?: string;
+  slug?: string; // unified slug for either category or group
+  min_price?: number;
+  max_price?: number;
+  location?: string;
 }

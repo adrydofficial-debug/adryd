@@ -36,9 +36,9 @@ export const mapFiltersResponse = (res: FiltersResponse): Filters => ({
 export const mapFilteredBoards = (
   res: FilteredBoardsResponse,
 ): PaginatedBoards => ({
-  boards: (res.boards ?? []).map(mapBoard),
-  page: res.page,
-  totalPages: Math.ceil((res.total ?? 0) / (res.limit || 1)),
+  boards: (res.data ?? []).map(mapBoard),
+  page: res.pagination?.page ?? 1,
+  totalPages: res.pagination?.totalPages ?? 1,
 });
 
 // 🧭 Map BoardRatingsResponse → Rating[]

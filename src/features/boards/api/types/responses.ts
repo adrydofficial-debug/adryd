@@ -24,12 +24,15 @@ export interface FilterMeta {
 
 // 🔍 /api/boards/filter
 export interface FilteredBoardsResponse {
-  total: number;
-  page: number;
-  limit: number;
-  filter: string;
-  boards: Board[];
+  data: Board[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
+
 // ⭐ /api/boards/:id/rate
 export interface RateBoardResponse {
   id: number;
