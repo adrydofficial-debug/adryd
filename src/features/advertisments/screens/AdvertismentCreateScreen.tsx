@@ -8,8 +8,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createAdvertisementGet } from '../api';
+import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
+import { CreateAdvertisementRequest } from '../types';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -21,7 +21,6 @@ interface Props {
   navigation: NavigationProp | any;
 }
 const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
-  // Static identifiers as requested
   const COMPANY_ID = 15;
   const BOARD_ID = 38;
   const [campaignName] = useState<string>('Test Ad');
@@ -29,28 +28,14 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
-  const [selectedDates, setSelectedDates] = useState<{[key: string]: any}>({});
+  const [selectedDays, setSelectedDays] = useState<Date[]>([]);
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [description] = useState<string>('My great test advertisement.');
   const [location] = useState<string>('Lahore');
   const [errorText, setErrorText] = useState<string>('');
-  const [successResponse, setSuccessResponse] = useState<string>('');
-  const queryClient = useQueryClient();
-  const createAdMutation = useMutation({
-    mutationFn: createAdvertisementGet, // Using GET method instead of POST
-    onSuccess: (response) => {
-      // Display success response
-      console.log('API Success Response:', response);
-      setSuccessResponse(JSON.stringify(response, null, 2));
-      setErrorText(''); // Clear any previous errors
-      // Invalidate lists if any cache key is used elsewhere
-      queryClient.invalidateQueries({ queryKey: ['advertisements'] });
-    },
-    onError: (error) => {
-      console.error('API Error Response:', error);
-      setErrorText(`API Error: ${error.message}`);
-      setSuccessResponse(''); // Clear any previous success messages
-    },
-  });
+
+  // Use the hook for API calls
+  const createAdMutation = useCreateAdvertisement();
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -68,64 +53,82 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
     return date.toISOString().split('T')[0];
   };
 
-  const onDayPress = (day: any) => {
-    const selectedDate = new Date(day.dateString);
-    
-    if (Object.keys(selectedDates).length === 0) {
-      // First selection - set start date
-      setStartDate(selectedDate);
-      setSelectedDates({
-        [day.dateString]: {
-          selected: true,
-          startingDay: true,
-          color: '#C538A5',
-          textColor: 'white',
-        }
-      });
+  const isSameDay = (date1: Date, date2: Date) => {
+    return date1.getDate() === date2.getDate() &&
+           date1.getMonth() === date2.getMonth() &&
+           date1.getFullYear() === date2.getFullYear();
+  };
+
+  const isDateSelected = (date: Date) => {
+    return selectedDays.some(selectedDate => isSameDay(selectedDate, date));
+  };
+
+  const onDayPress = (date: Date) => {
+    if (isDateSelected(date)) {
+      // Remove date if already selected
+      setSelectedDays(prev => prev.filter(selectedDate => !isSameDay(selectedDate, date)));
     } else {
-      // Second selection - set end date and create range
-      const startDateStr = Object.keys(selectedDates)[0];
-      const startDateObj = new Date(startDateStr);
-      
-      if (selectedDate >= startDateObj) {
-        // Valid range - create full range immediately
-        setEndDate(selectedDate);
-        const newSelectedDates: {[key: string]: any} = {};
-        
-        // Add all dates in range
-        const currentDate = new Date(startDateObj);
-        while (currentDate <= selectedDate) {
-          const dateStr = formatDateForCalendar(currentDate);
-          newSelectedDates[dateStr] = {
-            selected: true,
-            color: '#C538A5',
-            textColor: 'white',
-            startingDay: dateStr === startDateStr,
-            endingDay: dateStr === day.dateString,
-          };
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
-        
-        setSelectedDates(newSelectedDates);
-        setShowCalendar(false);
-      } else {
-        // Invalid range - reset and start over with new start date
-        setStartDate(selectedDate);
-        setSelectedDates({
-          [day.dateString]: {
-            selected: true,
-            startingDay: true,
-            color: '#C538A5',
-            textColor: 'white',
-          }
-        });
-      }
+      // Add date to selection
+      setSelectedDays(prev => [...prev, date].sort((a, b) => a.getTime() - b.getTime()));
     }
   };
 
   const openCalendar = () => {
-    setSelectedDates({});
+    setSelectedDays([]);
     setShowCalendar(true);
+  };
+
+  const confirmSelection = () => {
+    if (selectedDays.length > 0) {
+      const sortedDays = [...selectedDays].sort((a, b) => a.getTime() - b.getTime());
+      setStartDate(sortedDays[0]);
+      setEndDate(sortedDays[sortedDays.length - 1]);
+      setShowCalendar(false);
+    }
+  };
+
+  const generateCalendarDays = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const days = [];
+    const today = new Date();
+    
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      
+      const isCurrentMonth = date.getMonth() === month;
+      const isToday = isSameDay(date, today);
+      const isPast = date < today && !isToday;
+      const isSelected = isDateSelected(date);
+      
+      days.push({
+        date,
+        isCurrentMonth,
+        isToday,
+        isPast,
+        isSelected
+      });
+    }
+    
+    return days;
+  };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setCurrentMonth(prev => {
+      const newMonth = new Date(prev);
+      if (direction === 'prev') {
+        newMonth.setMonth(prev.getMonth() - 1);
+      } else {
+        newMonth.setMonth(prev.getMonth() + 1);
+      }
+      return newMonth;
+    });
   };
 
   const calculateDays = () => {
@@ -213,17 +216,13 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons name="chevron-down" size={width * 0.04} color="#C538A5" />
                 </TouchableOpacity>
                 
-                {Object.keys(selectedDates).length === 1 && (
+                {selectedDays.length === 1 && (
                   <View style={styles.selectionHint}>
                     <Text style={styles.hintText}>
                       Now tap your end date to complete the range
                     </Text>
                   </View>
                 )}
-                
-                <View style={styles.priceContainer}>
-                  <Text style={styles.priceText}>PKR 00</Text>
-                </View>
               </View>
               <View style={styles.descriptionContainer}>
                 <Text style={styles.descriptionLabel}>Description</Text>
@@ -265,107 +264,97 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
               
-              <View style={styles.simpleCalendar}>
-                <Text style={styles.calendarInstructions}>
-                  Select your date range by tapping start and end dates
-                </Text>
-                <View style={styles.dateSelectionButtons}>
+              <View style={styles.customCalendar}>
+                {/* Calendar Header */}
+                <View style={styles.calendarHeaderRow}>
                   <TouchableOpacity 
-                    style={styles.dateSelectButton}
-                    onPress={() => {
-                      const today = new Date();
-                      setStartDate(today);
-                      setEndDate(new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000));
-                      setShowCalendar(false);
-                    }}
+                    style={styles.monthNavButton}
+                    onPress={() => navigateMonth('prev')}
                   >
-                    <Text style={styles.dateSelectButtonText}>Today + 7 days</Text>
+                    <Ionicons name="chevron-back" size={20} color="#C538A5" />
                   </TouchableOpacity>
                   
-                  <TouchableOpacity 
-                    style={styles.dateSelectButton}
-                    onPress={() => {
-                      const today = new Date();
-                      setStartDate(today);
-                      setEndDate(new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000));
-                      setShowCalendar(false);
-                    }}
-                  >
-                    <Text style={styles.dateSelectButtonText}>Today + 14 days</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.monthYearText}>
+                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </Text>
                   
                   <TouchableOpacity 
-                    style={styles.dateSelectButton}
-                    onPress={() => {
-                      const today = new Date();
-                      setStartDate(today);
-                      setEndDate(new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000));
-                      setShowCalendar(false);
-                    }}
+                    style={styles.monthNavButton}
+                    onPress={() => navigateMonth('next')}
                   >
-                    <Text style={styles.dateSelectButtonText}>Today + 30 days</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#C538A5" />
                   </TouchableOpacity>
                 </View>
-                
-                <View style={styles.customRangeSection}>
-                  <Text style={styles.customRangeTitle}>Or select custom range:</Text>
-                  <View style={styles.customDateInputs}>
-                    <View style={styles.customDateInput}>
-                      <Text style={styles.customDateLabel}>Start Date</Text>
-                      <TouchableOpacity 
-                        style={styles.customDateButton}
-                        onPress={() => {
-                          // Use DateTimePicker for start date
-                          setShowCalendar(false);
-                          // This would open a DateTimePicker for start date
-                        }}
-                      >
-                        <Text style={styles.customDateButtonText}>
-                          {formatDate(startDate)}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                    
-                    <View style={styles.customDateInput}>
-                      <Text style={styles.customDateLabel}>End Date</Text>
-                      <TouchableOpacity 
-                        style={styles.customDateButton}
-                        onPress={() => {
-                          // Use DateTimePicker for end date
-                          setShowCalendar(false);
-                          // This would open a DateTimePicker for end date
-                        }}
-                      >
-                        <Text style={styles.customDateButtonText}>
-                          {formatDate(endDate)}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+
+                {/* Day Headers */}
+                <View style={styles.dayHeadersRow}>
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <Text key={day} style={styles.dayHeaderText}>{day}</Text>
+                  ))}
+                </View>
+
+                {/* Calendar Grid */}
+                <View style={styles.calendarGrid}>
+                  {generateCalendarDays().map((day, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.calendarDay,
+                        !day.isCurrentMonth && styles.otherMonthDay,
+                        day.isToday && styles.todayDay,
+                        day.isPast && styles.pastDay,
+                        day.isSelected && styles.selectedDay,
+                      ]}
+                      onPress={() => !day.isPast && onDayPress(day.date)}
+                      disabled={day.isPast}
+                    >
+                      <Text style={[
+                        styles.dayText,
+                        !day.isCurrentMonth && styles.otherMonthText,
+                        day.isToday && styles.todayText,
+                        day.isPast && styles.pastText,
+                        day.isSelected && styles.selectedText,
+                      ]}>
+                        {day.date.getDate()}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Selection Summary */}
+                <View style={styles.selectionSummary}>
+                  <Text style={styles.selectionText}>
+                    {selectedDays.length > 0 
+                      ? `${selectedDays.length} day${selectedDays.length !== 1 ? 's' : ''} selected`
+                      : 'Tap days to select them'
+                    }
+                  </Text>
                 </View>
               </View>
               
               <View style={styles.calendarFooter}>
-                <Text style={styles.calendarHint}>
-                  {Object.keys(selectedDates).length === 0 
-                    ? "Tap start date, then tap end date to select range"
-                    : Object.keys(selectedDates).length === 1
-                    ? "Now tap your end date to complete the range"
-                    : "Range selected! Tap outside to close."
-                  }
-                </Text>
-                {Object.keys(selectedDates).length > 0 && (
+                <View style={styles.calendarButtons}>
                   <TouchableOpacity 
                     style={styles.clearButton}
                     onPress={() => {
-                      setSelectedDates({});
+                      setSelectedDays([]);
                       setStartDate(new Date());
                       setEndDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
                     }}
                   >
-                    <Text style={styles.clearButtonText}>Clear Selection</Text>
+                    <Text style={styles.clearButtonText}>Clear</Text>
                   </TouchableOpacity>
-                )}
+                  
+                  <TouchableOpacity 
+                    style={[styles.confirmButton, selectedDays.length === 0 && styles.disabledButton]}
+                    onPress={confirmSelection}
+                    disabled={selectedDays.length === 0}
+                  >
+                    <Text style={[styles.confirmButtonText, selectedDays.length === 0 && styles.disabledButtonText]}>
+                      Confirm Selection
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </View>
@@ -373,46 +362,53 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={styles.buttonContainer}>
           <CustomButton
-            title={createAdMutation.isPending ? "Creating..." : "Create (GET)"}
-            onPress={async () => {
-              const isFormValid =
-                campaignName.trim().length > 0 &&
-                campaignCategory.trim().length > 0 &&
-                description.trim().length > 0 &&
-                startDate < endDate;
-
-              if (!isFormValid || createAdMutation.isPending) {
-                setErrorText(!isFormValid ? 'Please fill all fields and ensure end date is after start date.' : '');
+            title={createAdMutation.isPending ? "Creating..." : "Create Advertisement"}
+            onPress={() => {
+              // Validate form data
+              if (!campaignName.trim()) {
+                setErrorText('Campaign name is required');
                 return;
               }
-              try {
+              if (!campaignCategory.trim()) {
+                setErrorText('Campaign category is required');
+                return;
+              }
+              if (selectedDays.length === 0) {
+                setErrorText('Please select at least one day');
+                return;
+              }
+
+              // Clear any previous errors
                 setErrorText('');
-                setSuccessResponse(''); // Clear previous responses
-                // Build booking using selected start and end dates
-                const startUtc = new Date(startDate.toISOString());
-                const endUtc = new Date(endDate.toISOString());
-                const payload = {
+
+              // Prepare the data for API call
+              const advertisementData: CreateAdvertisementRequest = {
                   company_id: COMPANY_ID,
                   board_id: BOARD_ID,
                   title: campaignName,
                   description: description,
-                  total_payment: 5000,
+                total_payment: 0,
                   bookings: [
-                    { start_at: startUtc.toISOString(), end_at: endUtc.toISOString() },
-                  ],
-                };
-                console.log('CreateAdvertisement GET request payload →', payload);
-                console.log('Making GET request to create advertisement...');
-                const response = await createAdMutation.mutateAsync(payload);
-                console.log('Advertisement created successfully via GET request!');
-                console.log('Full API Response:', response);
-                // Don't navigate immediately, let user see the response
-                // navigation.navigate('CampaignUploadFiles');
-              } catch (e) {
-                // remain on the same screen on failure
-                console.error('Failed to create advertisement via GET request:', e);
-                setErrorText(`Failed to create advertisement: ${e instanceof Error ? e.message : 'Unknown error'}`);
-              }
+                  {
+                    start_at: startDate.toISOString(),
+                    end_at: endDate.toISOString(),
+                  },
+                ],
+              };
+
+              console.log('Creating advertisement with data:', advertisementData);
+
+              // Call the API using the hook with callbacks
+              createAdMutation.mutate(advertisementData, {
+                onSuccess: (response) => {
+                  navigation.navigate('CampaignUploadFiles', {
+                  });
+                },
+                onError: (error) => {
+
+                  setErrorText(`Error: ${error.message || 'Failed to create advertisement'}`);
+                },
+              });
             }}
             variant="primary"
             size="medium"
@@ -421,21 +417,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
           />
           {!!errorText && (
             <Text style={styles.errorText}>{errorText}</Text>
-          )}
-          {!!successResponse && (
-            <View style={styles.successContainer}>
-              <Text style={styles.successTitle}>✅ API Success Response:</Text>
-              <Text style={styles.successText}>{successResponse}</Text>
-              <Text style={styles.statusText}>
-                Status: {createAdMutation.isSuccess ? 'SUCCESS' : 'PENDING'}
-              </Text>
-              <TouchableOpacity
-                style={styles.nextScreenButton}
-                onPress={() => navigation.navigate('CampaignUploadFiles')}
-              >
-                <Text style={styles.nextScreenButtonText}>Continue to Next Screen</Text>
-              </TouchableOpacity>
-            </View>
           )}
         </View>
       </LinearGradient>
@@ -820,6 +801,116 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#333',
   },
+  customCalendar: {
+    padding: 15,
+  },
+  calendarHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  monthNavButton: {
+    padding: 8,
+  },
+  monthYearText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  dayHeadersRow: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  dayHeaderText: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    paddingVertical: 8,
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDay: {
+    width: '14.28%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  otherMonthDay: {
+    opacity: 0.3,
+  },
+  todayDay: {
+    backgroundColor: '#E3F2FD',
+    borderRadius: 20,
+  },
+  pastDay: {
+    opacity: 0.3,
+  },
+  selectedDay: {
+    backgroundColor: '#C538A5',
+    borderRadius: 20,
+  },
+  dayText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333',
+  },
+  otherMonthText: {
+    color: '#999',
+  },
+  todayText: {
+    color: '#1976D2',
+    fontWeight: 'bold',
+  },
+  pastText: {
+    color: '#999',
+  },
+  selectedText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  selectionSummary: {
+    marginTop: 15,
+    paddingVertical: 10,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  selectionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+  },
+  calendarButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 10,
+  },
+  confirmButton: {
+    backgroundColor: '#C538A5',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 6,
+    flex: 1,
+    marginLeft: 10,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  disabledButton: {
+    backgroundColor: '#E0E0E0',
+  },
+  disabledButtonText: {
+    color: '#999',
+  },
   priceContainer: {
     backgroundColor: '#F6E1F2',
     paddingHorizontal: width * 0.09,
@@ -895,48 +986,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 8,
-  },
-  successContainer: {
-    backgroundColor: '#E8F5E8',
-    borderColor: '#4CAF50',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-  },
-  successTitle: {
-    color: '#4CAF50',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  successText: {
-    color: '#2E7D32',
-    fontSize: 11,
-    fontFamily: 'monospace',
-    backgroundColor: '#F1F8E9',
-    padding: 8,
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  statusText: {
-    color: '#4CAF50',
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  nextScreenButton: {
-    backgroundColor: '#C538A5',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-    marginTop: 8,
-    alignItems: 'center',
-  },
-  nextScreenButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
   },
 });
 

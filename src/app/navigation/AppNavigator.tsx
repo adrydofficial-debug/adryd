@@ -34,14 +34,13 @@ export type AppStackParamList = {
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const AppNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    {/* <Stack.Screen name="AdvertismentCreateScreen" component={AdvertismentCreateScreen} />
- <Stack.Screen name="CampaignUploadFiles" component={CampaignUploadFiles} /> */}
-<Stack.Screen name="CreateCompanyScreen" component={CreateCompanyScreen} />
- {/* <Stack.Screen name="HomeScreen" component={HomeScreen} />
+  {/* <Stack.Screen name="AdvertismentCreateScreen" component={AdvertismentCreateScreen} /> */}
+ {/* <Stack.Screen name="CampaignUploadFiles" component={CampaignUploadFiles} />  */}
+{/* <Stack.Screen name="CreateCompanyScreen" component={CreateCompanyScreen} /> */}
+  <Stack.Screen name="HomeScreen" component={HomeScreen} /> 
  <Stack.Screen name='FavouritesScreen' component={FavouritesScreen}/>
- <Stack.Screen name="SingleBoardDetail" component={SingleBoardDetail} /> */}
+ <Stack.Screen name="SingleBoardDetail" component={SingleBoardDetail} /> 
  {/* <Stack.Screen name="CampaignScreen" component={CampaignScreen} /> */}
- 
  <Stack.Screen name="FilterCategoryList" component={FilterCategoryList} />
  <Stack.Screen name="ChangePassword" component={ChangePassword} />
  <Stack.Screen name="PreviousCompanyScreen" component={PreviousCompanyScreen}/>
