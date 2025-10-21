@@ -30,9 +30,6 @@ import {
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
-
-// Using BusinessCategoryDropdown component with react-native-element-dropdown
-
 interface CompanyDetailScreenProps {
   navigation: {
     goBack: () => void;
@@ -41,7 +38,6 @@ interface CompanyDetailScreenProps {
   company?: Company;
   onSave?: (companyData: Partial<Company>) => void;
 }
-
 interface SelectedImage {
   uri: string;
   type: string;
@@ -50,7 +46,6 @@ interface SelectedImage {
   fileName?: string;
   fileSize?: number;
 }
-
 const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   navigation,
   company,
@@ -575,7 +570,6 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
