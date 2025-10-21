@@ -102,6 +102,7 @@ export interface CreateAdvertisementRequest {
   media_size?: number;
   media_type?: string;
   total_payment?: number;
+  bookings?: Array<{ start_at: string; end_at: string }>;
 }
 
 // Update Advertisement Request
