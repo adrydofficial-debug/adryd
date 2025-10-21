@@ -1,35 +1,33 @@
-
-
 // src/features/companies/screens/CompanyDetailScreen.tsx
-
-import React, {useState, useMemo} from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-  StatusBar,
-  ScrollView,
-  Image,
-  Platform,
   Alert,
+  Dimensions,
+  Image,
   PermissionsAndroid,
-  Modal,
-  FlatList,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {launchImageLibrary} from 'react-native-image-picker';
+import BusinessCategoryDropdown from '../../../components/BusinessCategoryDropdown';
 import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
-import BusinessCategoryDropdown from '../../../components/BusinessCategoryDropdown';
-import {Company} from '../types';
+import { Company } from '../domain/entities';
 // import {AppScreens} from '../../../app/navigation/AppNavigator';
-import {useCreateCompany, useCompanyCategoryGroups} from '../hooks/useCompanies';
-import {supabase} from '../../../services/supabase';
+import { supabase } from '../../../services/supabase';
+import {
+  useCompanyCategoryGroups,
+  useCreateCompany,
+} from '../hooks/useCompanies';
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
 
@@ -56,16 +54,20 @@ interface SelectedImage {
 const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   navigation,
   company,
-  onSave,
 }) => {
-  const [companyName, setCompanyName] = useState(company?.company_name || 'Adryd');
+  const [companyName, setCompanyName] = useState(
+    company?.company_name || 'Adryd',
+  );
   const [businessName, setBusinessName] = useState(company?.company_name || '');
   const [companyNTN, setCompanyNTN] = useState(company?.company_ntn || '');
   const [companyAddress, setCompanyAddress] = useState(company?.address || '');
   const [companyEmail, setCompanyEmail] = useState(company?.email || '');
-  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(null);
-  const [selectedBusinessCategory, setSelectedBusinessCategory] = useState<string>('');
-  
+  const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(
+    null,
+  );
+  const [selectedBusinessCategory, setSelectedBusinessCategory] =
+    useState<string>('');
+
   // Validation states
   const [validationErrors, setValidationErrors] = useState<{
     companyName: boolean;
@@ -88,18 +90,19 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     console.log('Validation errors state updated:', validationErrors);
   }, [validationErrors]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  
+
   // Initialize the create company mutation hook
   const createCompanyMutation = useCreateCompany();
-  
+
   // Fetch business categories for dropdown
-  const { data: categoriesData, isLoading: categoriesLoading } = useCompanyCategoryGroups();
-  
+  const { data: categoriesData, isLoading: categoriesLoading } =
+    useCompanyCategoryGroups();
+
   // Prepare business category data for dropdown
   const businessCategoryData = useMemo(() => {
     console.log('Categories Data:', categoriesData);
     console.log('Categories Loading:', categoriesLoading);
-    
+
     // Fallback test data if API data is not available
     const testData = [
       { label: 'Restaurant', value: '1' },
@@ -107,21 +110,26 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       { label: 'Fast Food', value: '3' },
       { label: 'Fine Dining', value: '4' },
       { label: 'Food Drink', value: '5' },
-        { label: 'Fast ', value: '6' },
+      { label: 'Fast ', value: '6' },
       { label: 'Fine Dinings', value: '7' },
       { label: 'Food Trucks', value: '8' },
     ];
-    
-    if (!categoriesData || !categoriesData.groups || categoriesData.groups.length === 0) {
+
+    if (
+      !categoriesData ||
+      !categoriesData.groups ||
+      categoriesData.groups.length === 0
+    ) {
       console.log('Using test data');
       return testData;
     }
-    
-    const data = categoriesData.groups.flatMap((group: any) => 
-      group.categories?.map((category: any) => ({
-        label: category.name,
-        value: category.id.toString(),
-      })) || []
+
+    const data = categoriesData.groups.flatMap(
+      (group: any) =>
+        group.categories?.map((category: any) => ({
+          label: category.name,
+          value: category.id.toString(),
+        })) || [],
     );
     console.log('Business Category Data:', data);
     return data.length > 0 ? data : testData;
@@ -184,7 +192,10 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
           const asset = response.assets[0];
           const maxSize = 25 * 1024 * 1024; // 25MB
           if (asset.fileSize && asset.fileSize > maxSize) {
-            Alert.alert('File Too Large', 'Please select an image smaller than 25MB.');
+            Alert.alert(
+              'File Too Large',
+              'Please select an image smaller than 25MB.',
+            );
             return;
           }
           setSelectedImage({
@@ -209,25 +220,24 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
           styles.progressStep,
           isActive && styles.activeStep,
           isCompleted && styles.completedStep,
-        ]}>
+        ]}
+      >
         <Text
           style={[
             styles.progressStepText,
             isActive && styles.activeStepText,
             isCompleted && styles.completedStepText,
-          ]}>
+          ]}
+        >
           {stepNumber}
         </Text>
-          </View>
+      </View>
       {stepNumber < 3 && (
         <View
-                    style={[
-            styles.progressLine,
-            isActive && styles.activeProgressLine,
-          ]}
+          style={[styles.progressLine, isActive && styles.activeProgressLine]}
         />
-                  )}
-                </View>
+      )}
+    </View>
   );
 
   const handleNext = async (): Promise<void> => {
@@ -236,7 +246,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     console.log('businessName:', businessName);
     console.log('selectedBusinessCategory:', selectedBusinessCategory);
     console.log('companyEmail:', companyEmail);
-    
+
     // Reset validation errors
     setValidationErrors({
       companyName: false,
@@ -262,7 +272,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     // Check if there are any validation errors
     const hasErrors = Object.values(errors).some(error => error);
     console.log('Has errors:', hasErrors);
-    
+
     if (hasErrors) {
       setValidationErrors(errors);
       console.log('Missing fields:', errors);
@@ -271,12 +281,15 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
 
     try {
       setIsSubmitting(true);
-      
+
       // Check if user is authenticated
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
       console.log('Current user:', user);
       console.log('User error:', userError);
-      
+
       if (userError || !user) {
         console.error('User not authenticated:', userError);
         Alert.alert(
@@ -290,16 +303,19 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                 navigation.navigate('LoginScreen');
               },
             },
-          ]
+          ],
         );
         return;
       }
-      
+
       // Also check the current session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
       console.log('Current session:', session);
       console.log('Session error:', sessionError);
-      
+
       // Prepare company data for API
       const companyData = {
         company_name: companyName.trim(),
@@ -316,16 +332,24 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
 
       // Call the API using the clean service
       console.log('createCompany payload:', companyData);
-      const result = await createCompanyMutation.mutateAsync(companyData);
-      
+      const result = await createCompanyMutation.mutateAsync({
+        data: companyData,
+        file: selectedImage
+          ? {
+              uri: selectedImage.uri,
+              type: selectedImage.type,
+              name: selectedImage.name,
+            }
+          : undefined,
+      });
+
       // Navigate to CampaignUploadFiles screen on success
-      navigation.navigate('CampaignUploadFiles');
-      
+      // navigation.navigate('CampaignUploadFiles');
     } catch (error: any) {
       console.error('Create company error:', error);
-      
+
       let errorMessage = 'Failed to create company. Please try again.';
-      
+
       if (error?.response?.status === 401) {
         errorMessage = 'Authentication failed. Please log in again.';
       } else if (error?.response?.status === 403) {
@@ -337,7 +361,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
+
       Alert.alert('Error', errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -353,39 +377,53 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
-    <LinearGradient
-      colors={['#FFF4FD', '#fef3f9']}
-        start={{x: 0, y: 0}}
-        end={{x: 0, y: 1}}
-        style={styles.container}>
-          <View style={styles.header}>
-                  <TouchableOpacity
+      <LinearGradient
+        colors={['#FFF4FD', '#fef3f9']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.container}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}>
+            onPress={() => navigation.goBack()}
+          >
             <Ionicons name="arrow-back" size={wp(6)} color="#000" />
-            </TouchableOpacity>
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>Company Detail</Text>
           <View style={styles.headerSpacer} />
-          </View>
+        </View>
         <View style={styles.progressContainer}>
           {renderProgressStep(1, true, false)}
           {renderProgressStep(2, false, false)}
           {renderProgressStep(3, false, false)}
-                </View>
+        </View>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.formCard}>
-            <TouchableOpacity style={styles.uploadSection} onPress={openImagePicker}>
+            <TouchableOpacity
+              style={styles.uploadSection}
+              onPress={openImagePicker}
+            >
               <View style={styles.uploadContainer}>
                 {selectedImage ? (
                   <View style={styles.imagePreviewContainer}>
-                    <Image source={{uri: selectedImage.uri}} style={styles.previewImage} />
-                  <TouchableOpacity
+                    <Image
+                      source={{ uri: selectedImage.uri }}
+                      style={styles.previewImage}
+                    />
+                    <TouchableOpacity
                       style={styles.deleteImageButton}
-                      onPress={() => setSelectedImage(null)}>
-                      <Ionicons name="trash" size={width * 0.06} color="#ff4444" />
+                      onPress={() => setSelectedImage(null)}
+                    >
+                      <Ionicons
+                        name="trash"
+                        size={width * 0.06}
+                        color="#ff4444"
+                      />
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -398,57 +436,64 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                     <Text style={styles.uploadText}>Upload Company Logo</Text>
                     <Text style={styles.uploadSubtext}>
                       Format: .jpeg, .png & Max file size: 25 MB
-                          </Text>
+                    </Text>
                   </>
-                  )}
-                </View>
+                )}
+              </View>
             </TouchableOpacity>
             <View style={styles.formFields}>
               <CustomInput
                 label="Company Name"
                 placeholder="Enter company name"
                 value={companyName}
-                onChangeText={(text) => {
+                onChangeText={text => {
                   setCompanyName(text);
                   // Clear validation error when user starts typing
                   if (validationErrors.companyName) {
-                    setValidationErrors(prev => ({ ...prev, companyName: false }));
+                    setValidationErrors(prev => ({
+                      ...prev,
+                      companyName: false,
+                    }));
                   }
                 }}
                 containerStyle={styles.customInputContainer}
                 error={validationErrors.companyName}
               />
-              
+
               <CustomInput
                 label="Business Name"
                 placeholder="Enter business name"
                 value={businessName}
-                onChangeText={(text) => {
+                onChangeText={text => {
                   setBusinessName(text);
                   // Clear validation error when user starts typing
                   if (validationErrors.businessName) {
-                    setValidationErrors(prev => ({ ...prev, businessName: false }));
+                    setValidationErrors(prev => ({
+                      ...prev,
+                      businessName: false,
+                    }));
                   }
                 }}
                 containerStyle={styles.customInputContainer}
                 error={validationErrors.businessName}
               />
-              
+
               {/* Business Category Input Field with Element Dropdown */}
               <View style={styles.customInputContainer}>
-                <Text style={styles.inputLabel}>
-                  Business Category 
-                      </Text>
+                <Text style={styles.inputLabel}>Business Category</Text>
                 <BusinessCategoryDropdown
                   label=""
                   data={businessCategoryData}
                   value={selectedBusinessCategory}
-                  onSelect={(value) => {
+                  onSelect={value => {
                     console.log('Category selected:', value);
                     setSelectedBusinessCategory(value);
                     // Clear validation error when user selects
                     if (validationErrors.businessCategory) {
-                      setValidationErrors(prev => ({ ...prev, businessCategory: false }));
+                      setValidationErrors(prev => ({
+                        ...prev,
+                        businessCategory: false,
+                      }));
                     }
                   }}
                   placeholder="Select business category"
@@ -456,17 +501,20 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                   containerStyle={styles.dropdownWrapper}
                   error={validationErrors.businessCategory}
                 />
-                      </View>
-              
+              </View>
+
               <CustomInput
                 label="Company NTN"
                 placeholder="Optional"
                 value={companyNTN}
-                onChangeText={(text) => {
+                onChangeText={text => {
                   setCompanyNTN(text);
                   // Clear validation error when user starts typing
                   if (validationErrors.companyNTN) {
-                    setValidationErrors(prev => ({ ...prev, companyNTN: false }));
+                    setValidationErrors(prev => ({
+                      ...prev,
+                      companyNTN: false,
+                    }));
                   }
                 }}
                 containerStyle={styles.customInputContainer}
@@ -476,11 +524,14 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                 label="Company Address"
                 placeholder="Optional"
                 value={companyAddress}
-                onChangeText={(text) => {
+                onChangeText={text => {
                   setCompanyAddress(text);
                   // Clear validation error when user starts typing
                   if (validationErrors.companyAddress) {
-                    setValidationErrors(prev => ({ ...prev, companyAddress: false }));
+                    setValidationErrors(prev => ({
+                      ...prev,
+                      companyAddress: false,
+                    }));
                   }
                 }}
                 containerStyle={styles.customInputContainer}
@@ -490,34 +541,37 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                 label="Company Email"
                 placeholder="Enter company email"
                 value={companyEmail}
-                onChangeText={(text) => {
+                onChangeText={text => {
                   setCompanyEmail(text);
                   // Clear validation error when user starts typing
                   if (validationErrors.companyEmail) {
-                    setValidationErrors(prev => ({ ...prev, companyEmail: false }));
+                    setValidationErrors(prev => ({
+                      ...prev,
+                      companyEmail: false,
+                    }));
                   }
                 }}
                 keyboardType="email-address"
                 containerStyle={styles.customInputContainer}
                 error={validationErrors.companyEmail}
               />
-                </View>
+            </View>
           </View>
         </ScrollView>
         <View style={styles.buttonContainer}>
           <CustomButton
-            title={isSubmitting ? "Creating..." : "Next"}
+            title={isSubmitting ? 'Creating...' : 'Next'}
             onPress={handleNext}
             variant="primary"
             size="medium"
             buttonStyle={StyleSheet.flatten([
               styles.nextButton,
-              isSubmitting ? styles.disabledButton : null
+              isSubmitting ? styles.disabledButton : null,
             ])}
-                  disabled={isSubmitting}
+            disabled={isSubmitting}
           />
-                  </View>
-    </LinearGradient>
+        </View>
+      </LinearGradient>
     </View>
   );
 };
@@ -608,7 +662,7 @@ const styles = StyleSheet.create({
     borderRadius: width * 0.04,
     padding: width * 0.05,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
@@ -659,7 +713,7 @@ const styles = StyleSheet.create({
     borderRadius: width * 0.03,
     padding: width * 0.008,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
@@ -739,4 +793,3 @@ const styles = StyleSheet.create({
 });
 
 export default CompanyDetailScreen;
-
