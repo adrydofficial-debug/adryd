@@ -1,5 +1,5 @@
 // src/components/BoardTabs.tsx
-import React, {useRef, useState} from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Dimensions,
   NativeScrollEvent,
@@ -11,13 +11,12 @@ import {
   View,
 } from 'react-native';
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 // 🔹 Tab interface
 export interface Tab {
-  id: string | number;
-  type: string;
   label: string;
+  slug?: string;
 }
 
 // 🔹 Props interface
@@ -50,15 +49,16 @@ const BoardTabs: React.FC<BoardTabsProps> = ({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={[
           styles.boardTabs,
-          {paddingLeft: scrollOffset > 0 ? 0 : 20},
+          { paddingLeft: scrollOffset > 0 ? 0 : 20 },
         ]}
         onScroll={handleScroll}
-        scrollEventThrottle={16}>
+        scrollEventThrottle={16}
+      >
         {tabs.map(tab => {
-          const isActive = selectedTab?.id === tab.id;
+          const isActive = selectedTab?.slug === tab.slug;
           return (
             <TouchableOpacity
-              key={`${tab.type}-${tab.id}`} // ✅ stable key
+              key={`${tab.slug}`}
               style={isActive ? styles.tabActive : styles.tab}
               onPress={() => onTabPress(tab)} // ✅ pass full tab object
             >
@@ -74,8 +74,8 @@ const BoardTabs: React.FC<BoardTabsProps> = ({
 };
 
 const styles = StyleSheet.create({
-  boardTabsWrapper: {marginBottom: height * 0.02},
-  boardTabs: {flexDirection: 'row', alignItems: 'center'},
+  boardTabsWrapper: { marginBottom: height * 0.02 },
+  boardTabs: { flexDirection: 'row', alignItems: 'center' },
   tab: {
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -86,8 +86,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 5,
     elevation: 2,
-    borderWidth:1,
-    borderColor:'#E5E7EB'
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   tabActive: {
     backgroundColor: '#C539A5',

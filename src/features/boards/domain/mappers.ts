@@ -30,6 +30,10 @@ export const mapFiltersResponse = (res: FiltersResponse): Filters => ({
   recommended: (res.data.recommended ?? []).map(mapBoard),
   nearest: (res.data.nearest ?? []).map(mapBoard),
   seeAll: (res.data.seeAll ?? []).map(mapBoard),
+  filters: (res.filters ?? []).map(f => ({
+    name: f.name,
+    slug: f.slug,
+  })), // <-- new mapping for simplified FilterMeta
 });
 
 // 🧭 Map FilteredBoardsResponse → PaginatedBoards

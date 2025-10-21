@@ -1,3 +1,4 @@
+//src/features/boards/hooks/useFilteredBoards.ts
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { fetchFilteredBoards } from '../api/api';
 import { FilterBoardsParams } from '../api/types/requests';

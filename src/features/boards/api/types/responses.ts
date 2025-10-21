@@ -13,13 +13,10 @@ export interface FiltersResponse {
   };
 }
 
-// 🧩 Filter metadata for UI tabs/dropdowns
+// 🧩 Simplified Filter metadata for UI tabs/dropdowns
 export interface FilterMeta {
-  id: number;
   name: string;
   slug: string;
-  type: 'group' | 'category';
-  group_id?: number;
 }
 
 // 🔍 /api/boards/filter

@@ -1,7 +1,6 @@
 // src/features/boards/HomeScreen.tsx
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Dimensions,
   Image,
   ScrollView,
@@ -11,30 +10,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import BoardTabs, { Tab } from '../components/BoardTabs';
+import {
+  default as LinearGradient,
+  default as LinearGradientLib,
+} from 'react-native-linear-gradient';
+import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
+import PinkLocation from '../../../assets/images/PinkkLocation.svg';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
-import PinkLocation from '../../../assets/images/PinkkLocation.svg';
-import { useBoardFilters } from '../hooks/useBoardFilters';
 import { useAuthStore } from '../../../store/authStore';
-import LinearGradientLib from 'react-native-linear-gradient';
-import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RouteProp } from '@react-navigation/native';
+import BoardTabs, { Tab } from '../components/BoardTabs';
+import { useBoardFilters } from '../hooks/useBoardFilters';
 // import { useFocusEffect } from '@react-navigation/native';
-type RootStackParamList = {
-  LoginScreen: undefined;
-  CategoryScreen: {
-    categoryId: string;
-    categoryName: string;
-    subHeading?: string;
-    showAllCategories?: boolean;
-    selectedTab?: string;
-    tabs?: string[];
-  };
-  CampaignDetail: { item: any };
-};
 
 type Props = {
   navigation: any;
@@ -43,8 +30,11 @@ type Props = {
 const { width, height } = Dimensions.get('window');
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const [selectedTab, setSelectedTab] = useState<Tab | null>({ id: 'see-all', type: 'all', label: 'See All' });
-  
+  const [selectedTab, setSelectedTab] = useState<Tab | null>({
+    label: 'See All',
+    slug: 'see-all',
+  });
+
   // Get user data from authStore
   const { user } = useAuthStore();
 
@@ -52,7 +42,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [currentBannerIndex, setCurrentBannerIndex] = useState<number>(0);
 
   // Filter dropdown state
-  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState<boolean>(false);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] =
+    useState<boolean>(false);
 
   // Drawer state
   const [drawerVisible, setDrawerVisible] = useState<boolean>(false);
@@ -81,28 +72,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setDrawerVisible(false);
   };
 
-  // Logout
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'LoginScreen' }],
-            });
-          },
-        },
-      ],
-      { cancelable: true },
-    );
-  };
-
   // Data hooks - Only use fetchBoardFilters
   const {
     data: boardFiltersData,
@@ -114,54 +83,22 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Removed auto-refetch on screen focus to avoid repeated API calls.
   // If you need manual refresh, call `refetchBoardFilters()` explicitly (e.g., pull-to-refresh or a Retry button).
 
-  // Dynamic tabs from API data - memoized to prevent unnecessary recalculations
-  const tabs: Tab[] = useMemo(() => [
-    { id: 'see-all', type: 'all', label: 'See All' },
-    { id: 'recommend', type: 'recommend', label: 'Recommend' },
-    { id: 'near', type: 'near', label: 'Near' },
-    ...(boardFiltersData?.groups?.flatMap((group: any) => [
-      { id: `group-${group.id}`, type: 'group', label: group.name },
-      ...(group.categories?.map((cat: any) => ({
-        id: `category-${cat.id}`,
-        type: 'category',
-        label: cat.name,
-      })) || []),
-    ]) || []),
-  ], [boardFiltersData?.groups]);
+  // Dynamic tabs from API data - memoized
+  const tabs: Tab[] = useMemo(() => {
+    if (!boardFiltersData?.filters) return [];
+    return boardFiltersData.filters.map(f => ({
+      label: f.name, // some API filters might use name
+      slug: f.slug,
+    }));
+  }, [boardFiltersData]);
 
   // Removed excessive logging to prevent console spam
   // Handle tab press
   const handleTabPress = (tab: Tab) => {
     setSelectedTab(tab);
-    
-    // Map tab types to correct API filter values
-    let filterValue = 'see_all'; // default
-    switch (tab.type) {
-      case 'recommend':
-        filterValue = 'recommended';
-        break;
-      case 'near':
-        filterValue = 'nearest';
-        break;
-      case 'group':
-        filterValue = 'group';
-        break;
-      case 'category':
-        filterValue = 'category';
-        break;
-      case 'all':
-      default:
-        filterValue = 'see_all';
-        break;
-    }
-    
-    // Navigate to FilterCategoryList with the selected tab and filter parameter
+
     navigation.navigate('FilterCategoryList', {
-      selectedTab: tab.label,
-      categoryId: tab.id,
-      categoryName: tab.label,
-      filter: filterValue, // Pass the correct filter parameter for API call
-      tabType: tab.type, // Pass the tab type (group, category, etc.)
+      slug: tab.slug,
     });
   };
 
@@ -177,7 +114,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       description: board.description || '',
       location: board.location || 'Unknown Location',
       distance: '1.6 km', // Default distance
-      size: board.width && board.height ? `${board.width}x${board.height}` : '12x8',
+      size:
+        board.width && board.height ? `${board.width}x${board.height}` : '12x8',
       price: parseFloat(board.price) || 0,
       currency: board.currency || 'USD',
       image_url: board.image_url || null,
@@ -207,9 +145,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.profileRow}>
           <TouchableOpacity onPress={handleProfilePress}>
             <Image
-              source={{ 
-                uri: user?.user_metadata?.avatar_url || 
-                     'https://randomuser.me/api/portraits/men/1.jpg' 
+              source={{
+                uri:
+                  user?.user_metadata?.avatar_url ||
+                  'https://randomuser.me/api/portraits/men/1.jpg',
               }}
               style={styles.avatar}
             />
@@ -217,11 +156,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <View style={{ marginRight: 25 }}>
             <Text style={styles.greeting}>Hi</Text>
             <Text style={styles.name}>
-              {user?.user_metadata?.full_name || 
-               user?.user_metadata?.name || 
-               user?.user_metadata?.username ||
-               user?.email?.split('@')[0] || 
-               'User'}!
+              {user?.user_metadata?.full_name ||
+                user?.user_metadata?.name ||
+                user?.user_metadata?.username ||
+                user?.email?.split('@')[0] ||
+                'User'}
+              !
             </Text>
           </View>
           <View style={styles.locationRow}>
@@ -276,7 +216,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         />
       </View>
 
-      <ScrollView style={{ flex: 1, backgroundColor: '#fff', marginBottom: 10 }}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: '#fff', marginBottom: 10 }}
+      >
         {isLoading ? (
           [...Array(3)].map((_, idx) => (
             <ShimmerPlaceholder
@@ -315,62 +257,66 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 navigation={navigation}
               />
             )} */}
-            
+
             {/* Show Recommended boards */}
-            {boardFiltersData?.recommended && boardFiltersData.recommended.length > 0 && (
-              <BoardList
-                data={boardFiltersData.recommended.map(convertBoardToBoardItem)}
-                onPressDetail={handleDetailPress}
-                heading="Recommended"
-                navigation={navigation}
-              />
-            )}
-            
+            {boardFiltersData?.recommended &&
+              boardFiltersData.recommended.length > 0 && (
+                <BoardList
+                  data={boardFiltersData.recommended.map(
+                    convertBoardToBoardItem,
+                  )}
+                  onPressDetail={handleDetailPress}
+                  heading="Recommended"
+                  navigation={navigation}
+                />
+              )}
+
             {/* Show Nearest boards */}
-            {boardFiltersData?.nearest && boardFiltersData.nearest.length > 0 && (
-              <BoardList
-                data={boardFiltersData.nearest.map(convertBoardToBoardItem)}
-                onPressDetail={handleDetailPress}
-                heading="Nearest Boards"
-                navigation={navigation}
-              />
-            )}
-            
+            {boardFiltersData?.nearest &&
+              boardFiltersData.nearest.length > 0 && (
+                <BoardList
+                  data={boardFiltersData.nearest.map(convertBoardToBoardItem)}
+                  onPressDetail={handleDetailPress}
+                  heading="Nearest Boards"
+                  navigation={navigation}
+                />
+              )}
+
             {/* Show boards grouped by categories (categories shown only once) */}
             {(() => {
               // Group all categories from all groups
               const categoryMap = new Map();
-              
+
               boardFiltersData?.groups?.forEach((group: any) => {
                 group.categories?.forEach((category: any) => {
                   if (category.boards && category.boards.length > 0) {
                     if (!categoryMap.has(category.id)) {
                       categoryMap.set(category.id, {
                         ...category,
-                        groups: []
+                        groups: [],
                       });
                     }
                     categoryMap.get(category.id).groups.push({
                       id: group.id,
                       name: group.name,
                       description: group.description,
-                      boards: category.boards
+                      boards: category.boards,
                     });
                   }
                 });
               });
-              
+
               return Array.from(categoryMap.values()).map((category: any) => (
                 <View key={category.id}>
                   {/* Category header - shown only once */}
                   <View style={styles.categoryHeader}>
                     <Text style={styles.categoryTitle}>{category.name}</Text>
                   </View>
-                  
+
                   {/* Groups within this category */}
                   {category.groups.map((group: any) => (
                     <BoardList
-                      key={`${category.id}-${group.id}`}
+                      key={`${category.slug}-${group.slug}`}
                       data={group.boards.map(convertBoardToBoardItem)}
                       onPressDetail={handleDetailPress}
                       heading={group.name}
@@ -386,78 +332,250 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       </ScrollView>
 
       {/* Drawer Component */}
-      <DrawerComponent
-        visible={drawerVisible}
-        onClose={handleCloseDrawer}
-      />
+      <DrawerComponent visible={drawerVisible} onClose={handleCloseDrawer} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
- container: { flex: 1, backgroundColor: '#fff' },
-  header: { width, height: height * 0.31, paddingTop: height * 0.04, paddingHorizontal: width * 0.05, marginBottom: 2, }, 
-  profileRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 30, }, 
-  avatar: { width: width * 0.13, height: width * 0.13, borderRadius: width * 0.065, borderWidth: 1, borderColor: '#fff', },
-   greeting: { fontSize: 12, color: '#fff', fontWeight: '400' }, 
-   name: { fontSize: 18, color: '#fff', fontWeight: 'bold', marginTop: -5 },
-    locationRow: { flexDirection: 'row', alignItems: 'center', marginLeft: width * -0.001, }, 
-    locationBtnCustom: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: width * 0.03, paddingVertical: height * 0.008, marginRight: width * 0.01, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, elevation: 1, borderWidth: 1, borderColor: '#E5E7EB', },
-     locationBtnText: { color: '#595959', fontWeight: '400', fontSize: 12, marginRight: width * 0.01, }, 
-     bellBtn: { backgroundColor: '#fff', borderRadius: 20, padding: 8, marginRight: width * 0.01, borderWidth: 1, borderColor: '#E5E7EB', width: width * 0.09, height: width * 0.09, justifyContent: 'center', alignItems: 'center', textAlign: 'center', },
-      bellIcon: { width: width * 0.05, height: width * 0.047, resizeMode: 'contain', }, 
-      FilterIcon: { width: width * 0.04, height: width * 0.04, resizeMode: 'contain', }, 
-      searchRow: { flexDirection: 'row', alignItems: 'center', marginTop: height * 0.02, backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: width * 0.04, paddingVertical: height * 0.01, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, elevation: 2, }, searchIcon: { width: width * 0.06, height: width * 0.06, marginRight: width * 0.02, tintColor: '#D9D9D9', }, 
-      searchInput: { flex: 1, fontSize: width * 0.04, color: '#333', backgroundColor: '#fff', borderRadius: 20, paddingVertical: height * 0.008, paddingHorizontal: width * 0.02, }, 
-      filterBtn: { marginLeft: width * 0.02, borderRadius: 20, padding: width * 0.02, }, 
-      filterIcon: { width: width * 0.06, height: width * 0.06 }, 
-      bannerContainer: { width: width * 0.9, height: height * 0.18, borderRadius: 15, overflow: 'hidden', alignSelf: 'center', }, 
-      bannerImage: { width: '100%', height: '100%', borderRadius: 15, resizeMode: 'cover', justifyContent: 'center', alignItems: 'center', }, 
-      boardSection: { marginTop: height * 0.03, marginHorizontal: width * 0.01, },
-       boardTitle: { fontSize: width * 0.055, fontWeight: 'bold', color: '#222', marginBottom: height * 0.015, paddingHorizontal: 20, }, 
-       errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 50, paddingHorizontal: 20, }, 
-       errorText: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 20, }, 
-       retryButton: { backgroundColor: '#C539A5', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, }, 
-       retryButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' }, 
-       filterDropdown: { position: 'absolute', top: 50, right: 10, backgroundColor: '#fff', borderRadius: 12, paddingVertical: 8, paddingHorizontal: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5, zIndex: 1000, minWidth: 260, }, 
-       dropdownHeaderAllBtn: { paddingHorizontal: 12, paddingVertical: 6, }, 
-       dropdownHeaderAll: { color: '#C539A5', fontSize: 16, fontWeight: '700', }, 
-       dropdownSectionTitle: { fontSize: 16, color: '#4B5563', fontWeight: '700', paddingHorizontal: 12, paddingTop: 12, paddingBottom: 6, }, 
-       dropdownDivider: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 8, marginHorizontal: 12, },
-        dropdownBulletRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 8, }, 
-        bulletDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#6B7280', marginRight: 10, }, 
-        bulletText: { fontSize: 14, color: '#374151', }, 
-        dropdownItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', }, 
-        dropdownItemText: { fontSize: 14, color: '#333', fontWeight: '500', }, 
-        dropdownOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999, },
-       groupHeader: {
-         backgroundColor: '#f8f9fa',
-         paddingHorizontal: 20,
-         paddingVertical: 15,
-         marginTop: 10,
-         borderLeftWidth: 4,
-         borderLeftColor: '#C539A5',
-       },
-       groupTitle: {
-         fontSize: 18,
-         fontWeight: 'bold',
-         color: '#C539A5',
-         marginBottom: 5,
-       },
-       groupDescription: {
-         fontSize: 14,
-         color: '#666',
-         fontStyle: 'italic',
-       },
-       categoryHeader: {
-         paddingHorizontal: 20,
-         paddingVertical: 10,
-         marginTop: 15,
-       },
-       categoryTitle: {
-         fontSize: 18,
-         fontWeight: 'bold',
-         color: '#333',
-       },
-     });
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: {
+    width,
+    height: height * 0.31,
+    paddingTop: height * 0.04,
+    paddingHorizontal: width * 0.05,
+    marginBottom: 2,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 30,
+  },
+  avatar: {
+    width: width * 0.13,
+    height: width * 0.13,
+    borderRadius: width * 0.065,
+    borderWidth: 1,
+    borderColor: '#fff',
+  },
+  greeting: { fontSize: 12, color: '#fff', fontWeight: '400' },
+  name: { fontSize: 18, color: '#fff', fontWeight: 'bold', marginTop: -5 },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: width * -0.001,
+  },
+  locationBtnCustom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingHorizontal: width * 0.03,
+    paddingVertical: height * 0.008,
+    marginRight: width * 0.01,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  locationBtnText: {
+    color: '#595959',
+    fontWeight: '400',
+    fontSize: 12,
+    marginRight: width * 0.01,
+  },
+  bellBtn: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 8,
+    marginRight: width * 0.01,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    width: width * 0.09,
+    height: width * 0.09,
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+  },
+  bellIcon: {
+    width: width * 0.05,
+    height: width * 0.047,
+    resizeMode: 'contain',
+  },
+  FilterIcon: {
+    width: width * 0.04,
+    height: width * 0.04,
+    resizeMode: 'contain',
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: height * 0.02,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingHorizontal: width * 0.04,
+    paddingVertical: height * 0.01,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  searchIcon: {
+    width: width * 0.06,
+    height: width * 0.06,
+    marginRight: width * 0.02,
+    tintColor: '#D9D9D9',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: width * 0.04,
+    color: '#333',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingVertical: height * 0.008,
+    paddingHorizontal: width * 0.02,
+  },
+  filterBtn: {
+    marginLeft: width * 0.02,
+    borderRadius: 20,
+    padding: width * 0.02,
+  },
+  filterIcon: { width: width * 0.06, height: width * 0.06 },
+  bannerContainer: {
+    width: width * 0.9,
+    height: height * 0.18,
+    borderRadius: 15,
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 15,
+    resizeMode: 'cover',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  boardSection: { marginTop: height * 0.03, marginHorizontal: width * 0.01 },
+  boardTitle: {
+    fontSize: width * 0.055,
+    fontWeight: 'bold',
+    color: '#222',
+    marginBottom: height * 0.015,
+    paddingHorizontal: 20,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#C539A5',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  retryButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  filterDropdown: {
+    position: 'absolute',
+    top: 50,
+    right: 10,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
+    minWidth: 260,
+  },
+  dropdownHeaderAllBtn: { paddingHorizontal: 12, paddingVertical: 6 },
+  dropdownHeaderAll: { color: '#C539A5', fontSize: 16, fontWeight: '700' },
+  dropdownSectionTitle: {
+    fontSize: 16,
+    color: '#4B5563',
+    fontWeight: '700',
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 6,
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 8,
+    marginHorizontal: 12,
+  },
+  dropdownBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+  },
+  bulletDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#6B7280',
+    marginRight: 10,
+  },
+  bulletText: { fontSize: 14, color: '#374151' },
+  dropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  dropdownItemText: { fontSize: 14, color: '#333', fontWeight: '500' },
+  dropdownOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+  },
+  groupHeader: {
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    marginTop: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#C539A5',
+  },
+  groupTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#C539A5',
+    marginBottom: 5,
+  },
+  groupDescription: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  categoryHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginTop: 15,
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+});
 export default HomeScreen;

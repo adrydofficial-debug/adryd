@@ -13,23 +13,19 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import BachButton from '../../../components/BackButton';
+import BoardList from '../../../components/BoardList';
+import { useAuthStore } from '../../../store/authStore';
 import BoardTabs, { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
 import { useFilteredBoards } from '../hooks/useFilteredBoards';
-import { useAuthStore } from '../../../store/authStore';
-import BachButton from '../../../components/BackButton';
-import BoardList from '../../../components/BoardList';
 // TypeScript interfaces - using BoardList's BoardItem interface
 import { BoardItem } from '../../../components/BoardList';
 
 interface FilterCategoryListProps {
   route: {
     params: {
-      categoryId?: string;
-      categoryName?: string;
-      selectedTab?: string;
-      filter?: string;
-      tabType?: string;
+      slug?: string;
     };
   };
   navigation: any;
@@ -38,17 +34,21 @@ const { width, height } = Dimensions.get('window');
 
 // BoardList component handles card dimensions
 
-const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigation }) => {
-  const { categoryId, categoryName, selectedTab: initialTab, filter, tabType } = route.params || {};
-  console.log('FilterCategoryList - Route params:', { categoryId, categoryName, initialTab, filter, tabType });
-  
-  const [selectedTab, setSelectedTab] = useState<Tab | null>(
-    initialTab ? { id: initialTab, type: tabType || 'all', label: initialTab } : null
-  );
-  const [coords, setCoords] = useState<{latitude: number; longitude: number} | null>(null);
+const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
+  route,
+  navigation,
+}) => {
+  const { slug } = route.params || {};
+
+  const [selectedTab, setSelectedTab] = useState<Tab | null>(null);
+  const [coords, setCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const { user } = useAuthStore();
+
   useEffect(() => {
     Geolocation.getCurrentPosition(
       pos => {
@@ -73,7 +73,6 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Use the same hook as HomeScreen for tabs
   const {
     data: boardFiltersData,
     isLoading: isFiltersLoading,
@@ -82,192 +81,86 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
   } = useBoardFilters();
 
   // Map search terms to category slugs
-  const getCategorySlugFromSearch = (searchTerm: string): string | undefined => {
+  const getCategorySlugFromSearch = (
+    searchTerm: string,
+  ): string | undefined => {
     if (!searchTerm) return undefined;
-    
+
     const searchLower = searchTerm.toLowerCase();
-    
-    // Map common search terms to category slugs
+
     const searchToCategoryMap: { [key: string]: string } = {
-      'wallpaper': 'wall-panels',
+      wallpaper: 'wall-panels',
       'wall panel': 'wall-panels',
       'wall panels': 'wall-panels',
-      'billboard': 'billboards',
-      'billboards': 'billboards',
+      billboard: 'billboards',
+      billboards: 'billboards',
       'bus shelter': 'bus-shelter-ads',
       'bus shelter ads': 'bus-shelter-ads',
-      'mopi': 'mopi-boards-(backlit)',
-      'backlit': 'mopi-boards-(backlit)',
+      mopi: 'mopi-boards-(backlit)',
+      backlit: 'mopi-boards-(backlit)',
       'pole sign': 'pole-signs',
       'pole signs': 'pole-signs',
-      'banner': 'banners',
-      'banners': 'banners',
-      'poster': 'posters',
-      'posters': 'posters',
-      'flyer': 'flyers',
-      'flyers': 'flyers',
-      'digital': 'digital-pole-signs',
+      banner: 'banners',
+      banners: 'banners',
+      poster: 'posters',
+      posters: 'posters',
+      flyer: 'flyers',
+      flyers: 'flyers',
+      digital: 'digital-pole-signs',
       'digital pole': 'digital-pole-signs',
     };
-    
+
     return searchToCategoryMap[searchLower] || undefined;
   };
 
-  // Get category slug from search query
   const categorySlug = getCategorySlugFromSearch(debouncedSearchQuery);
-  
-  // Map category slug back to tab information
-  const getTabFromCategorySlug = (slug: string): Tab | null => {
-    if (!slug || !boardFiltersData?.groups) return null;
-    
-    for (const group of boardFiltersData.groups) {
-      if (group.categories) {
-        for (const category of group.categories) {
-          // Use any type since the actual API response has slug property
-          if ((category as any).slug === slug) {
-            return {
-              id: `category-${category.id}`,
-              type: 'category',
-              label: category.name,
-            };
-          }
-        }
-      }
-    }
-    return null;
-  };
-  
-  // Debug logging
-  React.useEffect(() => {
-    console.log('FilterCategoryList - Search Debug:', {
-      searchQuery,
-      debouncedSearchQuery,
-      categorySlug,
-      filter: filter || 'see_all',
-      finalFilter: categorySlug ? 'category' : (filter || 'see_all'),
-      selectedTab,
-    });
-  }, [searchQuery, debouncedSearchQuery, categorySlug, filter, selectedTab]);
 
-  // Use filtered boards API for specific tab data
   const {
     data: filteredBoardsData,
     isLoading: isFilteredLoading,
     error: filteredError,
     refetch: refetchFilteredBoards,
   } = useFilteredBoards({
-    filter: categorySlug ? 'category' : (filter || 'see_all'),
     page: 1,
     limit: 10,
-    search: categorySlug ? undefined : (debouncedSearchQuery || undefined),
-    category_slug: categorySlug,
+    search: categorySlug ? undefined : debouncedSearchQuery || undefined,
+    slug: selectedTab?.slug, // ✅ dynamic based on selected tab
   });
 
-  // Dynamic tabs from API data (same as HomeScreen)
-  const tabs: Tab[] = [
-    { id: 'see-all', type: 'all', label: 'See All' },
-    { id: 'recommend', type: 'recommend', label: 'Recommend' },
-    { id: 'near', type: 'near', label: 'Near' },
-    ...(boardFiltersData?.groups?.flatMap((group: any) => [
-      { id: `group-${group.id}`, type: 'group', label: group.name },
-      ...(group.categories?.map((cat: any) => ({
-        id: `category-${cat.id}`,
-        type: 'category',
-        label: cat.name,
-      })) || []),
-    ]) || []),
-  ];
+  const tabs: Tab[] = React.useMemo(() => {
+    if (!boardFiltersData?.filters) return [];
+    return boardFiltersData.filters.map((f: any) => ({
+      label: f.name,
+      slug: f.slug,
+    }));
+  }, [boardFiltersData]);
 
-  // Initialize selectedTab when tabs are loaded
+  // **Selected tab initialization based on slug**
   React.useEffect(() => {
-    if (tabs.length > 0) {
-      // Find the tab that matches the initialTab or default to 'See All'
-      const defaultTab = tabs.find(tab => tab.label === initialTab) || tabs[0];
-      console.log('FilterCategoryList - Setting selectedTab:', defaultTab);
-      console.log('FilterCategoryList - Current selectedTab:', selectedTab);
-      
-      // Only set if we don't have a selectedTab or if the current one doesn't match
-      if (!selectedTab || selectedTab.id !== defaultTab.id) {
-        setSelectedTab(defaultTab);
-      }
-    }
-  }, [tabs, initialTab]);
+    if (tabs.length === 0 || selectedTab) return;
 
-  // Removed excessive logging to prevent console spam
+    // Try to match slug from route params
+    const matchingTab = slug ? tabs.find(tab => tab.slug === slug) : null;
+    setSelectedTab(matchingTab || tabs[0]);
+  }, [tabs, slug, selectedTab]);
 
-  // Fallback: ensure we always have a selectedTab
-  React.useEffect(() => {
-    if (tabs.length > 0 && !selectedTab) {
-      setSelectedTab(tabs[0]);
-    }
-  }, [tabs, selectedTab]);
+  // Rest of your code remains unchanged...
+  // (Search effects, getFilteredData, renderSearchAndTabs, handleTabPress, JSX)
 
-  // Auto-select tab when search matches a category
-  React.useEffect(() => {
-    if (categorySlug && debouncedSearchQuery && tabs.length > 0) {
-      const matchingTab = getTabFromCategorySlug(categorySlug);
-      if (matchingTab && (!selectedTab || selectedTab.id !== matchingTab.id)) {
-        setSelectedTab(matchingTab);
-      }
-    } else if (!debouncedSearchQuery && selectedTab && selectedTab.type === 'category' && tabs.length > 0) {
-      // Reset to default tab when search is cleared
-      const defaultTab = tabs.find(tab => tab.type === 'all') || tabs[0];
-      if (defaultTab) {
-        setSelectedTab(defaultTab);
-      }
-    }
-  }, [categorySlug, debouncedSearchQuery, selectedTab, tabs, boardFiltersData]);
-
-  // Removed excessive logging to prevent console spam
-
-  // Refetch data when filter or search changes
-  React.useEffect(() => {
-    if (filter && filter !== 'seeAll') {
-      refetchFilteredBoards();
-    }
-  }, [filter, refetchFilteredBoards]);
-
-  // Refetch data when search query changes
-  React.useEffect(() => {
-    if (debouncedSearchQuery !== undefined) {
-      refetchFilteredBoards();
-    }
-  }, [debouncedSearchQuery, refetchFilteredBoards]);
-
+  // ...continue with the rest of the original code
   // Get data based on selected tab - use fetchFilteredBoards API
   const getFilteredData = (): BoardItem[] => {
-    if (!selectedTab) {
-      return [];
+    if (!selectedTab) return [];
+
+    // Only use API data
+    if (
+      filteredBoardsData?.boards &&
+      Array.isArray(filteredBoardsData.boards)
+    ) {
+      return filteredBoardsData.boards.map(convertBoardToBoardItem);
     }
 
-    // Primary data source: fetchFilteredBoards API
-    if (filteredBoardsData?.boards && Array.isArray(filteredBoardsData.boards) && filteredBoardsData.boards.length > 0) {
-      const mappedData = filteredBoardsData.boards.map(convertBoardToBoardItem);
-      return mappedData;
-    }
-
-    // Fallback to boardFiltersData if fetchFilteredBoards is not working
-    if (boardFiltersData) {
-      let fallbackData: any[] = [];
-      
-      switch (selectedTab.label) {
-        case 'Recommend':
-          fallbackData = boardFiltersData.recommended || [];
-          break;
-        case 'Near':
-          fallbackData = boardFiltersData.nearest || [];
-          break;
-        case 'See All':
-        default:
-          fallbackData = boardFiltersData.seeAll || [];
-          break;
-      }
-      
-      const mappedFallbackData = fallbackData.map(convertBoardToBoardItem);
-      return mappedFallbackData;
-    }
-
-    // Show empty state if no API data yet
+    // If API hasn't returned anything yet or returned empty, show empty state
     return [];
   };
 
@@ -279,7 +172,8 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
       description: board.description || '',
       location: board.location || 'Unknown Location',
       distance: '1.6 km', // Default distance
-      size: board.width && board.height ? `${board.width}x${board.height}` : '12x8',
+      size:
+        board.width && board.height ? `${board.width}x${board.height}` : '12x8',
       price: parseFloat(board.price) || 0,
       currency: board.currency || 'USD',
       image_url: board.image_url || null,
@@ -287,51 +181,15 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
   };
 
   const data = getFilteredData();
-  const isLoading = isFilteredLoading || isFiltersLoading; // Include both loading states
-  const error = filteredError || filtersError; // Include both error states
-  
+  const isLoading = isFilteredLoading || isFiltersLoading;
+  const error = filteredError || filtersError;
+
   const handleDetailPress = (item: BoardItem) => {
     navigation.navigate('CampaignDetail', { item });
   };
 
-  // Handle tab press
   const handleTabPress = (tab: Tab) => {
-    console.log('FilterCategoryList - Tab pressed:', tab);
     setSelectedTab(tab);
-    
-    // Map tab types to correct API filter values
-    let filterValue = 'see_all'; // default
-    switch (tab.type) {
-      case 'recommend':
-        filterValue = 'recommended';
-        break;
-      case 'near':
-        filterValue = 'nearest';
-        break;
-      case 'group':
-        filterValue = 'group';
-        break;
-      case 'category':
-        filterValue = 'category';
-        break;
-      case 'all':
-      default:
-        filterValue = 'see_all';
-        break;
-    }
-    
-    console.log('FilterCategoryList - New filter parameter:', filterValue);
-    
-    // Navigate with new filter parameter
-    navigation.navigate('FilterCategoryList', {
-      selectedTab: tab.label,
-      categoryId: tab.id,
-      categoryName: tab.label,
-      filter: filterValue,
-      tabType: tab.type,
-    });
-    
-    // Refetch data with new filter
     refetchFilteredBoards();
   };
 
@@ -346,15 +204,14 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
           end={{ x: 0, y: 1 }}
           style={styles.header}
         >
-          <BachButton/>
+          <BachButton />
           {renderSearchAndTabs()}
         </LinearGradient>
-        <View style={{ padding: 20 }}>
-       
-        </View>
+        <View style={{ padding: 20 }}></View>
       </View>
     );
   }
+
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
@@ -364,7 +221,7 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
         end={{ x: 0, y: 1 }}
         style={styles.header}
       >
-        <BachButton/>
+        <BachButton />
         {renderSearchAndTabs()}
       </LinearGradient>
       {!user ? (
@@ -380,26 +237,12 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
           Error: {error.message || 'Something went wrong'}
         </Text>
       ) : data.length === 0 ? (
-        <Text style={{ padding: 20 }}>
-          {searchQuery && categorySlug ? 
-            `No ${selectedTab?.label || 'listings'} found` :
-            (searchQuery 
-              ? `No listings found for "${searchQuery}"` 
-              : `No listings found for ${categoryName || categoryId || 'this category'}`
-            )
-          }
-        </Text>
+        <Text style={{ padding: 20 }}>No listings found</Text>
       ) : (
         <BoardList
           data={data}
           onPressDetail={handleDetailPress}
-          heading={searchQuery && categorySlug ? 
-            `${selectedTab?.label || 'Search Results'}` : 
-            (searchQuery ? 
-              `Search Results for "${searchQuery}"` : 
-              (selectedTab?.label || 'Boards')
-            )
-          }
+          heading={selectedTab?.label || 'Boards'}
           subHeading={`${data.length} boards found`}
           navigation={navigation}
           numColumns={2}
@@ -407,7 +250,7 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
       )}
     </View>
   );
-  // Helper: search + BoardTabs
+
   function renderSearchAndTabs() {
     return (
       <>
@@ -424,7 +267,7 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.clearBtn}
               onPress={() => setSearchQuery('')}
             >
@@ -449,6 +292,7 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({ route, navigati
     );
   }
 };
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: {
@@ -473,8 +317,8 @@ const styles = StyleSheet.create({
   },
   searchIcon: { width: 20, height: 20, marginRight: 8, tintColor: '#C539A5' },
   searchInput: { flex: 1, fontSize: 16 },
-  clearBtn: { 
-    marginLeft: 8, 
+  clearBtn: {
+    marginLeft: 8,
     marginRight: 4,
     padding: 4,
     borderRadius: 12,
@@ -484,8 +328,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  clearBtnText: { 
-    fontSize: 14, 
+  clearBtnText: {
+    fontSize: 14,
     color: '#666',
     fontWeight: 'bold',
   },
@@ -493,4 +337,5 @@ const styles = StyleSheet.create({
   filterIcon: { width: 20, height: 20 },
   boardSection: { marginTop: height * 0.02, marginBottom: 10 },
 });
+
 export default FilterCategoryList;
