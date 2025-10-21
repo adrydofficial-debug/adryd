@@ -93,7 +93,7 @@ const SingleBoardDetail: React.FC = () => {
         subLocation: item.distance || 'Near 16 Km',
         size: item.size || '2ft x 4ft',
         about: item.description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-        rating: item.rating?.toString() || '4.5', // Use actual rating from item data
+        rating: (item.rating ?? 0).toString(),
         imagesList: item.image_url ? [{ uri: `https://adryd-backend-production.up.railway.app${item.image_url}` }] : [placeholder],
       };
     }
@@ -116,13 +116,11 @@ const SingleBoardDetail: React.FC = () => {
   
   // Update rating when item changes (only from API data)
   useEffect(() => {
-    if (item?.rating) {
-      const newRating = item.rating.toString();
-      setBillboard(prev => ({
-        ...prev,
-        rating: newRating,
-      }));
-    }
+    const newRating = (item?.rating ?? 0).toString();
+    setBillboard(prev => ({
+      ...prev,
+      rating: newRating,
+    }));
   }, [item?.rating]);
 
   // Normalize to exactly 5 images (use first five, or pad with placeholders)
