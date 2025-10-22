@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     bottom: 50,
     left: 0,
     right: 0,
-    height: 90,
+    height: 60,
     zIndex: 1000,
   },
   curvedBar: {

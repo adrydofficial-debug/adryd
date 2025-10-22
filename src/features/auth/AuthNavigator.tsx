@@ -5,7 +5,7 @@ import ForgotPasswordScreen from './screens/ForgotPassword';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import ResetPassScreen from './screens/ResetPass';
-import UpdateProfile from '../Profile/screens/UpdateProfile';
+import UpdateProfile from '../profile/screens/UpdateProfile';
 // 🔹 Define navigation param types
 export type AuthStackParamList = {
   LoginScreen: undefined;

@@ -214,7 +214,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                     </Text>
                   </View>
                   <Ionicons name="chevron-down" size={width * 0.04} color="#C538A5" />
-                </TouchableOpacity>
+                    </TouchableOpacity>
                 
                 {selectedDays.length === 1 && (
                   <View style={styles.selectionHint}>

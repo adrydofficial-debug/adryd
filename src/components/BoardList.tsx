@@ -16,8 +16,8 @@ const BASE_WIDTH = 375;
 const BASE_HEIGHT = 912;
 
 // 🔹 Increased card size by ~20%
-const CARD_WIDTH = (200 / BASE_WIDTH) * width;
-const CARD_HEIGHT = (210 / BASE_HEIGHT) * height;
+const CARD_WIDTH = (175 / BASE_WIDTH) * width;
+const CARD_HEIGHT = (230 / BASE_HEIGHT) * height;
 
 // 🔹 Data item type
 export interface BoardItem {
@@ -48,7 +48,7 @@ interface BoardListProps {
 const boardData: BoardItem[] = [
   {
     id: '1',
-    title: 'BILL BOARD',
+    title: '',
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
@@ -56,7 +56,7 @@ const boardData: BoardItem[] = [
   },
   {
     id: '2',
-    title: 'BILL BOARD',
+    title: '',
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
@@ -64,7 +64,7 @@ const boardData: BoardItem[] = [
   },
   {
     id: '3',
-    title: 'BILL BOARD',
+    title: '',
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
@@ -163,7 +163,7 @@ const BoardList: React.FC<BoardListProps> = ({
 
   return (
     <View style={styles.container}>
-      {subHeading && <Text style={styles.subHeading}>{subHeading}</Text>}
+      {/* {subHeading && <Text style={styles.subHeading}>{subHeading}</Text>} */}
       <View style={styles.header}>
         <Text style={styles.heading}>{heading}</Text>
         <TouchableOpacity onPress={handleSeeAllPress}>
@@ -200,8 +200,9 @@ const BoardList: React.FC<BoardListProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    paddingVertical: 5,
+    // paddingVertical: 5,
     borderRadius: 20,
+    marginTop: -5, // Pull the BoardList up closer to BoardTabs
   },
   sizeStyle: {
     position: 'absolute',
@@ -215,14 +216,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 15,
-    marginBottom: 10,
+    marginBottom: 2, // Further reduced from 5 to 2
+    marginTop: -3, // Pull header up closer to BoardTabs
   },
   subHeading: {
     fontSize: width * 0.055,
     fontWeight: 'bold',
     color: '#222',
     marginLeft: 15,
-    marginBottom: 4,
+    marginBottom: 2, // Reduced from 4 to 2
   },
   heading: {
     fontSize: 17,
@@ -236,15 +238,15 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    marginRight: 15,
+    marginRight: 5,
     backgroundColor: 'white',
     borderRadius: 20,
     paddingBottom: 5,
-    marginBottom: 10,
+    // marginBottom: 10,
   },
   cardGrid: {
     marginRight: 5, // Reduced margin for grid layout
-    marginBottom: 8, // Slightly reduced bottom margin
+    marginBottom: 2, // Slightly reduced bottom margin
   },
   image: {
     width: CARD_WIDTH,

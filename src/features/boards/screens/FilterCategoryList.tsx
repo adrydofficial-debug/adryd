@@ -64,7 +64,6 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
     );
   }, []);
-
   // Debounce search query
   useEffect(() => {
     console.log('🕐 Debounce effect triggered with searchQuery:', searchQuery);
@@ -97,17 +96,6 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
     page: 1,
     limit: 10,
   });
-
-  // Debug logging
-  console.log('🔍 Search Debug:');
-  console.log('- searchQuery:', searchQuery);
-  console.log('- debouncedSearchQuery:', debouncedSearchQuery);
-  console.log('- selectedTab?.slug:', selectedTab?.slug);
-  console.log('- searchBoardsData:', searchBoardsData);
-  console.log('- searchError:', searchError);
-  console.log('- isSearchLoading:', isSearchLoading);
-
-  // Fallback to filtered boards when no search query
   const {
     data: filteredBoardsData,
     isLoading: isFilteredLoading,
@@ -118,7 +106,6 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
     limit: 10,
     slug: selectedTab?.slug,
   });
-
   const tabs: Tab[] = React.useMemo(() => {
     if (!boardFiltersData?.filters) return [];
     return boardFiltersData.filters.map((f: any) => ({
@@ -126,33 +113,19 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
       slug: f.slug,
     }));
   }, [boardFiltersData]);
-
-  // **Selected tab initialization based on slug**
   React.useEffect(() => {
     if (tabs.length === 0 || selectedTab) return;
-
-    // Try to match slug from route params
     const matchingTab = slug ? tabs.find(tab => tab.slug === slug) : null;
     setSelectedTab(matchingTab || tabs[0]);
   }, [tabs, slug, selectedTab]);
-
-  // **Search effect - trigger search when query changes**
   React.useEffect(() => {
     if (debouncedSearchQuery && selectedTab) {
       console.log('Search query changed, refetching search results:', debouncedSearchQuery);
       refetchSearchBoards();
     }
   }, [debouncedSearchQuery, selectedTab, refetchSearchBoards]);
-
-  // Rest of your code remains unchanged...
-  // (Search effects, getFilteredData, renderSearchAndTabs, handleTabPress, JSX)
-
-  // ...continue with the rest of the original code
-  // Get data based on search query or selected tab
   const getFilteredData = (): BoardItem[] => {
     if (!selectedTab) return [];
-
-    // Use search results if there's a search query
     if (debouncedSearchQuery) {
       if (searchBoardsData?.boards && Array.isArray(searchBoardsData.boards) && searchBoardsData.boards.length > 0) {
         console.log('✅ Using search results for query:', debouncedSearchQuery, 'Count:', searchBoardsData.boards.length);
@@ -166,18 +139,12 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
         }
       }
     }
-
-    // Use filtered boards data when no search query
     if (filteredBoardsData?.boards && Array.isArray(filteredBoardsData.boards)) {
       console.log('📋 Using filtered boards data (no search)');
       return filteredBoardsData.boards.map(convertBoardToBoardItem);
     }
-
-    console.log('❌ No data available');
     return [];
   };
-
-  // Convert Board to BoardItem format (same as HomeScreen)
   const convertBoardToBoardItem = (board: any) => {
     return {
       id: board.id?.toString() || 'unknown',
@@ -193,22 +160,17 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
       rating: board.rating ?? 0,
     };
   };
-
   const data = getFilteredData();
   const isLoading = isSearchLoading || isFilteredLoading || isFiltersLoading;
   const error = searchError || filteredError || filtersError;
-
   const handleDetailPress = (item: BoardItem) => {
     navigation.navigate('SingleBoardDetail', { item });
   };
-
   const handleTabPress = (tab: Tab) => {
     setSelectedTab(tab);
     refetchFilteredBoards();
     refetchSearchBoards();
   };
-
-  // "Locating..." placeholder for Near
   if (selectedTab?.label === 'Near' && !coords && user) {
     return (
       <View style={styles.container}>
@@ -226,7 +188,6 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
       </View>
     );
   }
-
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
@@ -236,8 +197,11 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
         end={{ x: 0, y: 1 }}
         style={styles.header}
       >
-        <BachButton />
+        <View style={styles.mainView}>
+           <BachButton />
         {renderSearchAndTabs()}
+        </View>
+       
       </LinearGradient>
       {!user ? (
         <Text style={{ padding: 20 }}>Please login to view listings</Text>
@@ -328,9 +292,12 @@ const styles = StyleSheet.create({
   header: {
     width,
     height: height * 0.28,
-    paddingTop: height * 0.04,
-    paddingHorizontal: width * 0.05,
+    // paddingTop: height * 0.04,
+    // paddingHorizontal: width * 0.05,
     marginBottom: 35,
+  },
+  mainView:{
+    paddingHorizontal: width * 0.04,
   },
   searchRow: {
     flexDirection: 'row',
@@ -366,7 +333,11 @@ const styles = StyleSheet.create({
   },
   filterBtn: { marginLeft: 10 },
   filterIcon: { width: 20, height: 20 },
-  boardSection: { marginTop: height * 0.02, marginBottom: 10 },
+  boardSection: { 
+    marginTop: height * 0.02, 
+    marginBottom: 10,
+    marginLeft: -10, // Adjusted to account for 15px padding
+  },
 });
 
 export default FilterCategoryList;

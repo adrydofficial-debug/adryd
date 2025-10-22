@@ -139,7 +139,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       {
         onSuccess: () => {
           setShowOtpModal(false);
-          navigation.navigate('Home'); // redirect after success
+          navigation.navigate('MainScreen'); // redirect to MainScreen with bottom tabs
         },
         onError: err => {
           console.warn('OTP verify error:', err);

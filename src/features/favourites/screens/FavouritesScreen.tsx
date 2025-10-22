@@ -383,14 +383,6 @@ const styles = StyleSheet.create({
   dropdownContainer: {
     marginBottom: 0, // Remove default margin since it's inside input container
   },
-  loadingContainer: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 12,
-    backgroundColor: '#f9f9f9',
-  },
   testButton: {
     backgroundColor: '#ff6b6b',
     padding: 10,

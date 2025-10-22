@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { useProfile } from '../features/Profile/hooks/useProfile';
+import { useProfile } from '../features/profile/hooks/useProfile';
 import SecurityIcon from '../assets/images/security.svg';
 import CompaniesIcon from '../assets/images/Companys.svg';
 import FavoriteIcon from '../assets/images/favorite.svg';
@@ -215,21 +215,22 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
           <View style={styles.profileCard}>
             <View style={styles.profileImageContainer}>
               <View style={styles.profileImage}>
-                {user?.user_metadata?.avatar_url ? (
+                {(profile?.avatar_url || user?.user_metadata?.avatar_url) ? (
                   <Image 
-                    source={{ uri: user.user_metadata.avatar_url }} 
+                    source={{ uri: profile?.avatar_url || user?.user_metadata?.avatar_url }} 
                     style={styles.profileImageAvatar}
                   />
                 ) : (
                   <Text style={styles.profileImageText}>
-                    {(user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email?.split('@')[0] || 'U')?.charAt(0).toUpperCase()}
+                    {(profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email?.split('@')[0] || 'U')?.charAt(0).toUpperCase()}
                   </Text>
                 )}
               </View>
             </View>
             <View style={styles.profileCenter}>
               <Text style={styles.profileName}>
-                {user?.user_metadata?.full_name || 
+                {profile?.full_name ||
+                 user?.user_metadata?.full_name || 
                  user?.user_metadata?.name || 
                  user?.user_metadata?.username || 
                  user?.email?.split('@')[0] || 

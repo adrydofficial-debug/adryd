@@ -3,19 +3,21 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import CreateCompanyScreen from '../../features/companies/screens/CreateCompanyScreen';
 import HomeScreen from '../../features/boards/screens/HomeScreen';
-import UpdateProfile from '../../features/Profile/screens/UpdateProfile';
-import ChangePassword from '../../features/Profile/screens/ChangePassword';
-import PreviousCompanyScreen from '../../features/Profile/screens/PreviousCompany';
-import CurrentLocationMinimalMap from '../../features/Location/CurrentLocationMinimalMap'
+import UpdateProfile from '../../features/profile/screens/UpdateProfile';
+import ChangePassword from '../../features/profile/screens/ChangePassword';
+import PreviousCompanyScreen from '../../features/profile/screens/PreviousCompany';
+import CurrentLocationMinimalMap from '../../features/location/CurrentLocationMinimalMap'
 import AdvertismentCreateScreen from '../../features/advertisments/screens/AdvertismentCreateScreen';
 import CampaignScreen from '../../features/advertisments/screens/CompaignScreen';
 import CampaignUploadFiles from '../../features/advertisments/screens/AdvertismentUploadsScreen';
 import SingleBoardDetail from '../../features/boards/screens/SingleBoardDetail';
 import FilterCategoryList from '../../features/boards/screens/FilterCategoryList';
 import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen';
+import MainScreen from './MainScreen';
 
 // 🔹 Define navigation param types
 export type AppStackParamList = {
+  MainScreen: undefined;
   CampaignScreen: undefined;
   AdvertismentCreateScreen: undefined;
   CampaignUploadFiles: undefined;
@@ -25,30 +27,31 @@ export type AppStackParamList = {
   CompaniesScreen: undefined;
   CreateCompanyScreen: undefined;
   UpdateProfile: undefined;
-    PreviousCompanyScreen:undefined;
-    ChangePassword: undefined;
-    FavouritesScreen: undefined;
-    FilterCategoryList:undefined;
-    SingleBoardDetail: { item: any };
+  PreviousCompanyScreen: undefined;
+  ChangePassword: undefined;
+  FavouritesScreen: undefined;
+  FilterCategoryList: { slug?: string };
+  SingleBoardDetail: { item: any };
+
 };
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const AppNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-  {/* <Stack.Screen name="AdvertismentCreateScreen" component={AdvertismentCreateScreen} /> */}
- {/* <Stack.Screen name="CampaignUploadFiles" component={CampaignUploadFiles} />  */}
-{/* <Stack.Screen name="CreateCompanyScreen" component={CreateCompanyScreen} /> */}
-  <Stack.Screen name="HomeScreen" component={HomeScreen} /> 
- <Stack.Screen name='FavouritesScreen' component={FavouritesScreen}/>
- <Stack.Screen name="SingleBoardDetail" component={SingleBoardDetail} /> 
- {/* <Stack.Screen name="CampaignScreen" component={CampaignScreen} /> */}
- <Stack.Screen name="FilterCategoryList" component={FilterCategoryList} />
- <Stack.Screen name="ChangePassword" component={ChangePassword} />
- <Stack.Screen name="PreviousCompanyScreen" component={PreviousCompanyScreen}/>
- <Stack.Screen name="CurrentLocation" component={CurrentLocationMinimalMap} />
- <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
-  <Stack.Screen name="CurrentLocationMinimalMap" component={CurrentLocationMinimalMap} />
+    {/* <Stack.Screen name="MainScreen" component={MainScreen} /> */}
+    {/* <Stack.Screen name="AdvertismentCreateScreen" component={AdvertismentCreateScreen} /> */}
+    {/* <Stack.Screen name="CampaignUploadFiles" component={CampaignUploadFiles} /> */}
+    {/* <Stack.Screen name="CreateCompanyScreen" component={CreateCompanyScreen} /> */}
+    <Stack.Screen name="HomeScreen" component={HomeScreen} /> 
+    <Stack.Screen name='FavouritesScreen' component={FavouritesScreen}/>
+    <Stack.Screen name="SingleBoardDetail" component={SingleBoardDetail} /> 
+    <Stack.Screen name="CampaignScreen" component={CampaignScreen} />
+    <Stack.Screen name="FilterCategoryList" component={FilterCategoryList} />
+    <Stack.Screen name="ChangePassword" component={ChangePassword} />
+    <Stack.Screen name="PreviousCompanyScreen" component={PreviousCompanyScreen}/>
+    <Stack.Screen name="CurrentLocation" component={CurrentLocationMinimalMap} />
+    <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
+    <Stack.Screen name="CurrentLocationMinimalMap" component={CurrentLocationMinimalMap} />
   </Stack.Navigator>
-
 );
 
 export default AppNavigator;

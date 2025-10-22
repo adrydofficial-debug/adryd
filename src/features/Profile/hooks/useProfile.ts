@@ -149,6 +149,9 @@ export const useUpdateProfile = () => {
       } else {
         console.warn('⚠️ No user in authStore to update');
       }
+      
+      // Force a refetch of the profile to ensure consistency
+      qc.invalidateQueries({ queryKey: ['profile', user?.id] });
     },
   });
 };
