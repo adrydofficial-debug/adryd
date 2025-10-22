@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,13 @@ import {
   Alert,
   Platform,
   PermissionsAndroid,
+  ActivityIndicator,
 } from 'react-native';
 import { launchImageLibrary, ImageLibraryOptions, Asset } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { uploadProfileImage, isLocalFileUri } from '../services/imageUpload';
+import { uploadProfileImageFallback, isDataUrl } from '../services/imageUploadFallback';
+import { useAuthStore } from '../store/authStore';
 
 const { width } = Dimensions.get('window');
 
@@ -19,6 +23,7 @@ interface ProfileUserProps {
   username?: string;
   avatarUri?: string;
   onImageSelected?: (imageUri: string) => void;
+  onImageUploaded?: (uploadedImage: { url: string; path: string; publicUrl: string }) => void;
   containerStyle?: any;
 }
 
@@ -26,9 +31,17 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
   username = '',
   avatarUri,
   onImageSelected,
+  onImageUploaded,
   containerStyle,
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(avatarUri || null);
+  const [isUploading, setIsUploading] = useState(false);
+  const { user } = useAuthStore();
+
+  // Update selectedImage when avatarUri changes
+  useEffect(() => {
+    setSelectedImage(avatarUri || null);
+  }, [avatarUri]);
 
   const getInitials = (username: string): string => {
     const firstInitial = username.charAt(0).toUpperCase();
@@ -83,7 +96,7 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
       maxHeight: 1000,
     };
 
-    launchImageLibrary(options, (response) => {
+    launchImageLibrary(options, async (response) => {
       if (response.didCancel || response.errorMessage) {
         return;
       }
@@ -91,9 +104,39 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
       if (response.assets && response.assets.length > 0) {
         const asset: Asset = response.assets[0];
         if (asset.uri) {
+          // Update local state immediately
           setSelectedImage(asset.uri);
-          // Defer persistence to the Update Profile screen save button
           onImageSelected?.(asset.uri);
+
+          // Upload to Supabase Storage if we have a user
+          if (user?.id && isLocalFileUri(asset.uri)) {
+            setIsUploading(true);
+            try {
+              console.log('📤 Uploading profile image...');
+              
+              // Try Supabase Storage first, fallback to user metadata
+              let uploadedImage;
+              try {
+                uploadedImage = await uploadProfileImage(asset.uri, user.id);
+                console.log('✅ Profile image uploaded to Supabase Storage:', uploadedImage.publicUrl);
+              } catch (storageError) {
+                console.warn('⚠️ Supabase Storage failed, using fallback method:', storageError);
+                uploadedImage = await uploadProfileImageFallback(asset.uri, user.id);
+                console.log('✅ Profile image stored in user metadata:', uploadedImage.publicUrl);
+              }
+              
+              // Update with the public URL
+              setSelectedImage(uploadedImage.publicUrl);
+              onImageUploaded?.(uploadedImage);
+            } catch (error) {
+              console.error('❌ Upload failed:', error);
+              Alert.alert('Upload Failed', 'Failed to upload image. Please try again.');
+              // Revert to local image
+              setSelectedImage(asset.uri);
+            } finally {
+              setIsUploading(false);
+            }
+          }
         }
       }
     });
@@ -111,7 +154,9 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
           onPress={pickImage}
         >
           <View style={styles.avatarInner}>
-            {selectedImage ? (
+            {isUploading ? (
+              <ActivityIndicator size="large" color="#C539A5" />
+            ) : selectedImage ? (
               <Image source={{ uri: selectedImage }} style={styles.avatarImage} />
             ) : (
               <Text style={styles.avatarText}>{initials}</Text>

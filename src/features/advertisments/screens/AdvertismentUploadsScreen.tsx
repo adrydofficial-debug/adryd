@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeStep: { backgroundColor: '#C12C9F' },
-  completedStep: { backgroundColor: '#4CAF50' },
+  completedStep: { backgroundColor: '#C12C9F'},
   progressStepText: { fontSize: width * 0.04, fontWeight: 'bold', color: '#999' },
   activeStepText: { color: '#fff' },
   completedStepText: { color: '#fff' },
