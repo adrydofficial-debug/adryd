@@ -14,7 +14,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AddIcon from '../../../assets/images/add.svg';
-import AdrydLogo from '../../../assets/images/AdrydLogo.png';
+// import AdrydLogo from '../../../assets/images/AdrydLogo.png';
 import AxoVoltLogo from '../../../assets/images/AxoVolt.png';
 import { useCompanies } from '../../companies/hooks/useCompanies';
 import { Company as ApiCompany } from '../../companies/domain/entities';
@@ -67,7 +67,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
     return apiCompanies.map((apiCompany: ApiCompany) => ({
       id: apiCompany.id.toString(),
       name: apiCompany.company_name,
-      logo: apiCompany.logo_url ? { uri: apiCompany.logo_url } : AdrydLogo, // Fallback to default logo
+      logo: apiCompany.logo_url ? { uri: apiCompany.logo_url }:'', // Fallback to default logo
       color: '#C539A5', // Default color, could be dynamic based on category
       business: apiCompany.category?.name || 'Business',
       ntn: apiCompany.company_ntn || 'N/A',

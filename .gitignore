@@ -82,3 +82,5 @@ src/config/secrets.ts
 .env
 .env.local
 .env.production
+
+android/app/google-services.json
