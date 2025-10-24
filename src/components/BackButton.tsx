@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     borderRadius: width * 0.05,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: height * 0.05, // 5% of screen height
+    marginTop: height * 0.04, // 5% of screen height
   },
 });
 

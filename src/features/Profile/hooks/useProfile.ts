@@ -61,10 +61,10 @@ export const useProfile = (enabled: boolean = true) => {
         updated_at: currentUser.updated_at || currentUser.created_at,
       };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    staleTime: 0, // Always consider data stale to ensure fresh data
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window comes into focus
+    refetchOnReconnect: true, // Refetch when reconnecting
   });
 };
 
@@ -134,11 +134,7 @@ export const useUpdateProfile = () => {
       };
     },
     onSuccess: data => {
-      // Update the profile in cache
-      qc.setQueryData(['profile', user?.id], data);
-      qc.invalidateQueries({ queryKey: ['profile'] });
-
-      // Update the authStore with the new user data
+      // Update the authStore with the new user data first
       if (user) {
         const updatedUser = {
           ...user,
@@ -165,6 +161,13 @@ export const useUpdateProfile = () => {
       } else {
         console.warn('⚠️ No user in authStore to update');
       }
+
+      // Invalidate and refetch all profile queries
+      qc.invalidateQueries({ queryKey: ['profile'] });
+      qc.setQueryData(['profile', user?.id], data);
+
+      // Force refetch by removing from cache and refetching
+      qc.removeQueries({ queryKey: ['profile', user?.id] });
     },
   });
 };

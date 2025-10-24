@@ -21,6 +21,7 @@ import DrawerComponent from '../../../components/DrawerComponent';
 import { useAuthStore } from '../../../store/authStore';
 import BoardTabs, { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
+import { useProfile } from '../../profile/hooks/useProfile';
 // import { useFocusEffect } from '@react-navigation/native';
 
 type Props = {
@@ -35,8 +36,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     slug: 'see-all',
   });
 
-  // Get user data from authStore
+  // Get user data from authStore and profile data
   const { user } = useAuthStore();
+  const { data: profile } = useProfile();
 
   // Banner state
   const [currentBannerIndex, setCurrentBannerIndex] = useState<number>(0);
@@ -148,16 +150,18 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <Image
               source={{
                 uri:
+                  profile?.avatar_url ||
                   user?.user_metadata?.avatar_url ||
                   'https://randomuser.me/api/portraits/men/1.jpg',
               }}
               style={styles.avatar}
             />
           </TouchableOpacity>
-          <View style={{ marginRight: 25 }}>
+          <View style={{ marginRight: 25,marginLeft:6 }}>
             <Text style={styles.greeting}>Hi</Text>
             <Text style={styles.name}>
-              {user?.user_metadata?.full_name ||
+              {profile?.full_name ||
+                user?.user_metadata?.full_name ||
                 user?.user_metadata?.name ||
                 user?.user_metadata?.username ||
                 user?.email?.split('@')[0] ||
@@ -218,7 +222,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <ScrollView
-        style={{ flex: 1, backgroundColor: '#fff', marginBottom: 10 }}
+        style={{ flex: 1, backgroundColor: '#fff', marginBottom: 10, marginTop: -height * 0.03 }}
       >
         {isLoading ? (
           [...Array(3)].map((_, idx) => (
@@ -351,7 +355,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 30,
+    marginTop: 0,
+    
   },
   avatar: {
     width: width * 0.13,
@@ -359,9 +364,10 @@ const styles = StyleSheet.create({
     borderRadius: width * 0.065,
     borderWidth: 1,
     borderColor: '#fff',
+   
   },
   greeting: { fontSize: 12, color: '#fff', fontWeight: '400' },
-  name: { fontSize: 18, color: '#fff', fontWeight: 'bold', marginTop: -5 },
+  name: { fontSize: 15, color: '#fff', fontWeight: 'bold', marginTop: -5 },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -460,13 +466,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  boardSection: { marginTop: height * 0.03, marginHorizontal: width * 0.01 },
+  boardSection: { 
+    marginTop: height * 0.001, 
+    marginHorizontal: width * 0.01,
+    marginLeft: -10, // Adjusted to account for 15px padding
+  },
   boardTitle: {
     fontSize: width * 0.055,
     fontWeight: 'bold',
     color: '#222',
-    marginBottom: height * 0.015,
+    marginBottom: 10, // Reduced from 0.015 to 0.005
     paddingHorizontal: 20,
+    marginTop: -10,
+
   },
   errorContainer: {
     flex: 1,

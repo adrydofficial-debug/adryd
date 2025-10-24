@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -6,17 +6,71 @@ import {
   Dimensions,
   Text,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Svg, { Path } from 'react-native-svg';
+import HomeScreen from '../../features/boards/screens/HomeScreen';
+import CompaignScreen from '../../features/advertisments/screens/CompaignScreen';
+import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen';
+import UpdateProfile from '../../features/profile/screens/UpdateProfile';
 
 const { width, height } = Dimensions.get('window');
 
+type TabName = 'Home' | 'Boards' | 'Add' | 'Chat' | 'Profile';
+
 interface BottomTabProps {
-  activeTab: string;
-  onTabPress: (tabName: string) => void;
+  // Remove activeTab and onTabPress since we'll manage state internally
 }
 
-const BottomTab: React.FC<BottomTabProps> = ({ activeTab, onTabPress }) => {
+const BottomTab: React.FC<BottomTabProps> = () => {
+  const navigation = useNavigation();
+  const [activeTab, setActiveTab] = useState<TabName>('Home');
+
+  const handleTabPress = (tabName: string) => {
+    setActiveTab(tabName as TabName);
+    
+    // Only navigate to external screens for specific actions, not for tab switching
+    switch (tabName) {
+      case 'Home':
+        // Home is already the default, no action needed
+        break;
+      case 'Boards':
+        // Just switch to boards tab, don't navigate
+        break;
+      case 'Add':
+        // Navigate to advertisement creation (this should navigate)
+        navigation.navigate('AdvertismentCreateScreen' as never);
+        // Reset to Home tab after navigation
+        setActiveTab('Home');
+        break;
+      case 'Chat':
+        // Just switch to chat tab, don't navigate
+        break;
+      case 'Profile':
+        // Just switch to profile tab, don't navigate
+        break;
+      default:
+        break;
+    }
+  };
+
+  const renderActiveScreen = () => {
+    switch (activeTab) {
+      case 'Home':
+        return <HomeScreen navigation={navigation} />;
+      case 'Boards':
+        return <HomeScreen navigation={navigation} />; // You can create a dedicated BoardsScreen later
+      case 'Add':
+        return <HomeScreen navigation={navigation} />; // This will navigate to AdvertismentCreateScreen
+      case 'Chat':
+        return <FavouritesScreen navigation={navigation} />; // Using FavouritesScreen as placeholder
+      case 'Profile':
+        return <CompaignScreen navigation={navigation} />;
+      default:
+        return <HomeScreen navigation={navigation} />;
+    }
+  };
+
   const tabs = [
     { name: 'Home', icon: 'home-outline', activeIcon: 'home' },
     { name: 'Boards', icon: 'list-outline', activeIcon: 'list' },
@@ -34,7 +88,7 @@ const BottomTab: React.FC<BottomTabProps> = ({ activeTab, onTabPress }) => {
         <TouchableOpacity
           key={tab.name}
           style={styles.fabButton}
-          onPress={() => onTabPress(tab.name)}
+          onPress={() => handleTabPress(tab.name)}
           activeOpacity={0.8}
         >
           <Ionicons
@@ -50,7 +104,7 @@ const BottomTab: React.FC<BottomTabProps> = ({ activeTab, onTabPress }) => {
       <TouchableOpacity
         key={tab.name}
         style={styles.tabButton}
-        onPress={() => onTabPress(tab.name)}
+        onPress={() => handleTabPress(tab.name)}
         activeOpacity={0.7}
       >
         <Ionicons
@@ -90,44 +144,60 @@ const BottomTab: React.FC<BottomTabProps> = ({ activeTab, onTabPress }) => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Curved Navigation Bar Background */}
-      {renderCurvedBar()}
-      
-      {/* Navigation Content */}
-      <View style={styles.navigationContent}>
-        {/* Left side tabs */}
-        <View style={styles.leftTabs}>
-          {tabs.slice(0, 2).map((tab, index) => renderTab(tab, index))}
-        </View>
-
-        {/* Center FAB space */}
-        <View style={styles.centerSpace} />
-
-        {/* Right side tabs */}
-        <View style={styles.rightTabs}>
-          {tabs.slice(3).map((tab, index) => renderTab(tab, index + 3))}
-        </View>
+    <View style={styles.mainContainer}>
+      {/* Main Content */}
+      <View style={styles.content}>
+        {renderActiveScreen()}
       </View>
+      
+      {/* Bottom Tab Navigation */}
+      <View style={styles.bottomTabContainer}>
+        {/* Curved Navigation Bar Background */}
+        {renderCurvedBar()}
+        
+        {/* Navigation Content */}
+        <View style={styles.navigationContent}>
+          {/* Left side tabs */}
+          <View style={styles.leftTabs}>
+            {tabs.slice(0, 2).map((tab, index) => renderTab(tab, index))}
+          </View>
 
-      {/* Floating Action Button */}
-      {renderTab(tabs[2], 2)}
+          {/* Center FAB space */}
+          <View style={styles.centerSpace} />
+
+          {/* Right side tabs */}
+          <View style={styles.rightTabs}>
+            {tabs.slice(3).map((tab, index) => renderTab(tab, index + 3))}
+          </View>
+        </View>
+
+        {/* Floating Action Button */}
+        {renderTab(tabs[2], 2)}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  content: {
+    flex: 1,
+    paddingBottom: 0, // Space for bottom tab
+  },
+  bottomTabContainer: {
     position: 'absolute',
-    bottom: 50,
+    bottom: 0,
     left: 0,
     right: 0,
-    height: 90,
+    height: 60,
     zIndex: 1000,
   },
   curvedBar: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 10,
     left: 0,
     right: 0,
   },

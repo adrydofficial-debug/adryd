@@ -1,5 +1,5 @@
-import { useNavigation } from '@react-navigation/native';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   KeyboardAvoidingView,
@@ -22,9 +22,10 @@ const hp = (p: number) => (height * p) / 100;
 
 const UpdateProfile: React.FC = () => {
   const navigation = useNavigation();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Profile data from Supabase
-  const { data: profile, isLoading: profileLoading } = useProfile();
+  const { data: profile, isLoading: profileLoading, refetch } = useProfile();
   const updateProfile = useUpdateProfile();
   const uploadAvatar = useUploadProfileAvatar();
 
@@ -36,12 +37,17 @@ const UpdateProfile: React.FC = () => {
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || '');
-
-      if (profile.avatar_url) {
-        setAvatarUri(profile.avatar_url);
-      }
+      setAvatarUri(profile.avatar_url || undefined);
     }
   }, [profile]);
+
+  // Refetch profile data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setRefreshKey(prev => prev + 1);
+      refetch();
+    }, [refetch]),
+  );
 
   const initials = useMemo(() => {
     const u = fullName?.[0] ?? '';
@@ -54,6 +60,10 @@ const UpdateProfile: React.FC = () => {
         full_name: fullName.trim(),
         avatar_url: avatarUri, // include current selected avatar in save
       });
+
+      // Force refresh by updating key and refetching
+      setRefreshKey(prev => prev + 1);
+      await refetch();
 
       navigation.goBack();
     } catch (error: any) {
@@ -85,25 +95,33 @@ const UpdateProfile: React.FC = () => {
 
         {/* Avatar / Header card */}
         <ProfileUser
+          key={refreshKey}
           username={fullName}
           avatarUri={avatarUri}
-          onImageSelected={async imageFile => {
-            try {
-              // imageFile → { uri, name, type }
-              const newAvatarUrl = await uploadAvatar.mutateAsync({
-                uri: imageFile.uri,
-                name: imageFile.name as string,
-                type: imageFile.type as string,
-              });
-              setAvatarUri(newAvatarUrl);
+          onImageSelected={async imageUri => {
+            // Update local state immediately for better UX
+            setAvatarUri(imageUri);
+          }}
+          onImageUploaded={async uploadedImage => {
+            // Update with the uploaded image URL
+            setAvatarUri(uploadedImage.publicUrl);
 
-              // Update metadata after upload succeeds
+            // Save directly to Supabase, preserving existing profile data
+            try {
               await updateProfile.mutateAsync({
                 full_name: fullName.trim(),
-                avatar_url: newAvatarUrl,
+                first_name: profile?.first_name,
+                last_name: profile?.last_name,
+                avatar_url: uploadedImage.publicUrl,
               });
+
+              // Force refresh by updating key and refetching
+              setRefreshKey(prev => prev + 1);
+              await refetch();
             } catch (error: any) {
-              console.error('❌ Avatar update failed:', error);
+              console.error('Avatar update error:', error);
+              // Revert local state on error
+              setAvatarUri(profile?.avatar_url || undefined);
             }
           }}
           containerStyle={styles.headerCard}

@@ -49,7 +49,7 @@ const BoardTabs: React.FC<BoardTabsProps> = ({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={[
           styles.boardTabs,
-          { paddingLeft: scrollOffset > 0 ? 0 : 20 },
+          { paddingLeft: scrollOffset > 0 ? 0 : 30 }, // Added 15px left padding for some space from start
         ]}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -74,7 +74,10 @@ const BoardTabs: React.FC<BoardTabsProps> = ({
 };
 
 const styles = StyleSheet.create({
-  boardTabsWrapper: { marginBottom: height * 0.02 },
+  boardTabsWrapper: { 
+    marginBottom: height * 0.0299,
+    marginLeft: -10, // Adjusted to account for 15px padding
+  },
   boardTabs: { flexDirection: 'row', alignItems: 'center' },
   tab: {
     backgroundColor: '#fff',
@@ -95,10 +98,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.04,
     paddingVertical: height * 0.01,
     marginRight: width * 0.03,
-    shadowColor: '#C539A5',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+   
   },
   tabText: {
     fontSize: width * 0.035,

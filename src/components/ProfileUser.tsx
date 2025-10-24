@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   PermissionsAndroid,
   Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
 } from 'react-native';
 import {
   Asset,
@@ -15,18 +16,21 @@ import {
   launchImageLibrary,
 } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { isLocalFileUri, uploadProfileImage } from '../services/imageUpload';
+import { uploadProfileImageFallback } from '../services/imageUploadFallback';
+import { useAuthStore } from '../store/authStore';
 
-interface PickedFile {
-  uri: string;
-  type?: string;
-  name?: string;
-  fileName?: string;
-}
+const { width } = Dimensions.get('window');
 
 interface ProfileUserProps {
   username?: string;
   avatarUri?: string;
-  onImageSelected?: (file: PickedFile) => void;
+  onImageSelected?: (imageUri: string) => void;
+  onImageUploaded?: (uploadedImage: {
+    url: string;
+    path: string;
+    publicUrl: string;
+  }) => void;
   containerStyle?: any;
 }
 
@@ -34,11 +38,19 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
   username = '',
   avatarUri,
   onImageSelected,
+  onImageUploaded,
   containerStyle,
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(
     avatarUri || null,
   );
+  const [isUploading, setIsUploading] = useState(false);
+  const { user } = useAuthStore();
+
+  // Update selectedImage when avatarUri changes
+  useEffect(() => {
+    setSelectedImage(avatarUri || null);
+  }, [avatarUri]);
 
   const getInitials = (username: string): string => {
     const firstInitial = username.charAt(0).toUpperCase();
@@ -89,7 +101,7 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
       maxHeight: 1000,
     };
 
-    launchImageLibrary(options, response => {
+    launchImageLibrary(options, async response => {
       if (response.didCancel || response.errorMessage) {
         console.warn(
           'Image picker cancelled or failed:',
@@ -102,16 +114,54 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
         const asset: Asset = response.assets[0];
 
         if (asset.uri) {
-          const fileObj: PickedFile = {
-            uri: asset.uri,
-            type: asset.type || 'image/jpeg',
-            name: asset.fileName || 'avatar.jpg',
-          };
-
-          console.log('🖼️ [ProfileUser] Picked file:', fileObj);
-
+          // Update local state immediately
           setSelectedImage(asset.uri);
-          onImageSelected?.(fileObj); // send full file object
+          onImageSelected?.(asset.uri);
+
+          // Upload to Supabase Storage if we have a user
+          if (user?.id && isLocalFileUri(asset.uri)) {
+            setIsUploading(true);
+            try {
+              console.log('📤 Uploading profile image...');
+
+              // Try Supabase Storage first, fallback to user metadata
+              let uploadedImage;
+              try {
+                uploadedImage = await uploadProfileImage(asset.uri, user.id);
+                console.log(
+                  '✅ Profile image uploaded to Supabase Storage:',
+                  uploadedImage.publicUrl,
+                );
+              } catch (storageError) {
+                console.warn(
+                  '⚠️ Supabase Storage failed, using fallback method:',
+                  storageError,
+                );
+                uploadedImage = await uploadProfileImageFallback(
+                  asset.uri,
+                  user.id,
+                );
+                console.log(
+                  '✅ Profile image stored in user metadata:',
+                  uploadedImage.publicUrl,
+                );
+              }
+
+              // Update with the public URL
+              setSelectedImage(uploadedImage.publicUrl);
+              onImageUploaded?.(uploadedImage);
+            } catch (error) {
+              console.error('❌ Upload failed:', error);
+              Alert.alert(
+                'Upload Failed',
+                'Failed to upload image. Please try again.',
+              );
+              // Revert to local image
+              setSelectedImage(asset.uri);
+            } finally {
+              setIsUploading(false);
+            }
+          }
         }
       }
     });
@@ -129,7 +179,9 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
           onPress={pickImage}
         >
           <View style={styles.avatarInner}>
-            {selectedImage ? (
+            {isUploading ? (
+              <ActivityIndicator size="large" color="#C539A5" />
+            ) : selectedImage ? (
               <Image
                 source={{ uri: selectedImage }}
                 style={styles.avatarImage}
