@@ -23,7 +23,7 @@ interface Props {
 const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
   const COMPANY_ID = 15;
   const BOARD_ID = 38;
-  const [campaignName] = useState<string>('Test Ad');
+  const [campaignName] = useState<string>('Test Adds');
   const [campaignCategory] = useState<string>('Static Category');
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
