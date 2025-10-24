@@ -1,7 +1,7 @@
 // src/app/navigation/AppNavigator.tsx
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
-import CreateCompanyScreen from '../../features/companies/screens/CreateCompanyScreen';
+import { CreateCompanyScreen } from '../../features/companies/screens';
 import HomeScreen from '../../features/boards/screens/HomeScreen';
 import UpdateProfile from '../../features/Profile/screens/UpdateProfile';
 import ChangePassword from '../../features/Profile/screens/ChangePassword';
@@ -13,6 +13,8 @@ import CampaignUploadFiles from '../../features/advertisments/screens/Advertisme
 import SingleBoardDetail from '../../features/boards/screens/SingleBoardDetail';
 import FilterCategoryList from '../../features/boards/screens/FilterCategoryList';
 import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen';
+import ChatScreen from '../../components/ChatScreen';
+import ContactSupportScreen from '../../components/ContactSupportScreen';
 // 🔹 Define navigation param types
 export type AppStackParamList = {
   CampaignScreen: undefined;
@@ -27,8 +29,16 @@ export type AppStackParamList = {
     PreviousCompanyScreen:undefined;
     ChangePassword: undefined;
     FavouritesScreen: undefined;
-    FilterCategoryList:undefined;
+    FilterCategoryList: {
+      categoryId?: string;
+      categoryName?: string;
+      selectedTab?: string;
+      filter?: string;
+      tabType?: string;
+    };
     SingleBoardDetail: { item: any };
+    ChatScreen: undefined;
+    ContactSupportScreen: undefined;
 };
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const AppNavigator = () => (
@@ -47,7 +57,9 @@ const AppNavigator = () => (
  <Stack.Screen name="PreviousCompanyScreen" component={PreviousCompanyScreen}/>
  <Stack.Screen name="CurrentLocation" component={CurrentLocationMinimalMap} />
  <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
-  <Stack.Screen name="CurrentLocationMinimalMap" component={CurrentLocationMinimalMap} />
+ <Stack.Screen name="CurrentLocationMinimalMap" component={CurrentLocationMinimalMap} />
+ <Stack.Screen name="ChatScreen" component={ChatScreen} />
+ <Stack.Screen name="ContactSupportScreen" component={ContactSupportScreen} />
   </Stack.Navigator>
 
 );
