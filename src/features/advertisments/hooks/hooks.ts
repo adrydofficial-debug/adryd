@@ -18,6 +18,33 @@ import {
   mapUpdateAdvertisementRequest,
 } from '../domain/mappers';
 
+import { uploadToSignedUrl } from '../../../services/uploadFile';
+
+export interface UploadFile {
+  uri: string;
+  type: string;
+  name: string;
+}
+
+interface UploadArgs {
+  uploadUrl: string;
+  files: UploadFile[];
+}
+
+export function useUploadAdvertisementFiles() {
+  return useMutation<void, Error, UploadArgs>({
+    mutationFn: async ({ uploadUrl, files }) => {
+      if (!uploadUrl) throw new Error('No upload URL provided');
+      if (!files || files.length === 0)
+        throw new Error('No files provided for upload');
+
+      for (const file of files) {
+        await uploadToSignedUrl(uploadUrl, file);
+      }
+    },
+  });
+}
+
 // --- QUERY KEYS ---
 const AD_KEYS = {
   all: ['advertisements'] as const,

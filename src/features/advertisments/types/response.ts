@@ -1,17 +1,9 @@
 export interface CreateAdvertisementResponse {
-  success: boolean;
-  message: string;
-  data: {
-    id: number;
-    company_id: number;
-    board_id: number;
-    title: string;
-    description: string;
-    total_payment: number;
-    status: string;
-    created_at: string;
-    updated_at: string;
-    bookings: BookingResponse[];
+  advertisement: Advertisement;
+  upload: {
+    uploadUrl: string;
+    key: string;
+    publicUrl: string;
   };
 }
 

@@ -77,34 +77,24 @@ export const createAdvertisement = async (
   }
 };
 
-// Create a new advertisement (GET method with query parameters)
-export const createAdvertisementGet = async (
+// Create a new advertisement (POST method with JSON body)
+export const createAdvertisementPost = async (
   data: CreateAdvertisementRequest
 ): Promise<CreateAdvertisementResponse> => {
-  console.log('createAdvertisementGet - data:', data);
-  
-  // Build query parameters
-  const queryParams = new URLSearchParams();
-  if (typeof data.company_id === 'number') queryParams.append('company_id', String(data.company_id));
-  if (typeof data.board_id === 'number') queryParams.append('board_id', String(data.board_id));
-  if (data.title) queryParams.append('title', data.title);
-  if (data.description) queryParams.append('description', data.description);
-  if (typeof data.total_payment === 'number') queryParams.append('total_payment', String(data.total_payment));
-  
-  // Add booking parameters
-  const firstBooking = Array.isArray(data.bookings) && data.bookings[0] ? data.bookings[0] : undefined;
-  if (firstBooking?.start_at) queryParams.append('start_at', firstBooking.start_at);
-  if (firstBooking?.end_at) queryParams.append('end_at', firstBooking.end_at);
-  
-  const endpoint = `${BASE_URL}?${queryParams.toString()}`;
-  console.log('createAdvertisementGet - endpoint:', endpoint);
-  
+  console.group('📦 [createAdvertisementPost] Sending new advertisement');
+  console.log('Request payload:', data);
+
   try {
-    const response = await apiClient.get<CreateAdvertisementResponse>(endpoint);
-    console.log('createAdvertisementGet - response:', response.data);
+    const response = await apiClient.post<CreateAdvertisementResponse>(BASE_URL, data);
+    console.log('✅ Server response:', response.data);
+    console.groupEnd();
     return response.data;
   } catch (error) {
-    console.error('createAdvertisementGet - error:', error);
+    console.error('❌ Request failed:', error);
+    if ((error as any)?.response) {
+      console.error('Server said:', (error as any).response);
+    }
+    console.groupEnd();
     throw error;
   }
 };

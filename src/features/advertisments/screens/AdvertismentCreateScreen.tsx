@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, StatusBar,
-TextInput, ScrollView, Platform, KeyboardAvoidingView,} from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import {
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 // import { Calendar } from 'react-native-calendars';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
 import { CreateAdvertisementRequest } from '../types';
 const { width, height } = Dimensions.get('window');
@@ -21,12 +30,14 @@ interface Props {
   navigation: NavigationProp | any;
 }
 const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
-  const COMPANY_ID = 15;
-  const BOARD_ID = 38;
+  const COMPANY_ID = 8;
+  const BOARD_ID = 24;
   const [campaignName] = useState<string>('Test Ad');
   const [campaignCategory] = useState<string>('Static Category');
   const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+  const [endDate, setEndDate] = useState<Date>(
+    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  );
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
   const [selectedDays, setSelectedDays] = useState<Date[]>([]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -54,9 +65,11 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const isSameDay = (date1: Date, date2: Date) => {
-    return date1.getDate() === date2.getDate() &&
-           date1.getMonth() === date2.getMonth() &&
-           date1.getFullYear() === date2.getFullYear();
+    return (
+      date1.getDate() === date2.getDate() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getFullYear() === date2.getFullYear()
+    );
   };
 
   const isDateSelected = (date: Date) => {
@@ -66,10 +79,14 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
   const onDayPress = (date: Date) => {
     if (isDateSelected(date)) {
       // Remove date if already selected
-      setSelectedDays(prev => prev.filter(selectedDate => !isSameDay(selectedDate, date)));
+      setSelectedDays(prev =>
+        prev.filter(selectedDate => !isSameDay(selectedDate, date)),
+      );
     } else {
       // Add date to selection
-      setSelectedDays(prev => [...prev, date].sort((a, b) => a.getTime() - b.getTime()));
+      setSelectedDays(prev =>
+        [...prev, date].sort((a, b) => a.getTime() - b.getTime()),
+      );
     }
   };
 
@@ -80,7 +97,9 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
 
   const confirmSelection = () => {
     if (selectedDays.length > 0) {
-      const sortedDays = [...selectedDays].sort((a, b) => a.getTime() - b.getTime());
+      const sortedDays = [...selectedDays].sort(
+        (a, b) => a.getTime() - b.getTime(),
+      );
       setStartDate(sortedDays[0]);
       setEndDate(sortedDays[sortedDays.length - 1]);
       setShowCalendar(false);
@@ -94,28 +113,28 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
     const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
-    
+
     const days = [];
     const today = new Date();
-    
+
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
-      
+
       const isCurrentMonth = date.getMonth() === month;
       const isToday = isSameDay(date, today);
       const isPast = date < today && !isToday;
       const isSelected = isDateSelected(date);
-      
+
       days.push({
         date,
         isCurrentMonth,
         isToday,
         isPast,
-        isSelected
+        isSelected,
       });
     }
-    
+
     return days;
   };
 
@@ -136,26 +155,50 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
-  const renderProgressStep = (stepNumber: number, isActive: boolean, isCompleted: boolean) => (
+  const renderProgressStep = (
+    stepNumber: number,
+    isActive: boolean,
+    isCompleted: boolean,
+  ) => (
     <View style={styles.progressStepContainer}>
-      <View style={[styles.progressStep, isActive && styles.activeStep, isCompleted && styles.completedStep]}>
-        <Text style={[styles.progressStepText, isActive && styles.activeStepText, isCompleted && styles.completedStepText]}>
+      <View
+        style={[
+          styles.progressStep,
+          isActive && styles.activeStep,
+          isCompleted && styles.completedStep,
+        ]}
+      >
+        <Text
+          style={[
+            styles.progressStepText,
+            isActive && styles.activeStepText,
+            isCompleted && styles.completedStepText,
+          ]}
+        >
           {stepNumber}
         </Text>
       </View>
-      {stepNumber < 3 && <View style={[styles.progressLine, isActive && styles.activeProgressLine]} />}
+      {stepNumber < 3 && (
+        <View
+          style={[styles.progressLine, isActive && styles.activeProgressLine]}
+        />
+      )}
     </View>
   );
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#C538A5" barStyle="light-content" />
       <LinearGradient
-        colors={["#FFF4FD", "#fef3f9"]}
+        colors={['#FFF4FD', '#fef3f9']}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
-        style={styles.container}>
+        style={styles.container}
+      >
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
             <Ionicons name="arrow-back" size={wp(6)} color="#000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Campaign Detail</Text>
@@ -199,12 +242,16 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
               />
               <View style={styles.dateTimeContainer}>
                 <Text style={styles.dateTimeLabel}>Campaign Duration</Text>
-                
-                <TouchableOpacity 
-                  style={styles.calendarButton} 
+
+                <TouchableOpacity
+                  style={styles.calendarButton}
                   onPress={openCalendar}
                 >
-                  <Ionicons name="calendar-outline" size={width * 0.06} color="#C538A5" />
+                  <Ionicons
+                    name="calendar-outline"
+                    size={width * 0.06}
+                    color="#C538A5"
+                  />
                   <View style={styles.dateRangeDisplay}>
                     <Text style={styles.dateRangeText}>
                       {formatDate(startDate)} - {formatDate(endDate)}
@@ -213,9 +260,13 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                       {calculateDays()} day{calculateDays() !== 1 ? 's' : ''}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-down" size={width * 0.04} color="#C538A5" />
+                  <Ionicons
+                    name="chevron-down"
+                    size={width * 0.04}
+                    color="#C538A5"
+                  />
                 </TouchableOpacity>
-                
+
                 {selectedDays.length === 1 && (
                   <View style={styles.selectionHint}>
                     <Text style={styles.hintText}>
@@ -241,7 +292,11 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.locationLabel}>Loaction</Text>
                 <View style={styles.mapContainer}>
                   <View style={styles.mapPlaceholder}>
-                    <Ionicons name="location" size={width * 0.06} color="#666" />
+                    <Ionicons
+                      name="location"
+                      size={width * 0.06}
+                      color="#666"
+                    />
                     <Text style={styles.mapText}>{location}</Text>
                   </View>
                 </View>
@@ -256,41 +311,52 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.calendarContainer}>
               <View style={styles.calendarHeader}>
                 <Text style={styles.calendarTitle}>Select Date Range</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setShowCalendar(false)}
                 >
                   <Ionicons name="close" size={24} color="#666" />
                 </TouchableOpacity>
               </View>
-              
+
               <View style={styles.customCalendar}>
                 {/* Calendar Header */}
                 <View style={styles.calendarHeaderRow}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.monthNavButton}
                     onPress={() => navigateMonth('prev')}
                   >
                     <Ionicons name="chevron-back" size={20} color="#C538A5" />
                   </TouchableOpacity>
-                  
+
                   <Text style={styles.monthYearText}>
-                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    {currentMonth.toLocaleDateString('en-US', {
+                      month: 'long',
+                      year: 'numeric',
+                    })}
                   </Text>
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     style={styles.monthNavButton}
                     onPress={() => navigateMonth('next')}
                   >
-                    <Ionicons name="chevron-forward" size={20} color="#C538A5" />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color="#C538A5"
+                    />
                   </TouchableOpacity>
                 </View>
 
                 {/* Day Headers */}
                 <View style={styles.dayHeadersRow}>
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <Text key={day} style={styles.dayHeaderText}>{day}</Text>
-                  ))}
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(
+                    day => (
+                      <Text key={day} style={styles.dayHeaderText}>
+                        {day}
+                      </Text>
+                    ),
+                  )}
                 </View>
 
                 {/* Calendar Grid */}
@@ -308,13 +374,15 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                       onPress={() => !day.isPast && onDayPress(day.date)}
                       disabled={day.isPast}
                     >
-                      <Text style={[
-                        styles.dayText,
-                        !day.isCurrentMonth && styles.otherMonthText,
-                        day.isToday && styles.todayText,
-                        day.isPast && styles.pastText,
-                        day.isSelected && styles.selectedText,
-                      ]}>
+                      <Text
+                        style={[
+                          styles.dayText,
+                          !day.isCurrentMonth && styles.otherMonthText,
+                          day.isToday && styles.todayText,
+                          day.isPast && styles.pastText,
+                          day.isSelected && styles.selectedText,
+                        ]}
+                      >
                         {day.date.getDate()}
                       </Text>
                     </TouchableOpacity>
@@ -324,33 +392,44 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                 {/* Selection Summary */}
                 <View style={styles.selectionSummary}>
                   <Text style={styles.selectionText}>
-                    {selectedDays.length > 0 
-                      ? `${selectedDays.length} day${selectedDays.length !== 1 ? 's' : ''} selected`
-                      : 'Tap days to select them'
-                    }
+                    {selectedDays.length > 0
+                      ? `${selectedDays.length} day${
+                          selectedDays.length !== 1 ? 's' : ''
+                        } selected`
+                      : 'Tap days to select them'}
                   </Text>
                 </View>
               </View>
-              
+
               <View style={styles.calendarFooter}>
                 <View style={styles.calendarButtons}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.clearButton}
                     onPress={() => {
                       setSelectedDays([]);
                       setStartDate(new Date());
-                      setEndDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+                      setEndDate(
+                        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                      );
                     }}
                   >
                     <Text style={styles.clearButtonText}>Clear</Text>
                   </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.confirmButton, selectedDays.length === 0 && styles.disabledButton]}
+
+                  <TouchableOpacity
+                    style={[
+                      styles.confirmButton,
+                      selectedDays.length === 0 && styles.disabledButton,
+                    ]}
                     onPress={confirmSelection}
                     disabled={selectedDays.length === 0}
                   >
-                    <Text style={[styles.confirmButtonText, selectedDays.length === 0 && styles.disabledButtonText]}>
+                    <Text
+                      style={[
+                        styles.confirmButtonText,
+                        selectedDays.length === 0 && styles.disabledButtonText,
+                      ]}
+                    >
                       Confirm Selection
                     </Text>
                   </TouchableOpacity>
@@ -362,7 +441,11 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={styles.buttonContainer}>
           <CustomButton
-            title={createAdMutation.isPending ? "Creating..." : "Create Advertisement"}
+            title={
+              createAdMutation.isPending
+                ? 'Creating...'
+                : 'Create Advertisement'
+            }
             onPress={() => {
               // Validate form data
               if (!campaignName.trim()) {
@@ -379,16 +462,16 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
               }
 
               // Clear any previous errors
-                setErrorText('');
+              setErrorText('');
 
               // Prepare the data for API call
               const advertisementData: CreateAdvertisementRequest = {
-                  company_id: COMPANY_ID,
-                  board_id: BOARD_ID,
-                  title: campaignName,
-                  description: description,
+                company_id: COMPANY_ID,
+                board_id: BOARD_ID,
+                title: campaignName,
+                description: description,
                 total_payment: 0,
-                  bookings: [
+                bookings: [
                   {
                     start_at: startDate.toISOString(),
                     end_at: endDate.toISOString(),
@@ -396,17 +479,29 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                 ],
               };
 
-              console.log('Creating advertisement with data:', advertisementData);
+              console.log(
+                'Creating advertisement with data:',
+                advertisementData,
+              );
 
               // Call the API using the hook with callbacks
               createAdMutation.mutate(advertisementData, {
-                onSuccess: (response) => {
-                  navigation.navigate('CampaignUploadFiles', {
-                  });
+                onSuccess: response => {
+                  console.log('upload url is :', response.upload.uploadUrl);
+                  navigation.push(
+                    'CampaignUploadFiles',
+                    response.upload.uploadUrl,
+                  );
+                  // navigation.navigate('CampaignUploadFiles', {
+                  //   uploadUrl: response.upload.uploadUrl,
+                  // });
                 },
-                onError: (error) => {
-
-                  setErrorText(`Error: ${error.message || 'Failed to create advertisement'}`);
+                onError: error => {
+                  setErrorText(
+                    `Error: ${
+                      error.message || 'Failed to create advertisement'
+                    }`,
+                  );
                 },
               });
             }}
@@ -415,9 +510,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
             buttonStyle={styles.nextButton}
             disabled={createAdMutation.isPending}
           />
-          {!!errorText && (
-            <Text style={styles.errorText}>{errorText}</Text>
-          )}
+          {!!errorText && <Text style={styles.errorText}>{errorText}</Text>}
         </View>
       </LinearGradient>
     </View>
