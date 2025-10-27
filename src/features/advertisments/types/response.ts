@@ -1,50 +1,65 @@
-// API Response Types
-export interface ApiResponse<T = any> {
+export interface CreateAdvertisementResponse {
+  advertisement: Advertisement;
+  upload: {
+    uploadUrl: string;
+    key: string;
+    publicUrl: string;
+  };
+}
+
+export interface BookingResponse {
+  id: number;
+  advertisement_id: number;
+  start_at: string;
+  end_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Advertisement {
+  id: number;
+  company_id: number;
+  board_id: number;
+  title: string;
+  description: string;
+  total_payment: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  bookings: BookingResponse[];
+}
+
+export interface GetAdvertisementsResponse {
   success: boolean;
-  message?: string;
-  data?: T;
-  error?: string;
+  message: string;
+  data: Advertisement[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    totalItems: number;
+  };
 }
 
-// Paginated Response
-export interface PaginatedResponse<T = any> {
-  total: number;
-  page: number;
-  limit: number;
-  data: T[];
-}
-
-// Advertisement List Response
-export interface AdvertisementListResponse extends PaginatedResponse<AdvertisementWithRelations> {}
-
-// Single Advertisement Response
-export interface AdvertisementResponse extends ApiResponse<AdvertisementWithRelations> {}
-
-// Create Advertisement Response
-export interface CreateAdvertisementResponse extends ApiResponse<AdvertisementWithRelations> {
-  data: AdvertisementWithRelations;
-}
-
-// Update Advertisement Response
-export interface UpdateAdvertisementResponse extends ApiResponse<AdvertisementWithRelations> {
-  data: AdvertisementWithRelations;
-}
-
-// Delete Advertisement Response
-export interface DeleteAdvertisementResponse extends ApiResponse<{ message: string }> {
-  data: { message: string };
-}
-
-// Change Status Response
-export interface ChangeStatusResponse extends ApiResponse<Advertisement> {
+export interface GetAdvertisementByIdResponse {
+  success: boolean;
+  message: string;
   data: Advertisement;
 }
 
-// Error Response
-export interface ErrorResponse extends ApiResponse<null> {
-  success: false;
-  error: string;
+export interface UpdateAdvertisementResponse {
+  success: boolean;
+  message: string;
+  data: Advertisement;
 }
 
-// Import Advertisement types
-import { AdvertisementWithRelations, Advertisement } from './index';
+export interface DeleteAdvertisementResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface ChangeAdvertisementStatusResponse {
+  success: boolean;
+  message: string;
+  data: Advertisement;
+}

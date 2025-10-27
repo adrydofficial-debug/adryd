@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-  StatusBar,
-  ScrollView,
-  Platform,
   Alert,
+  Dimensions,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -17,6 +17,7 @@ import CustomButton from '../../../components/CustomButton';
 // Types for navigation (adjust your stack names)
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 type RootStackParamList = {
+  CampaignUploadFiles: { uploadUrl: string };
   CompaignUploadConfirmation: undefined;
   [key: string]: any;
 };
@@ -35,7 +36,9 @@ try {
 
 if (!DocumentPicker) {
   try {
-    const { DocumentPicker: AltDocumentPicker } = require('@react-native-documents/picker');
+    const {
+      DocumentPicker: AltDocumentPicker,
+    } = require('@react-native-documents/picker');
     DocumentPicker = AltDocumentPicker;
   } catch (altError) {
     console.error('Alternative DocumentPicker import failed:', altError);
@@ -70,9 +73,11 @@ interface FileItem {
 
 interface Props {
   navigation: NavigationProp;
+  route: { params: { uploadUrl: string } };
 }
 
-const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
+const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
+  const { uploadUrl } = route.params;
   const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
 
@@ -95,10 +100,10 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
                   size: 1024,
                   progress: 100,
                 };
-                setSelectedFiles((prevFiles) => [...prevFiles, mockFile]);
+                setSelectedFiles(prevFiles => [...prevFiles, mockFile]);
               },
             },
-          ]
+          ],
         );
       } else {
         Alert.alert(
@@ -107,7 +112,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
           [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Retry', onPress: () => openFilePicker() },
-          ]
+          ],
         );
       }
       return;
@@ -156,7 +161,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
             if (fileSize > maxSize) {
               Alert.alert(
                 'File Too Large',
-                `File "${fileName}" is too large. Maximum size is 25MB.`
+                `File "${fileName}" is too large. Maximum size is 25MB.`,
               );
               return null;
             }
@@ -173,18 +178,23 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
           .filter((file: FileItem | null): file is FileItem => file !== null);
 
         if (newFiles.length > 0) {
-          setSelectedFiles((prevFiles) => [...prevFiles, ...newFiles]);
+          setSelectedFiles(prevFiles => [...prevFiles, ...newFiles]);
         } else {
-          Alert.alert('No PDF Files', 'No valid PDF files were selected. Please try again.');
+          Alert.alert(
+            'No PDF Files',
+            'No valid PDF files were selected. Please try again.',
+          );
         }
       }
     } catch (err: any) {
       if (err.code !== 'DOCUMENT_PICKER_CANCELED') {
         let errorMessage = 'Failed to select PDF files. Please try again.';
         if (err.code === 'DOCUMENT_PICKER_PERMISSION_DENIED') {
-          errorMessage = 'Permission denied. Please allow file access in settings.';
+          errorMessage =
+            'Permission denied. Please allow file access in settings.';
         } else if (err.code === 'DOCUMENT_PICKER_NO_APP_AVAILABLE') {
-          errorMessage = 'No file manager app available. Please install a file manager.';
+          errorMessage =
+            'No file manager app available. Please install a file manager.';
         } else if (err.message) {
           errorMessage = `Error: ${err.message}`;
         }
@@ -198,10 +208,58 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
   };
 
   const removeFile = (fileId: number) => {
-    setSelectedFiles(selectedFiles.filter((file) => file.id !== fileId));
+    setSelectedFiles(selectedFiles.filter(file => file.id !== fileId));
   };
 
-  const renderProgressStep = (stepNumber: number, isActive: boolean, isCompleted: boolean) => (
+  const uploadFiles = async () => {
+    if (selectedFiles.length === 0) {
+      Alert.alert('No Files', 'Please select at least one file to upload.');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      for (const file of selectedFiles) {
+        console.log('Uploading file:', file.name);
+
+        const response = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream',
+          },
+          body:
+            Platform.OS === 'ios'
+              ? await (await fetch(file.uri)).blob()
+              : {
+                  uri: file.uri,
+                  type: file.type,
+                  name: file.name,
+                },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Upload failed with status ${response.status}`);
+        }
+
+        console.log(`Uploaded ${file.name} successfully`);
+      }
+
+      Alert.alert('Success', 'All files uploaded successfully.');
+      navigation.navigate('CompaignUploadConfirmation');
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      Alert.alert('Upload Failed', error.message || 'Something went wrong.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const renderProgressStep = (
+    stepNumber: number,
+    isActive: boolean,
+    isCompleted: boolean,
+  ) => (
     <View style={styles.progressStepContainer}>
       <View
         style={[
@@ -220,7 +278,11 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
           {stepNumber}
         </Text>
       </View>
-      {stepNumber < 3 && <View style={[styles.progressLine, isActive && styles.activeProgressLine]} />}
+      {stepNumber < 3 && (
+        <View
+          style={[styles.progressLine, isActive && styles.activeProgressLine]}
+        />
+      )}
     </View>
   );
 
@@ -233,7 +295,10 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
     >
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
           <Ionicons name="arrow-back" size={wp(6)} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Campaign Detail</Text>
@@ -255,7 +320,10 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
         <View style={styles.formCard}>
           {/* File Selection Area */}
           <View style={styles.uploadSection}>
-            <TouchableOpacity style={styles.uploadContainer} onPress={openFilePicker}>
+            <TouchableOpacity
+              style={styles.uploadContainer}
+              onPress={openFilePicker}
+            >
               <Ionicons
                 name="cloud-upload-outline"
                 size={width * 0.08}
@@ -263,7 +331,8 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
                 style={styles.uploadIcon}
               />
               <Text style={styles.uploadText}>
-                Drag & drop files or <Text style={styles.browseText}>Browse</Text>
+                Drag & drop files or{' '}
+                <Text style={styles.browseText}>Browse</Text>
               </Text>
               <Text style={styles.fileTypesText}>PDF</Text>
               <Text style={styles.fileSizeText}>Max file size: 25 MB</Text>
@@ -274,8 +343,8 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
           {selectedFiles.length > 0 && (
             <View style={styles.statusSection}>
               <Text style={styles.statusText}>
-                {isUploading ? 'Uploading' : 'Uploaded'} - {selectedFiles.length}/
-                {selectedFiles.length} files
+                {isUploading ? 'Uploading' : 'Uploaded'} -{' '}
+                {selectedFiles.length}/{selectedFiles.length} files
               </Text>
             </View>
           )}
@@ -283,21 +352,31 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
           {/* Selected Files List */}
           {selectedFiles.length > 0 && (
             <View style={styles.filesSection}>
-              {selectedFiles.map((file) => (
+              {selectedFiles.map(file => (
                 <View key={file.id} style={styles.fileItem}>
                   <View style={styles.fileNameContainer}>
                     <View style={styles.fileInfo}>
                       <Text style={styles.fileName} numberOfLines={1}>
                         {file.name}
                       </Text>
-                      <Text style={styles.fileSize}>{formatFileSize(file.size)}</Text>
+                      <Text style={styles.fileSize}>
+                        {formatFileSize(file.size)}
+                      </Text>
                     </View>
-                    <TouchableOpacity style={styles.removeButton} onPress={() => removeFile(file.id)}>
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => removeFile(file.id)}
+                    >
                       <Ionicons name="close-circle" size={wp(5)} color="#999" />
                     </TouchableOpacity>
                   </View>
                   <View style={styles.progressBarContainer}>
-                    <View style={[styles.progressBar, { width: `${file.progress}%` }]} />
+                    <View
+                      style={[
+                        styles.progressBar,
+                        { width: `${file.progress}%` },
+                      ]}
+                    />
                   </View>
                 </View>
               ))}
@@ -309,14 +388,8 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation }) => {
       {/* Upload Button */}
       <View style={styles.buttonContainer}>
         <CustomButton
-          title="UPLOAD FILES"
-          onPress={() => {
-            if (selectedFiles.length === 0) {
-              Alert.alert('No Files', 'Please select files to upload');
-              return;
-            }
-            navigation.navigate('CompaignUploadConfirmation');
-          }}
+          title={isUploading ? 'UPLOADING...' : 'UPLOAD FILES'}
+          onPress={uploadFiles}
           variant="primary"
           size="medium"
           buttonStyle={styles.nextButton}
@@ -364,7 +437,11 @@ const styles = StyleSheet.create({
   },
   activeStep: { backgroundColor: '#C12C9F' },
   completedStep: { backgroundColor: '#4CAF50' },
-  progressStepText: { fontSize: width * 0.04, fontWeight: 'bold', color: '#999' },
+  progressStepText: {
+    fontSize: width * 0.04,
+    fontWeight: 'bold',
+    color: '#999',
+  },
   activeStepText: { color: '#fff' },
   completedStepText: { color: '#fff' },
   progressLine: {
@@ -398,7 +475,12 @@ const styles = StyleSheet.create({
     minHeight: height * 0.15,
   },
   uploadIcon: {},
-  uploadText: { fontSize: 12, fontWeight: '500', color: '#000', marginBottom: height * 0.005 },
+  uploadText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#000',
+    marginBottom: height * 0.005,
+  },
   browseText: { color: '#C539A5', fontWeight: 'bold' },
   fileTypesText: {
     fontSize: 10,
@@ -407,7 +489,12 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     marginBottom: height * 0.005,
   },
-  fileSizeText: { fontSize: 10, color: '#999', textAlign: 'center', fontWeight: '400' },
+  fileSizeText: {
+    fontSize: 10,
+    color: '#999',
+    textAlign: 'center',
+    fontWeight: '400',
+  },
   statusSection: { marginBottom: hp(2) },
   statusText: { fontSize: wp(4), color: '#666', fontWeight: '500' },
   filesSection: { marginBottom: hp(2) },
@@ -429,7 +516,12 @@ const styles = StyleSheet.create({
     marginBottom: hp(1),
   },
   fileInfo: { flex: 1, marginRight: wp(2) },
-  fileName: { fontSize: wp(4), color: '#333', fontWeight: '500', marginBottom: hp(0.5) },
+  fileName: {
+    fontSize: wp(4),
+    color: '#333',
+    fontWeight: '500',
+    marginBottom: hp(0.5),
+  },
   fileSize: { fontSize: wp(3.2), color: '#666', fontWeight: '400' },
   removeButton: { padding: wp(1) },
   progressBarContainer: {

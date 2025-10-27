@@ -1,10 +1,12 @@
 // src/features/companies/api/types/responses.ts
 import { CompanyCategory, UserProfile } from '../../domain/entities';
 
-// 🏢 /api/companies
+/** 🏢 Represents a single company record */
 export interface CompanyResponse {
   id: number;
+  user_id?: string;
   company_name: string;
+  company_category_id?: number;
   company_ntn?: string | null;
   address?: string | null;
   email?: string | null;
@@ -18,6 +20,19 @@ export interface CompanyResponse {
   updated_at: string;
   company_category_ref?: CompanyCategory | null;
   user?: UserProfile | null;
+}
+
+/** 🧾 Upload info returned along with company creation */
+export interface CompanyUploadInfo {
+  uploadUrl: string;
+  key: string;
+  publicUrl: string;
+}
+
+/** 🎁 New combined response from POST /api/companies */
+export interface CreateCompanyResponse {
+  company: CompanyResponse;
+  upload: CompanyUploadInfo;
 }
 
 // 🧩 /api/companies/categories/groups

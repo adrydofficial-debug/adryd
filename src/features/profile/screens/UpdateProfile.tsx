@@ -1,6 +1,5 @@
-
-import { useNavigation } from '@react-navigation/native';
-import React, { useMemo, useState, useEffect } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   KeyboardAvoidingView,
@@ -12,10 +11,10 @@ import {
   View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import CustomInput from '../../../components/CustomInput';
 import CustomButton from '../../../components/CustomButton';
+import CustomInput from '../../../components/CustomInput';
 import ProfileUser from '../../../components/ProfileUser';
-import { useProfile, useUpdateProfile } from '../hooks';
+import { useProfile, useUpdateProfile, useUploadProfileAvatar } from '../hooks';
 
 const { width, height } = Dimensions.get('window');
 const wp = (p: number) => (width * p) / 100;
@@ -23,10 +22,12 @@ const hp = (p: number) => (height * p) / 100;
 
 const UpdateProfile: React.FC = () => {
   const navigation = useNavigation();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Profile data from Supabase
-  const { data: profile, isLoading: profileLoading } = useProfile();
+  const { data: profile, isLoading: profileLoading, refetch } = useProfile();
   const updateProfile = useUpdateProfile();
+  const uploadAvatar = useUploadProfileAvatar();
 
   // State for the editable fields
   const [fullName, setFullName] = useState('');
@@ -36,12 +37,17 @@ const UpdateProfile: React.FC = () => {
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || '');
-    
-      if (profile.avatar_url) {
-        setAvatarUri(profile.avatar_url);
-      }
+      setAvatarUri(profile.avatar_url || undefined);
     }
   }, [profile]);
+
+  // Refetch profile data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setRefreshKey(prev => prev + 1);
+      refetch();
+    }, [refetch]),
+  );
 
   const initials = useMemo(() => {
     const u = fullName?.[0] ?? '';
@@ -54,7 +60,11 @@ const UpdateProfile: React.FC = () => {
         full_name: fullName.trim(),
         avatar_url: avatarUri, // include current selected avatar in save
       });
-      
+
+      // Force refresh by updating key and refetching
+      setRefreshKey(prev => prev + 1);
+      await refetch();
+
       navigation.goBack();
     } catch (error: any) {
       // Silent error handling - no alerts
@@ -62,16 +72,21 @@ const UpdateProfile: React.FC = () => {
     }
   };
 
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Top Bar */}
         <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
             <Ionicons name="chevron-back" size={22} color="#111" />
           </TouchableOpacity>
           <Text style={styles.title}>Profile</Text>
@@ -80,20 +95,33 @@ const UpdateProfile: React.FC = () => {
 
         {/* Avatar / Header card */}
         <ProfileUser
+          key={refreshKey}
           username={fullName}
           avatarUri={avatarUri}
-          onImageSelected={async (imageUri) => {
+          onImageSelected={async imageUri => {
+            // Update local state immediately for better UX
             setAvatarUri(imageUri);
+          }}
+          onImageUploaded={async uploadedImage => {
+            // Update with the uploaded image URL
+            setAvatarUri(uploadedImage.publicUrl);
+
             // Save directly to Supabase, preserving existing profile data
             try {
               await updateProfile.mutateAsync({
                 full_name: fullName.trim(),
                 first_name: profile?.first_name,
                 last_name: profile?.last_name,
-                avatar_url: imageUri,
+                avatar_url: uploadedImage.publicUrl,
               });
+
+              // Force refresh by updating key and refetching
+              setRefreshKey(prev => prev + 1);
+              await refetch();
             } catch (error: any) {
               console.error('Avatar update error:', error);
+              // Revert local state on error
+              setAvatarUri(profile?.avatar_url || undefined);
             }
           }}
           containerStyle={styles.headerCard}
@@ -116,14 +144,16 @@ const UpdateProfile: React.FC = () => {
             placeholder="Phone number"
             containerStyle={styles.inputContainerFix}
           />
-          <Text style={styles.noteText}>Your phone number is verified and cannot be changed.</Text>
+          <Text style={styles.noteText}>
+            Your phone number is verified and cannot be changed.
+          </Text>
         </View>
 
         {/* Buttons */}
         <View style={styles.buttonWrap}>
-          <CustomButton 
-            title="Update Profile" 
-            onPress={handleSave} 
+          <CustomButton
+            title="Update Profile"
+            onPress={handleSave}
             loading={updateProfile.isPending}
             disabled={updateProfile.isPending}
           />
@@ -134,7 +164,7 @@ const UpdateProfile: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff',paddingVertical:25 },
+  container: { flex: 1, backgroundColor: '#fff', paddingVertical: 25 },
   content: { paddingHorizontal: wp(6), paddingBottom: hp(6) },
   topBar: {
     flexDirection: 'row',
@@ -153,7 +183,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: { fontSize: 16, fontWeight: '700', color: '#111' },
-  headerCard: { alignItems: 'center', marginTop: hp(1.5), marginBottom: hp(2.5) },
+  headerCard: {
+    alignItems: 'center',
+    marginTop: hp(1.5),
+    marginBottom: hp(2.5),
+  },
   form: { marginTop: hp(1) },
   smallLabel: { fontSize: 10, color: '#999', marginBottom: 4, marginTop: 10 },
   inputContainerFix: { marginBottom: hp(0.6) },

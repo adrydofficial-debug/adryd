@@ -1,17 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  PermissionsAndroid,
+  Platform,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  Image,
-  StyleSheet,
-  Dimensions,
-  Alert,
-  Platform,
-  PermissionsAndroid,
 } from 'react-native';
-import { launchImageLibrary, ImageLibraryOptions, Asset } from 'react-native-image-picker';
+import {
+  Asset,
+  ImageLibraryOptions,
+  launchImageLibrary,
+} from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { isLocalFileUri, uploadProfileImage } from '../services/imageUpload';
+import { uploadProfileImageFallback } from '../services/imageUploadFallback';
+import { useAuthStore } from '../store/authStore';
 
 const { width } = Dimensions.get('window');
 
@@ -19,6 +26,11 @@ interface ProfileUserProps {
   username?: string;
   avatarUri?: string;
   onImageSelected?: (imageUri: string) => void;
+  onImageUploaded?: (uploadedImage: {
+    url: string;
+    path: string;
+    publicUrl: string;
+  }) => void;
   containerStyle?: any;
 }
 
@@ -26,9 +38,19 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
   username = '',
   avatarUri,
   onImageSelected,
+  onImageUploaded,
   containerStyle,
 }) => {
-  const [selectedImage, setSelectedImage] = useState<string | null>(avatarUri || null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(
+    avatarUri || null,
+  );
+  const [isUploading, setIsUploading] = useState(false);
+  const { user } = useAuthStore();
+
+  // Update selectedImage when avatarUri changes
+  useEffect(() => {
+    setSelectedImage(avatarUri || null);
+  }, [avatarUri]);
 
   const getInitials = (username: string): string => {
     const firstInitial = username.charAt(0).toUpperCase();
@@ -36,27 +58,20 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
   };
 
   const requestGalleryPermission = async (): Promise<boolean> => {
-    if (Platform.OS !== 'android') {
-      return true;
-    }
+    if (Platform.OS !== 'android') return true;
 
     try {
-      // Android 13+ (API 33+) does NOT require runtime permission for the system photo picker
-      // Let the picker run directly to avoid blocked prompts on newer Android
       const androidVersion = Number(Platform.Version);
-      if (androidVersion >= 33) {
-        return true;
-      }
+      if (androidVersion >= 33) return true; // Android 13+ doesn’t need this anymore
 
-      // Android 12 and below requires READ_EXTERNAL_STORAGE
       const permission = PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
-
       const hasPermission = await PermissionsAndroid.check(permission);
       if (hasPermission) return true;
 
       const status = await PermissionsAndroid.request(permission, {
         title: 'Photo Library Access',
-        message: 'We need access to your photos to update your profile picture.',
+        message:
+          'We need access to your photos to update your profile picture.',
         buttonPositive: 'Allow',
         buttonNegative: 'Deny',
         buttonNeutral: 'Ask Me Later',
@@ -72,7 +87,10 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
   const pickImage = async () => {
     const permitted = await requestGalleryPermission();
     if (!permitted) {
-      Alert.alert('Permission required', 'Please allow photo access to select an image.');
+      Alert.alert(
+        'Permission required',
+        'Please allow photo access to select an image.',
+      );
       return;
     }
 
@@ -83,17 +101,67 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
       maxHeight: 1000,
     };
 
-    launchImageLibrary(options, (response) => {
+    launchImageLibrary(options, async response => {
       if (response.didCancel || response.errorMessage) {
+        console.warn(
+          'Image picker cancelled or failed:',
+          response.errorMessage,
+        );
         return;
       }
 
       if (response.assets && response.assets.length > 0) {
         const asset: Asset = response.assets[0];
+
         if (asset.uri) {
+          // Update local state immediately
           setSelectedImage(asset.uri);
-          // Defer persistence to the Update Profile screen save button
           onImageSelected?.(asset.uri);
+
+          // Upload to Supabase Storage if we have a user
+          if (user?.id && isLocalFileUri(asset.uri)) {
+            setIsUploading(true);
+            try {
+              console.log('📤 Uploading profile image...');
+
+              // Try Supabase Storage first, fallback to user metadata
+              let uploadedImage;
+              try {
+                uploadedImage = await uploadProfileImage(asset.uri, user.id);
+                console.log(
+                  '✅ Profile image uploaded to Supabase Storage:',
+                  uploadedImage.publicUrl,
+                );
+              } catch (storageError) {
+                console.warn(
+                  '⚠️ Supabase Storage failed, using fallback method:',
+                  storageError,
+                );
+                uploadedImage = await uploadProfileImageFallback(
+                  asset.uri,
+                  user.id,
+                );
+                console.log(
+                  '✅ Profile image stored in user metadata:',
+                  uploadedImage.publicUrl,
+                );
+              }
+
+              // Update with the public URL
+              setSelectedImage(uploadedImage.publicUrl);
+              onImageUploaded?.(uploadedImage);
+            } catch (error) {
+              console.error('❌ Upload failed:', error);
+              Alert.alert(
+                'Upload Failed',
+                'Failed to upload image. Please try again.',
+              );
+              // Revert to local image
+              setSelectedImage(asset.uri);
+            } finally {
+              setIsUploading(false);
+            }
+          }
         }
       }
     });
@@ -105,22 +173,28 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
   return (
     <View style={[styles.headerCard, containerStyle]}>
       <View>
-        <TouchableOpacity 
-          style={styles.avatarOuter} 
-          activeOpacity={0.85} 
+        <TouchableOpacity
+          style={styles.avatarOuter}
+          activeOpacity={0.85}
           onPress={pickImage}
         >
           <View style={styles.avatarInner}>
-            {selectedImage ? (
-              <Image source={{ uri: selectedImage }} style={styles.avatarImage} />
+            {isUploading ? (
+              <ActivityIndicator size="large" color="#C539A5" />
+            ) : selectedImage ? (
+              <Image
+                source={{ uri: selectedImage }}
+                style={styles.avatarImage}
+              />
             ) : (
               <Text style={styles.avatarText}>{initials}</Text>
             )}
           </View>
         </TouchableOpacity>
-        <TouchableOpacity 
-          onPress={pickImage} 
-          activeOpacity={0.8} 
+
+        <TouchableOpacity
+          onPress={pickImage}
+          activeOpacity={0.8}
           style={styles.cameraBadge}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -129,6 +203,7 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
           </View>
         </TouchableOpacity>
       </View>
+
       <Text style={styles.nameText}>{displayName}</Text>
     </View>
   );
@@ -154,10 +229,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#fff',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
@@ -187,10 +259,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#fff',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.25,
     shadowRadius: 2,
     elevation: 3,

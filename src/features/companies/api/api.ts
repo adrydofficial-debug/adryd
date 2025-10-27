@@ -10,6 +10,8 @@ import { mapCompany, mapCompanyCategoryGroups } from '../domain/mappers';
 import {
   CompanyCategoryGroupsResponse,
   CompanyResponse,
+  CompanyUploadInfo,
+  CreateCompanyResponse,
 } from './types/responses';
 
 /* -------------------------------------------------------------------------- */
@@ -32,12 +34,22 @@ export const companiesApi = {
   },
 
   /** Create a new company */
-  async createCompany(data: Partial<Company>): Promise<Company> {
-    const response = await apiClient.post<CompanyResponse>(
+  async createCompany(
+    data: Partial<Company>,
+  ): Promise<{ company: Company; upload: CompanyUploadInfo }> {
+    const response = await apiClient.post<CreateCompanyResponse>(
       '/api/companies',
       data,
     );
-    return mapCompany(response.data);
+
+    console.log('📦 Raw createCompany response:', response.data);
+    console.log('🏢 Company:', response.data.company);
+    console.log('🪣 Upload info:', response.data.upload);
+
+    return {
+      company: mapCompany(response.data.company),
+      upload: response.data.upload,
+    };
   },
 
   /** Update an existing company */

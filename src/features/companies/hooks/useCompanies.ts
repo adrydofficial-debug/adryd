@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { uploadToSignedUrl } from '../../../services/uploadFile';
 import { companiesApi, companyCategoriesApi } from '../api/api';
 import {
   Company,
@@ -28,11 +29,33 @@ export function useCompany(id?: number) {
 /* -------------------------------------------------------------------------- */
 /* 🔧 MUTATIONS (CREATE / UPDATE / DELETE)                                    */
 /* -------------------------------------------------------------------------- */
-
 export function useCreateCompany() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: companiesApi.createCompany,
+
+  return useMutation<
+    Company,
+    Error,
+    {
+      data: Partial<Company>;
+      file?: { uri: string; type: string; name: string }; // ✅ React Native–style file object
+    }
+  >({
+    mutationFn: async ({ data, file }) => {
+      // 1️⃣ Create the company
+      const { company, upload } = await companiesApi.createCompany(data);
+
+      // 2️⃣ Upload the logo if provided
+      if (file) {
+        await uploadToSignedUrl(upload.uploadUrl, {
+          uri: file.uri,
+          type: file.type,
+          name: file.name,
+        });
+      }
+
+      // 3️⃣ Return the created company
+      return company;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
     },

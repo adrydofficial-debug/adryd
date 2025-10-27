@@ -41,6 +41,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
   required = false,
   maxHeight = 300,
 }) => {
+  const [focused, setFocused] = React.useState(false);
   // Build a derived list with grouped options
   const dataWithGroups: DropdownOption[] = React.useMemo(() => {
     if (!Array.isArray(options) || options.length === 0) return [];
@@ -105,7 +106,12 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
       </Text>
       
       <Dropdown
-        style={[styles.dropdown, error && styles.errorDropdown, disabled && styles.disabledDropdown]}
+        style={[
+          styles.dropdown,
+          error && styles.errorDropdown,
+          disabled && styles.disabledDropdown,
+          focused && styles.dropdownFocused,
+        ]}
         placeholderStyle={styles.placeholderStyle}
         selectedTextStyle={styles.selectedTextStyle}
         iconStyle={styles.iconStyle}
@@ -121,6 +127,8 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
           if (item.group === 'separator' || item.group === 'header') return;
           onSelect(item.value);
         }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         renderItem={(item: DropdownOption) => {
           if (item.group === 'separator') {
             return <View style={styles.separatorLine} />;
@@ -171,12 +179,16 @@ const styles = StyleSheet.create({
     color: '#ff4444',
   },
   dropdown: {
-    height: 50,
+    height: 48,
     backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 15,
+    borderRadius: 12,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e2d1d1',
+  },
+  dropdownFocused: {
+    borderColor: '#C539A5',
+    borderWidth: 2,
   },
   errorDropdown: {
     borderColor: '#ff4444',
@@ -186,11 +198,11 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
   },
   placeholderStyle: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#999',
   },
   selectedTextStyle: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#333',
   },
   iconStyle: {

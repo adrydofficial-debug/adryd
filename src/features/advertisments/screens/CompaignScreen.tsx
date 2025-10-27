@@ -14,6 +14,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import CardStatus, { CardStatusProps } from '../../../components/CardStatus';
 import BottomTab from '../../../app/navigation/BottomTab';
 import { useAdvertisements } from '../hooks/useAdvertisements';
+import CampaignTabs, { CampaignTab } from '../components/CampaignTabs';
+import { AdvertisementStatus } from '../domain/entities';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -29,6 +31,9 @@ interface AdDetails {
   statusDot?: string;
   reviewTime?: string;
   reviewStatus?: string;
+  name?: string;
+  days?: string;
+  category?: string;
 }
 
 interface PaymentInfo {
@@ -77,15 +82,68 @@ interface ActiveCampaignProps {
 const CampaignScreen: React.FC<ActiveCampaignProps> = ({ navigation }) => {
   const [expandedCard, setExpandedCard] = useState<number | null>(1);
   const [activeBottomTab, setActiveBottomTab] = useState<string>('Boards');
+  const [activeTab, setActiveTab] = useState<string>('all');
   
   // Use the existing advertisements hook
-  const { advertisements, loading, error, refetch } = useAdvertisements();
+  const { advertisements, loading, error, refetch, filterByStatus } = useAdvertisements();
   
   
   const handleBottomTabPress = (tabName: string) => {
     console.log('Bottom tab pressed:', tabName);
     setActiveBottomTab(tabName);
   };
+
+  // Handle campaign tab press
+  const handleCampaignTabPress = (tabId: string) => {
+    setActiveTab(tabId);
+    
+    // Filter advertisements based on selected tab
+    if (tabId === 'all') {
+      filterByStatus(undefined); // Show all
+    } else {
+      filterByStatus(tabId as AdvertisementStatus);
+    }
+  };
+
+  // Create tabs configuration
+  const tabs: CampaignTab[] = useMemo(() => {
+    const statusCounts = advertisements.reduce((acc, ad) => {
+      acc[ad.status] = (acc[ad.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return [
+      {
+        id: 'all',
+        label: 'All',
+        count: advertisements.length,
+      },
+      {
+        id: AdvertisementStatus.DRAFT,
+        label: 'Draft',
+        status: AdvertisementStatus.DRAFT,
+        count: statusCounts[AdvertisementStatus.DRAFT] || 0,
+      },
+      {
+        id: AdvertisementStatus.PAYMENT_PENDING,
+        label: 'Payment',
+        status: AdvertisementStatus.PAYMENT_PENDING,
+        count: statusCounts[AdvertisementStatus.PAYMENT_PENDING] || 0,
+      },
+      {
+        id: AdvertisementStatus.UNDER_REVIEW,
+        label: 'Review',
+        status: AdvertisementStatus.UNDER_REVIEW,
+        count: statusCounts[AdvertisementStatus.UNDER_REVIEW] || 0,
+      },
+      {
+        id: AdvertisementStatus.PUBLISHED,
+        label: 'Active',
+        status: AdvertisementStatus.PUBLISHED,
+        count: statusCounts[AdvertisementStatus.PUBLISHED] || 0,
+      },
+    ];
+  }, [advertisements]);
   
   // Map API status to UI status based on the correct flow
   const mapStatusToUI = (status: string) => {
@@ -322,15 +380,15 @@ const CampaignScreen: React.FC<ActiveCampaignProps> = ({ navigation }) => {
                  <View style={styles.detailsBox}>
                    <View style={styles.detailItem}>
                      <Ionicons name="document-text" size={wp(4)} color={item.statusColor} />
-                     <Text style={[styles.detailText, { color: item.statusColor }]}>Name: {item.details.name}</Text>
+                     <Text style={[styles.detailText, { color: item.statusColor }]}>Name: {item.details?.name}</Text>
                    </View>
                    <View style={styles.detailItem}>
                      <Ionicons name="checkmark-circle" size={wp(4)} color={item.statusColor} />
-                     <Text style={[styles.detailText, { color: item.statusColor }]}>How many days: {item.details.days}</Text>
+                     <Text style={[styles.detailText, { color: item.statusColor }]}>How many days: {item.details?.days}</Text>
                    </View>
                    <View style={styles.detailItem}>
                      <Ionicons name="checkmark-circle" size={wp(4)} color={item.statusColor} />
-                     <Text style={[styles.detailText, { color: item.statusColor }]}>Category: {item.details.category}</Text>
+                     <Text style={[styles.detailText, { color: item.statusColor }]}>Category: {item.details?.category}</Text>
                    </View>
                    <View style={styles.detailItem}>
                      <Ionicons name="location" size={wp(4)} color={item.statusColor} />
@@ -377,6 +435,12 @@ const CampaignScreen: React.FC<ActiveCampaignProps> = ({ navigation }) => {
         <View style={styles.headerSpacer} />
       </View>
 
+      {/* Campaign Tabs */}
+      <CampaignTabs
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabPress={handleCampaignTabPress}
+      />
 
         <ScrollView style={styles.cardsContainer} showsVerticalScrollIndicator={false} contentContainerStyle={styles.cardsContent}>
          {/* Loading State */}

@@ -18,7 +18,7 @@ export const fetchBoardFilters = () =>
 // 🔍 Get filtered boards (paginated)
 export const fetchFilteredBoards = (params: FilterBoardsParams) =>
   apiClient
-    .get<FilteredBoardsResponse>('api/boards/filter', { params })
+    .post<FilteredBoardsResponse>('api/boards/filter', params) // <-- changed from .get to .post
     .then(res => res.data);
 
 // ⭐ Rate a board
@@ -48,7 +48,9 @@ export const toggleFavorite = (boardId: number) =>
 // 💖 Get favorites
 export const fetchFavorites = (page = 1, limit = 10) =>
   apiClient
-    .get<FavoritesResponse>('/api/boards/favorites', { params: { page, limit } })
+    .get<FavoritesResponse>('/api/boards/favorites', {
+      params: { page, limit },
+    })
     .then(res => res.data);
 
 // 🔍 Check if board is favorite

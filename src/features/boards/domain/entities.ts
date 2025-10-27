@@ -22,7 +22,13 @@ export interface BoardCategoryGroup {
   categories: Category[];
 }
 
+export interface FilterMeta {
+  name: string;
+  slug: string;
+}
+
 export interface Filters {
+  filters: FilterMeta[];
   groups: BoardCategoryGroup[];
   recommended: Board[];
   nearest: Board[];

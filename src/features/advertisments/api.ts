@@ -16,52 +16,16 @@ import {
   ChangeStatusResponse,
   ApiResponse,
 } from './types/response';
+import apiClient from '../../services/apiClient';
 
-// Base API URL - Update this with your actual API base URL
-const BASE_URL = 'https://adryd-backend-production.up.railway.app/api/advertisements';
-
-// Helper function to get auth token
-const getAuthToken = (): string | null => {
-  // Implement your token retrieval logic here
-  // This could be from AsyncStorage, Redux store, etc.
-  return localStorage.getItem('authToken') || null;
-};
-
-// Helper function to make API requests
-const apiRequest = async <T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> => {
-  const token = getAuthToken();
-  
-  const config: RequestInit = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
-    ...options,
-  };
-
-  try {
-    const response = await fetch(`${BASE_URL}${endpoint}`, config);
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('API request failed:', error);
-    throw error;
-  }
-};
+// Base API URL - advertisements root (onrender)
+const BASE_URL = '/api/advertisements';
 
 // Get all advertisements for the logged-in user
 export const getAdvertisements = async (
   params: AdvertisementQueryParams = {}
 ): Promise<AdvertisementListResponse> => {
+  console.log('getAdvertisements - params:', params);
   const queryParams = new URLSearchParams();
   
   if (params.page) queryParams.append('page', params.page.toString());
@@ -69,24 +33,70 @@ export const getAdvertisements = async (
   if (params.status) queryParams.append('status', params.status);
   
   const queryString = queryParams.toString();
-  const endpoint = queryString ? `?${queryString}` : '';
+  const endpoint = queryString ? `${BASE_URL}?${queryString}` : BASE_URL;
+  console.log('getAdvertisements - endpoint:', endpoint);
   
-  return apiRequest<AdvertisementListResponse>(endpoint);
+  const response = await apiClient.get<AdvertisementListResponse>(endpoint);
+  console.log('getAdvertisements - response:', {
+    total: response.data?.total,
+    page: response.data?.page,
+    limit: response.data?.limit,
+    dataCount: Array.isArray(response.data?.data) ? response.data.data.length : 0,
+  });
+  return response.data;
 };
 
 // Get a single advertisement by ID
 export const getAdvertisementById = async (id: number): Promise<AdvertisementResponse> => {
-  return apiRequest<AdvertisementResponse>(`/${id}`);
+  console.log('getAdvertisementById - id:', id, 'endpoint:', `${BASE_URL}/${id}`);
+  const response = await apiClient.get<AdvertisementResponse>(`${BASE_URL}/${id}`);
+  console.log('getAdvertisementById - response keys:', {
+    hasData: !!response.data?.data,
+    dataId: response.data?.data?.id,
+    boardId: response.data?.data?.board?.id,
+    companyId: response.data?.data?.company?.id,
+    bookingsCount: Array.isArray(response.data?.data?.bookings) ? response.data.data.bookings.length : 0,
+  });
+  return response.data;
 };
 
-// Create a new advertisement
+// Create a new advertisement (POST method)
 export const createAdvertisement = async (
   data: CreateAdvertisementRequest
 ): Promise<CreateAdvertisementResponse> => {
-  return apiRequest<CreateAdvertisementResponse>('', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+  console.log('createAdvertisement - data:', data);
+  console.log('createAdvertisement - endpoint:', BASE_URL);
+  
+  try {
+    const response = await apiClient.post<CreateAdvertisementResponse>(BASE_URL, data);
+    console.log('createAdvertisement - response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('createAdvertisement - error:', error);
+    throw error;
+  }
+};
+
+// Create a new advertisement (POST method with JSON body)
+export const createAdvertisementPost = async (
+  data: CreateAdvertisementRequest
+): Promise<CreateAdvertisementResponse> => {
+  console.group('📦 [createAdvertisementPost] Sending new advertisement');
+  console.log('Request payload:', data);
+
+  try {
+    const response = await apiClient.post<CreateAdvertisementResponse>(BASE_URL, data);
+    console.log('✅ Server response:', response.data);
+    console.groupEnd();
+    return response.data;
+  } catch (error) {
+    console.error('❌ Request failed:', error);
+    if ((error as any)?.response) {
+      console.error('Server said:', (error as any).response);
+    }
+    console.groupEnd();
+    throw error;
+  }
 };
 
 // Update an advertisement
@@ -94,17 +104,14 @@ export const updateAdvertisement = async (
   id: number,
   data: UpdateAdvertisementRequest
 ): Promise<UpdateAdvertisementResponse> => {
-  return apiRequest<UpdateAdvertisementResponse>(`/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  });
+  const response = await apiClient.put<UpdateAdvertisementResponse>(`${BASE_URL}/${id}`, data);
+  return response.data;
 };
 
 // Delete an advertisement
 export const deleteAdvertisement = async (id: number): Promise<DeleteAdvertisementResponse> => {
-  return apiRequest<DeleteAdvertisementResponse>(`/${id}`, {
-    method: 'DELETE',
-  });
+  const response = await apiClient.delete<DeleteAdvertisementResponse>(`${BASE_URL}/${id}`);
+  return response.data;
 };
 
 // Change advertisement status
@@ -112,10 +119,8 @@ export const changeAdvertisementStatus = async (
   id: number,
   data: ChangeStatusRequest
 ): Promise<ChangeStatusResponse> => {
-  return apiRequest<ChangeStatusResponse>(`/${id}/status`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
+  const response = await apiClient.post<ChangeStatusResponse>(`${BASE_URL}/${id}/status`, data);
+  return response.data;
 };
 
 // Convenience methods for common status changes
