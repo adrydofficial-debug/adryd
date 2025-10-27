@@ -316,6 +316,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   {/* Category header - shown only once */}
                   <View style={styles.categoryHeader}>
                     <Text style={styles.categoryTitle}>{category.name}</Text>
+                    <TouchableOpacity onPress={() => {
+                      // Handle see all for this category
+                      console.log('See all for category:', category.name);
+                    }}>
+                      <Text style={styles.seeAllText}>See All</Text>
+                    </TouchableOpacity>
                   </View>
 
                   {/* Groups within this category */}
@@ -324,8 +330,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                       key={`${category.slug}-${group.slug}`}
                       data={group.boards.map(convertBoardToBoardItem)}
                       onPressDetail={handleDetailPress}
-                      heading={group.name}
-                      subHeading={group.description}
                       navigation={navigation}
                     />
                   ))}
@@ -581,6 +585,9 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 10,
     marginTop: 15,
@@ -589,6 +596,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: '#0f0e0fff',
+    fontWeight: '600',
   },
 });
 export default HomeScreen;

@@ -21,10 +21,10 @@ import { useAuthStore } from '../../../store/authStore';
 import { useQueryClient } from '@tanstack/react-query';
 // Image assets (placeholder)
 const placeholder = require('../../../assets/images/bannerBg.png');
-import Upload from '../../../assets/images/EditSquare.svg';
+import Upload from '../../../assets/images/Upload.svg';
 import Location from '../../../assets/images/location-pinkSVG.svg';
 // import Line from '../../assets/icons/line.svg';
-import Heart from '../../../assets/images/EditSquare.svg';
+import Heart from '../../../assets/images/Heart.svg';
 import BackButton from '../../../components/BackButton';
 // Removed typed RootStack import to avoid cross-module typing dependency
 
@@ -197,7 +197,7 @@ const SingleBoardDetail: React.FC = () => {
         return updated;
       });
 
-      Alert.alert('Success', 'Rating submitted successfully!');
+      // Alert.alert('Success', 'Rating submitted successfully!');
       closeRatingModal();
     } catch (error) {
       console.error('Error submitting rating:', error);
@@ -252,7 +252,7 @@ const SingleBoardDetail: React.FC = () => {
             <Upload width={width * 0.05} height={height * 0.03} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.heartBorder}>
-            <Heart width={width * 0.08} height={height * 0.017} />
+            <Heart width={width * 0.09} height={height * 0.03} />
           </TouchableOpacity>
         </View>
       </View>
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   head: {
-    top: height * 0.011,
+    top:45,
     right: width * 0.06,
     position: 'absolute',
     flexDirection: 'row',
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   backbutton: {
-    top: 15,
+    top: 45,
     left: 10,
     position: 'absolute',
   },

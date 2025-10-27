@@ -55,6 +55,7 @@ const CardStatus: React.FC<CardStatusProps> = ({
   const isReview = status === 'Review';
   const isBlocked = status === 'Blocked';
   const isRecentHistory = status === 'Recent History';
+  const isDraft = status === 'Draft';
 
   const renderCampaignCard = () => (
     <View style={[
@@ -63,6 +64,7 @@ const CardStatus: React.FC<CardStatusProps> = ({
       isReview && styles.reviewCard,
       isBlocked && styles.blockedCard,
       isRecentHistory && styles.recentHistoryCard,
+      isDraft && styles.draftCard,
     ]}>
       <View style={styles.cardHeader}>
         <View style={styles.cardContent}>
@@ -281,6 +283,10 @@ const styles = StyleSheet.create({
   recentHistoryCard: {
     backgroundColor: '#F5F5F5',
     borderColor: '#9E9E9E',
+  },
+  draftCard: {
+    backgroundColor: '#F0F9EE',
+    borderColor: '#23AF11',
   },
   cardHeader: {
     flexDirection: 'row',

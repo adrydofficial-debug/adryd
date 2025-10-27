@@ -7,8 +7,22 @@ import {
   Text,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import Svg, { Path } from 'react-native-svg';
+import { SvgXml } from 'react-native-svg';
+
+// Import SVG files directly
+import HomeIcon from '../../assets/images/pinkHome.svg';
+import GrayHomeIcon from '../../assets/images/grayHome.svg';
+import GrayActive from '../../assets/images/grayActive.svg';
+import PinkGray from '../../assets/images/pinkActive.svg';
+import BoardsIcon from '../../assets/images/Companys.svg';
+import AddIcon from '../../assets/images/add.svg';
+import ChatIcon from '../../assets/images/Chat.svg';
+import GrayChatIcon from '../../assets/images/grayNotify.svg';
+import PinkMsg from '../../assets/images/PinkMsg.svg';
+import GrayMsg from '../../assets/images/GrayMsg.svg';
+import ProfileIcon from '../../assets/images/pinkProfile.svg';
+import GrayProfileIcon from '../../assets/images/grayProfile.svg';
 import HomeScreen from '../../features/boards/screens/HomeScreen';
 import CompaignScreen from '../../features/advertisments/screens/CompaignScreen';
 import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen';
@@ -21,6 +35,7 @@ type TabName = 'Home' | 'Boards' | 'Add' | 'Chat' | 'Profile';
 interface BottomTabProps {
   // Remove activeTab and onTabPress since we'll manage state internally
 }
+
 
 const BottomTab: React.FC<BottomTabProps> = () => {
   const navigation = useNavigation();
@@ -39,7 +54,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
         break;
       case 'Add':
         // Navigate to advertisement creation (this should navigate)
-        navigation.navigate('AdvertismentCreateScreen' as never);
+        navigation.navigate('CreateCompanyScreen' as never);
         // Reset to Home tab after navigation
         setActiveTab('Home');
         break;
@@ -72,16 +87,17 @@ const BottomTab: React.FC<BottomTabProps> = () => {
   };
 
   const tabs = [
-    { name: 'Home', icon: 'home-outline', activeIcon: 'home' },
-    { name: 'Boards', icon: 'list-outline', activeIcon: 'list' },
-    { name: 'Add', icon: 'add', activeIcon: 'add', isFAB: true },
-    { name: 'Chat', icon: 'chatbubbles-outline', activeIcon: 'chatbubbles' },
-    { name: 'Profile', icon: 'person-outline', activeIcon: 'person' },
+    { name: 'Home', icon: GrayHomeIcon, activeIcon: HomeIcon },
+    { name: 'Boards', icon: GrayActive, activeIcon: PinkGray },
+    { name: 'Add', icon: AddIcon, isFAB: true },
+    { name: 'Chat', icon: GrayMsg, activeIcon: PinkMsg },
+    { name: 'Profile', icon: GrayProfileIcon, activeIcon: ProfileIcon },
   ];
 
   const renderTab = (tab: any, index: number) => {
     const isActive = activeTab === tab.name;
     const isFAB = tab.isFAB;
+    const IconComponent = isActive ? tab.activeIcon : tab.icon;
 
     if (isFAB) {
       return (
@@ -91,11 +107,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
           onPress={() => handleTabPress(tab.name)}
           activeOpacity={0.8}
         >
-          <Ionicons
-            name={isActive ? tab.activeIcon : tab.icon}
-            size={24}
-            color="#FFFFFF"
-          />
+          <IconComponent width={24} height={24} />
         </TouchableOpacity>
       );
     }
@@ -107,11 +119,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
         onPress={() => handleTabPress(tab.name)}
         activeOpacity={0.7}
       >
-        <Ionicons
-          name={isActive ? tab.activeIcon : tab.icon}
-          size={22}
-          color={isActive ? '#C539A5' : '#9CA3AF'}
-        />
+        <IconComponent width={22} height={22} />
       </TouchableOpacity>
     );
   };
@@ -181,7 +189,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
   },
   content: {
     flex: 1,
@@ -192,26 +200,28 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 60,
+    height: 70,
     zIndex: 1000,
+  
   },
   curvedBar: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 0,
     left: 0,
     right: 0,
+    
   },
   navigationContent: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 60,
+    height: 70,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingTop: 0,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -247,7 +257,7 @@ const styles = StyleSheet.create({
   },
   fabButton: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 25,
     left: width / 2 - 30,
     width: 60,
     height: 60,

@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     paddingHorizontal: width * 0.05,
-    paddingBottom: height * 0.05,
+    paddingBottom: height * 0.06,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -37,7 +37,7 @@ export type AppStackParamList = {
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const AppNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    {/* <Stack.Screen name="BottomTab" component={BottomTab} /> */}
+    <Stack.Screen name="BottomTab" component={BottomTab} />
     <Stack.Screen name="AdvertismentCreateScreen" component={AdvertismentCreateScreen} />
     <Stack.Screen name="CampaignUploadFiles" component={CampaignUploadFiles} />
     <Stack.Screen name="CreateCompanyScreen" component={CreateCompanyScreen} />
