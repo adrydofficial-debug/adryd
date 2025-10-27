@@ -216,7 +216,7 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
           Error: {error.message || 'Something went wrong'}
         </Text>
       ) : data.length === 0 ? (
-        <View style={{ padding: 20, alignItems: 'center' }}>
+        <View style={{ padding: 0, alignItems: 'center' }}>
           <Text style={{ fontSize: 16, color: '#666', marginBottom: 8 }}>
             {debouncedSearchQuery 
               ? `No results found for "${debouncedSearchQuery}"` 
@@ -230,14 +230,16 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
           )}
         </View>
       ) : (
+        <View style={styles.boardSection}>
         <BoardList
           data={data}
           onPressDetail={handleDetailPress}
-          heading={selectedTab?.label || 'Boards'}
-          subHeading={`${data.length} boards found`}
+          // heading={selectedTab?.label || 'Boards'}
+          // subHeading={`${data.length} boards found`}
           navigation={navigation}
           numColumns={2}
         />
+        </View>
       )}
     </View>
   );
@@ -291,13 +293,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: {
     width,
-    height: height * 0.28,
+     height: height * 0.26,
     // paddingTop: height * 0.04,
     // paddingHorizontal: width * 0.05,
-    marginBottom: 35,
+    // marginBottom: 35,
   },
   mainView:{
     paddingHorizontal: width * 0.04,
+  },
+  boardSection:{
+    position: 'absolute',
+    bottom: -height * 0.02,
   },
   searchRow: {
     flexDirection: 'row',
@@ -335,7 +341,7 @@ const styles = StyleSheet.create({
   filterIcon: { width: 20, height: 20 },
   boardSection: { 
     marginTop: height * 0.02, 
-    marginBottom: 10,
+    // marginBottom: 10,
     marginLeft: -10, // Adjusted to account for 15px padding
   },
 });

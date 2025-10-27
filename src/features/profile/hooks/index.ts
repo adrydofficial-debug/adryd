@@ -2,7 +2,8 @@ export {
   useProfile,
   useUpdateProfile,
   useUpdateUsername,
+  useUploadProfileAvatar,
   validateUsername,
-  type UserProfile,
   type UpdateProfileData,
+  type UserProfile,
 } from './useProfile';
