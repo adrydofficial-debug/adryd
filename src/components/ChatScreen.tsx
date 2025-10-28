@@ -13,43 +13,10 @@ import {
 } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from "react-native-vector-icons/Ionicons";
-import axios from "axios";
-import io from 'socket.io-client';
+import apiClient from '../services/apiClient';
+import { useAuthStore } from '../store/authStore';
+import { supabase } from '../services/supabase';
 
-/**
- * ChatScreen Component with Socket.IO Integration
- * 
- * Features:
- * - Real-time AI message updates via Socket.IO
- * - Chat history loading
- * - Typing indicators
- * - Message seen status
- * - Connection status display
- * - Error handling for AI failures
- */
-
-// API Configuration
-// Update these URLs based on your backend server location
-// Alternative configurations for different environments:
-// For local development: "http://localhost:3000" or "http://127.0.0.1:3000"
-// For production: "https://your-domain.com"
-// For Android emulator: "http://10.0.2.2:3000"
-// For iOS simulator: "http://localhost:3000"
-
-// Helper function to get the correct API URL based on platform
-const getApiUrl = () => {
-  if (__DEV__) {
-
-    return "http://192.168.18.110:3000";
-  } else {
-    // Production mode
-    return "https://your-production-domain.com";
-  }
-};
-
-const API_URL = getApiUrl();
-const SOCKET_URL = getApiUrl();
-const USER_ID = "test-user-123";  // Replace with actual user ID
 
 interface Message {
   id: string;
@@ -63,282 +30,284 @@ interface Message {
 
 const ChatScreen: React.FC = () => {
   const navigation = useNavigation();
-  const [socket, setSocket] = useState<any>(null);
+  const { user } = useAuthStore();
+  const userId = user?.id;
+  
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [currentChatId, setCurrentChatId] = useState<number | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const typingTimeoutRef = useRef<number | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const realtimeChannelRef = useRef<any>(null);
 
-  // Initialize socket connection and load chat history
-  useEffect(() => {
-    console.log('🔧 Initializing Socket.IO connection to:', SOCKET_URL);
+  // Setup Supabase Realtime listener
+  const setupRealtimeListener = useCallback((chatId: number | null) => {
+    if (!chatId) return;
     
-    // Initialize socket connection with better configuration
-    const newSocket = io(SOCKET_URL, {
-      transports: ['polling'], // Use polling for better mobile compatibility
-      timeout: 30000, // Increased timeout for mobile networks
-      reconnection: true,
-      reconnectionAttempts: 10, // More attempts for mobile
-      reconnectionDelay: 2000, // Longer delay between attempts
-      reconnectionDelayMax: 10000, // Max delay
-      forceNew: true,
-      autoConnect: true,
-      upgrade: true, // Allow upgrade to websocket if available
-      rememberUpgrade: true,
-    });
+    // Clean up existing channel
+    if (realtimeChannelRef.current) {
+      realtimeChannelRef.current.unsubscribe();
+    }
+
+    // Create a channel for this specific chat
+    const channel = supabase
+      .channel(`chat:${chatId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `chat_id=eq.${chatId}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new;
+            
+            setMessages(prev => {
+              // Check if message already exists (to prevent duplicates)
+              const exists = prev.some(msg => msg.messageId === newMessage.id);
+              if (exists) return prev;
+              
+              // Determine if this is a user message or AI message
+              const isUserMessage = newMessage.sender_id === userId || (!newMessage.is_ai_generated && newMessage.sender_id !== 'adryd-bot');
+              
+              // If this is an AI message, try to replace the most recent loading indicator
+              if (!isUserMessage) {
+                const newMessageObj = {
+                  id: newMessage.id.toString(),
+                  text: newMessage.content || '',
+                  isUser: false,
+                  timestamp: new Date(newMessage.created_at),
+                  isLoading: newMessage.ai_status === 'pending' || newMessage.ai_status === 'processing',
+                  aiStatus: newMessage.ai_status,
+                  messageId: newMessage.id,
+                };
+                
+                // Find and replace the last loading message
+                let foundLoading = false;
+                const updatedMessages = prev.map((msg, index) => {
+                  if (!foundLoading && msg.isLoading && !msg.isUser && index === prev.length - 1) {
+                    const lastLoadingIndex = prev.map((m, i) => ({ m, i }))
+                      .filter(({ m }) => m.isLoading && !m.isUser)
+                      .map(({ i }) => i)
+                      .pop();
+                    
+                    if (lastLoadingIndex === index || lastLoadingIndex === undefined) {
+                      foundLoading = true;
+                      return newMessageObj;
+                    }
+                  }
+                  return msg;
+                });
+                
+                return foundLoading ? updatedMessages : [...prev, newMessageObj];
+              }
+              
+              // Add new user message to the end of the list
+              return [...prev, {
+                id: newMessage.id.toString(),
+                text: newMessage.content,
+                isUser: true,
+                timestamp: new Date(newMessage.created_at),
+                isLoading: false,
+                aiStatus: newMessage.ai_status,
+                messageId: newMessage.id,
+              }];
+            });
+            
+            // Scroll to bottom when new message arrives
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedMessage = payload.new;
+            
+            setMessages(prev => {
+              const updated = prev.map(msg => {
+                if (msg.messageId === updatedMessage.id) {
+                  return {
+                    ...msg,
+                    text: updatedMessage.content || msg.text,
+                    isLoading: updatedMessage.ai_status === 'pending' || updatedMessage.ai_status === 'processing',
+                    aiStatus: updatedMessage.ai_status,
+                  };
+                }
+                return msg;
+              });
+              
+              // If this update completes an AI message, remove loading indicator
+              if (updatedMessage.ai_status === 'completed' && updatedMessage.content) {
+                const hasLoading = updated.some(m => m.isLoading);
+                if (hasLoading) {
+                  return updated.filter(m => !m.isLoading || m.messageId);
+                }
+              }
+              
+              return updated;
+            });
+            
+            // Scroll to bottom when message is updated
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+          }
+        }
+      )
+      .subscribe();
+
+    realtimeChannelRef.current = channel;
+  }, [userId]);
+
+  // Poll for AI message as fallback if Realtime doesn't work
+  const pollForAIMessage = useCallback((chatId: number | null, maxAttempts = 15) => {
+    if (!chatId) return;
     
-    setSocket(newSocket);
-
-    // Socket connection events
-    newSocket.on('connect', () => {
-      console.log('✅ Connected to server');
-      setIsConnected(true);
-      setConnectionError(null);
-      setIsOfflineMode(false);
-      // Join user room
-      newSocket.emit('join_user_room', USER_ID);
-    });
-
-    newSocket.on('disconnect', (reason) => {
-      console.log('❌ Disconnected from server:', reason);
-      setIsConnected(false);
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error('❌ Socket connection error:', error);
-      setIsConnected(false);
-      setConnectionError(error.message || 'Connection failed');
+    let attempts = 0;
+    const pollInterval = setInterval(async () => {
+      attempts++;
       
-      // Show user-friendly error message
-      setMessages(prev => {
-        const errorMessage = {
-          id: `connection-error-${Date.now()}`,
-          text: "⚠️ Unable to connect to chat server. Please check your internet connection and try again.",
-          isUser: false,
-          timestamp: new Date(),
-          aiStatus: 'failed' as const,
-        };
-        
-        // Only add error message if it doesn't already exist
-        const hasError = prev.some(msg => msg.id.includes('connection-error'));
-        return hasError ? prev : [errorMessage, ...prev];
-      });
-    });
-
-    newSocket.on('reconnect', (attemptNumber) => {
-      console.log('🔄 Reconnected after', attemptNumber, 'attempts');
-      setIsConnected(true);
-      setConnectionError(null);
-      setIsOfflineMode(false);
-    });
-
-    newSocket.on('reconnect_error', (error) => {
-      console.error('❌ Reconnection failed:', error);
-      setIsConnected(false);
-    });
-
-    newSocket.on('reconnect_failed', () => {
-      console.error('❌ All reconnection attempts failed');
-      setIsConnected(false);
-      setIsOfflineMode(true);
-    });
-
-    // Listen for AI message updates
-    newSocket.on('ai_message_ready', (data) => {
-      setMessages(prev => prev.map(msg => 
-        msg.messageId === data.messageId 
-          ? { ...msg, text: data.content, isLoading: false, aiStatus: 'completed' }
-          : msg
-      ));
-    });
-
-    // Listen for AI message errors
-    newSocket.on('ai_message_error', (data) => {
-      setMessages(prev => prev.map(msg => 
-        msg.messageId === data.messageId 
-          ? { ...msg, text: 'Sorry, I encountered an error.', isLoading: false, aiStatus: 'failed' }
-          : msg
-      ));
-    });
-
-    // Listen for typing indicators
-    newSocket.on('user_typing', (data) => {
-      if (data.userId !== USER_ID) {
-        setIsTyping(true);
+      try {
+        const response = await apiClient.get(`/api/chat/messages`);
+        if (response.data.success && response.data.data?.messages) {
+          const messages = response.data.data.messages;
+          // Find the latest AI message that we don't have yet
+          const latestAIMessage = messages
+            .filter((msg: any) => msg.is_ai_generated && msg.sender_id === 'adryd-bot')
+            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+          
+          if (latestAIMessage) {
+            setMessages(prev => {
+              const exists = prev.some(msg => msg.messageId === latestAIMessage.id);
+              if (exists) {
+                clearInterval(pollInterval);
+                return prev;
+              }
+              
+              // Replace loading message with AI response
+              const updated = prev.map(msg => {
+                if (msg.isLoading && !msg.isUser) {
+                  return {
+                    id: latestAIMessage.id.toString(),
+                    text: latestAIMessage.content,
+                    isUser: false,
+                    timestamp: new Date(latestAIMessage.created_at),
+                    isLoading: false,
+                    aiStatus: latestAIMessage.ai_status,
+                    messageId: latestAIMessage.id,
+                  };
+                }
+                return msg;
+              }).filter(msg => !(msg.isLoading && !msg.messageId));
+              
+              if (updated.length !== prev.length || !prev.some(m => m.isLoading && !m.messageId)) {
+                clearInterval(pollInterval);
+                setTimeout(() => {
+                  flatListRef.current?.scrollToEnd({ animated: true });
+                }, 100);
+              }
+              
+              return updated;
+            });
+          }
+        }
+      } catch (error) {
+        // Silently handle polling errors
       }
-    });
-
-    newSocket.on('user_stopped_typing', (data) => {
-      if (data.userId !== USER_ID) {
-        setIsTyping(false);
+      
+      if (attempts >= maxAttempts) {
+        clearInterval(pollInterval);
       }
-    });
-
-    // Test connection and load chat history
-    const testAndLoad = async () => {
-      console.log('🔍 Testing backend connection before loading chat...');
-      const isBackendUp = await testBackendConnection();
-      if (isBackendUp) {
-        console.log('✅ Backend is up, loading chat history...');
-        loadChatHistory(newSocket);
-      } else {
-        console.log('❌ Backend is down, showing offline mode...');
-        setIsOfflineMode(true);
-        setConnectionError('Backend server is not responding');
-      }
-    };
+    }, 2000);
     
-    testAndLoad();
-
     return () => {
-      newSocket.close();
+      clearInterval(pollInterval);
     };
   }, []);
 
+  // Load chat history
+  const loadChatHistory = useCallback(async () => {
+    if (!userId) return;
+    
+    try {
+      const response = await apiClient.get('/api/chat/messages');
 
-// Replace your current loadChatHistory function with this:
-const loadChatHistory = useCallback(async (socketInstance?: any) => {
-  try {
-    console.log('📋 Loading chat history for user:', USER_ID);
-    const response = await axios.get(
-      `${API_URL}/api/chat/messages?user_id=${USER_ID}`,
-      { headers: { "Content-Type": "application/json" } }
-    );
-
-    console.log('🔍 Full API Response:', JSON.stringify(response.data, null, 2));
-    console.log('🔍 Chat Data:', response.data.data);
-    console.log('🔍 Messages Array:', response.data.data.messages);
-    console.log('🔍 Messages Length:', response.data.data.messages?.length);
-
-    if (response.data.success) {
-      const chatData = response.data.data;
-      
-      if (chatData && chatData.messages && chatData.messages.length > 0) {
-        console.log('📋 Found', chatData.messages.length, 'messages - Processing...');
-        setCurrentChatId(chatData.id);
+      if (response.data.success) {
+        const chatData = response.data.data;
         
-        if (socketInstance) {
-          socketInstance.emit('join_chat', chatData.id);
+        if (chatData && chatData.id) {
+          const chatId = chatData.id;
+          setCurrentChatId(chatId);
+          setupRealtimeListener(chatId);
+          
+          // Format and set messages if they exist
+          if (chatData.messages && chatData.messages.length > 0) {
+            const sortedMessages = [...chatData.messages].sort((a, b) => 
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+            
+            const formattedMessages = sortedMessages.map((msg: any) => ({
+              id: msg.id.toString(),
+              text: msg.content,
+              isUser: msg.sender_id === userId || !msg.is_ai_generated,
+              timestamp: new Date(msg.created_at),
+              isLoading: msg.ai_status === 'pending' || msg.ai_status === 'processing',
+              aiStatus: msg.ai_status,
+              messageId: msg.id,
+            }));
+
+            setMessages(formattedMessages);
+          } else {
+            setMessages([{
+              id: "welcome",
+              text: "Hello! 👋 Ask me anything about Adryd. I'm here to help!",
+              isUser: false,
+              timestamp: new Date(),
+            }]);
+          }
+        } else {
+          setMessages([{
+            id: "welcome",
+            text: "Hello! 👋 Ask me anything about Adryd. I'm here to help!",
+            isUser: false,
+            timestamp: new Date(),
+          }]);
         }
-
-        const formattedMessages = chatData.messages.map((msg: any) => ({
-          id: msg.id.toString(),
-          text: msg.content,
-          isUser: !msg.is_ai_generated,
-          timestamp: new Date(msg.created_at),
-          isLoading: msg.ai_status === 'pending' || msg.ai_status === 'processing',
-          aiStatus: msg.ai_status,
-          messageId: msg.id,
-        }));
-
-        console.log('📋 Formatted Messages:', formattedMessages);
-        setMessages(formattedMessages);
-        console.log('📋 Messages set in state');
-      } else {
-        console.log('📋 No messages found');
-        setMessages([{
-          id: "1",
-          text: "Hello! 👋 Ask me anything about Adryd. I'm here to help!",
-          isUser: false,
-          timestamp: new Date(),
-        }]);
       }
-    } else {
-      console.log('📋 API returned success: false');
+    } catch (error: any) {
       setMessages([{
-        id: "1",
+        id: "welcome",
         text: "Hello! 👋 Ask me anything about Adryd. I'm here to help!",
         isUser: false,
         timestamp: new Date(),
       }]);
     }
-  } catch (error) {
-    console.error('❌ Failed to load chat history:', error);
-    setMessages([{
-      id: "1",
-      text: "Hello! 👋 Ask me anything about Adryd. I'm here to help!",
-      isUser: false,
-      timestamp: new Date(),
-    }]);
-  }
-}, []);
+  }, [userId, setupRealtimeListener]);
 
-  // Test backend connection
-  const testBackendConnection = useCallback(async () => {
-    try {
-      console.log('🔍 Testing backend connection...');
-      const response = await axios.get(`${API_URL}/api/health`, { timeout: 5000 });
-      console.log('✅ Backend health check passed:', response.data);
-      return response.status === 200;
-    } catch (error) {
-      console.log('❌ Backend health check failed:', error instanceof Error ? error.message : 'Unknown error');
-      return false;
-    }
-  }, []);
-
-  // Manual retry connection function
-  const retryConnection = useCallback(async () => {
-    console.log('🔄 Manually retrying connection...');
-    
-    // Test backend first
-    const isBackendUp = await testBackendConnection();
-    if (!isBackendUp) {
-      setConnectionError('Backend server is not responding');
-      setIsOfflineMode(true);
-      return;
-    }
-
-    if (socket) {
-      socket.connect();
-    } else {
-      // Recreate socket if it doesn't exist
-      const newSocket = io(SOCKET_URL, {
-        transports: ['polling'],
-        timeout: 30000,
-        reconnection: true,
-        reconnectionAttempts: 10,
-        reconnectionDelay: 2000,
-        reconnectionDelayMax: 10000,
-        forceNew: true,
-        autoConnect: true,
-        upgrade: true,
-        rememberUpgrade: true,
-      });
-      setSocket(newSocket);
-    }
-  }, [socket, testBackendConnection]);
+  // Initialize on mount
+  useEffect(() => {
+    loadChatHistory();
+  }, [loadChatHistory]);
 
   const sendMessage = useCallback(async () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || !userId) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputText.trim(),
+    const userMessageText = inputText.trim();
+    setInputText("");
+
+    // Create temporary user message for optimistic UI update
+    const tempUserMessageId = `temp-${Date.now()}`;
+    const tempUserMessage: Message = {
+      id: tempUserMessageId,
+      text: userMessageText,
       isUser: true,
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [userMessage, ...prev]);
-    setInputText("");
-
-    // If offline mode, show offline message
-    if (isOfflineMode) {
-      const offlineMessage: Message = {
-        id: `${Date.now()}-offline`,
-        text: "📱 You're in offline mode. Messages will be sent when connection is restored.",
-        isUser: false,
-        timestamp: new Date(),
-        aiStatus: 'failed',
-      };
-      setMessages((prev) => [offlineMessage, ...prev]);
-      return;
-    }
-
+    // Add temporary user message and loading indicator
+    setMessages((prev) => [...prev, tempUserMessage]);
+    
     const loadingMessage: Message = {
       id: `${Date.now()}-loading`,
       text: "",
@@ -348,102 +317,85 @@ const loadChatHistory = useCallback(async (socketInstance?: any) => {
       aiStatus: 'pending',
     };
 
-    setMessages((prev) => [loadingMessage, ...prev]);
+    setMessages((prev) => [...prev, loadingMessage]);
 
     try {
-      const response = await axios.post(
-        `${API_URL}/api/chat/send`,
-        { 
-          content: userMessage.text,
-          user_id: USER_ID,
-          message_type: 'text',
-          chat_id: currentChatId
-        },
-        { 
-          headers: { "Content-Type": "application/json" },
-          timeout: 30000,
-        }
-      );
+      const response = await apiClient.post('/api/chat/send', { 
+        content: userMessageText,
+        message_type: 'text',
+        chat_id: currentChatId || undefined
+      });
 
       if (response.data.success) {
-        // Update loading message with the AI message ID from backend
-        const messageData = response.data.data;
-        setMessages(prev => prev.map(msg => 
-          msg.id === loadingMessage.id 
-            ? { ...msg, messageId: messageData.aiMessage.id, aiStatus: 'processing' }  // ✅ Use AI message ID
-            : msg
-        ));
+        const responseData = response.data.data;
         
-        // Update current chat ID if this is a new chat
-        if (!currentChatId && messageData.chat_id) {
-          setCurrentChatId(messageData.chat_id);
-          if (socket) {
-            socket.emit('join_chat', messageData.chat_id);
+        if (responseData.userMessage) {
+          const apiUserMessage = responseData.userMessage;
+          
+          // Replace temporary message with actual API response
+          setMessages(prev => prev.map(msg => 
+            msg.id === tempUserMessageId
+              ? {
+                  id: apiUserMessage.id.toString(),
+                  text: apiUserMessage.content,
+                  isUser: true,
+                  timestamp: new Date(apiUserMessage.created_at),
+                  messageId: apiUserMessage.id,
+                }
+              : msg
+          ));
+          
+          // Handle chat_id
+          let newChatId = currentChatId;
+          
+          if (apiUserMessage.chat_id) {
+            newChatId = apiUserMessage.chat_id;
+          } else if (responseData.chat_id) {
+            newChatId = responseData.chat_id;
+          }
+          
+          // Setup Realtime listener if we got a new chat_id
+          if (!currentChatId && newChatId) {
+            setCurrentChatId(newChatId);
+            setupRealtimeListener(newChatId);
+          } else if (currentChatId && !realtimeChannelRef.current) {
+            setupRealtimeListener(currentChatId);
+          }
+          
+          // Fallback: Poll for AI message if Realtime doesn't work
+          const chatIdForPolling = newChatId || currentChatId;
+          if (chatIdForPolling) {
+            setTimeout(() => {
+              pollForAIMessage(chatIdForPolling);
+            }, 2000);
           }
         }
       }
+    } catch (error: any) {
+      // Remove loading message and temporary user message on error
+      setMessages(prev => prev.filter(msg => 
+        msg.id !== tempUserMessageId && 
+        msg.id !== loadingMessage.id && 
+        !msg.isLoading
+      ));
       
-    } catch (error) {
       const errorMessage: Message = {
         id: `${Date.now()}-error`,
-        text: "Sorry, I'm having trouble connecting. Please try again.",
+        text: error?.response?.data?.message || "Sorry, I'm having trouble connecting. Please try again.",
         isUser: false,
         timestamp: new Date(),
         aiStatus: 'failed',
       };
-      setMessages((prev) => [errorMessage, ...prev.filter((m) => !m.isLoading)]);
-      console.error("API Error:", error);
-      
-      // Switch to offline mode if connection fails
-      setIsOfflineMode(true);
-      setConnectionError('Connection failed');
+      setMessages((prev) => [...prev, errorMessage]);
     }
-  }, [inputText, currentChatId, socket, isOfflineMode]);
+  }, [inputText, currentChatId, userId, setupRealtimeListener, pollForAIMessage]);
 
-  // Typing indicators
-  const handleTypingStart = useCallback(() => {
-    if (socket && currentChatId) {
-      socket.emit('typing_start', { 
-        chatId: currentChatId, 
-        userId: USER_ID 
-      });
-    }
-  }, [socket, currentChatId]);
-
-  const handleTypingStop = useCallback(() => {
-    if (socket && currentChatId) {
-      socket.emit('typing_stop', { 
-        chatId: currentChatId, 
-        userId: USER_ID 
-      });
-    }
-  }, [socket, currentChatId]);
-
-  // Mark messages as seen
-  const markMessagesAsSeen = useCallback(async () => {
-    if (currentChatId) {
-      try {
-        await axios.post(
-          `${API_URL}/api/chat/mark-seen`,
-          { 
-            chat_id: currentChatId,
-            user_id: USER_ID
-          }
-        );
-      } catch (error) {
-        console.error('Failed to mark messages as seen:', error);
-      }
-    }
-  }, [currentChatId]);
-
-  // Mark messages as seen when component mounts
-  useEffect(() => {
-    markMessagesAsSeen();
-  }, [markMessagesAsSeen]);
-
-  // Cleanup typing timeout on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (realtimeChannelRef.current) {
+        realtimeChannelRef.current.unsubscribe();
+      }
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
@@ -581,44 +533,21 @@ const loadChatHistory = useCallback(async (socketInstance?: any) => {
                 <View style={[
                   styles.statusDot, 
                   { 
-                    backgroundColor: isOfflineMode 
-                      ? '#f59e0b' 
-                      : isConnected 
-                        ? '#4ade80' 
-                        : '#ef4444' 
+                    backgroundColor: '#4ade80' // Always connected for Supabase
                   }
                 ]} />
                 <Text style={styles.statusText}>
-                  {isOfflineMode 
-                    ? 'Offline Mode' 
-                    : isConnected 
-                      ? 'Connected' 
-                      : 'Disconnected'
-                  }
+                  Connected
                 </Text>
               </View>
             </View>
           </View>
-          {(!isConnected && connectionError) || isOfflineMode ? (
-            <TouchableOpacity 
-              style={styles.retryButton}
-              onPress={retryConnection}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="refresh" size={18} color="#fff" />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity 
-              style={styles.menuButton}
-              onPress={() => {
-                // You can add menu functionality here later
-                console.log('Menu button pressed');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            style={styles.menuButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -628,10 +557,10 @@ const loadChatHistory = useCallback(async (socketInstance?: any) => {
         data={messages}
         renderItem={renderMessage}
         keyExtractor={(item) => item.id}
-        inverted={true}
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
-        onContentSizeChange={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
       />
 
       {/* Enhanced Input Container */}
@@ -639,10 +568,6 @@ const loadChatHistory = useCallback(async (socketInstance?: any) => {
         <View style={styles.inputWrapper}>
           <TouchableOpacity 
             style={styles.attachButton}
-            onPress={() => {
-              // You can add attachment functionality here later
-              console.log('Attach button pressed');
-            }}
             activeOpacity={0.7}
           >
             <Ionicons name="add-circle-outline" size={24} color="#C539A5" />
@@ -652,22 +577,7 @@ const loadChatHistory = useCallback(async (socketInstance?: any) => {
             placeholder="Type a message..."
             placeholderTextColor="#aaa"
             value={inputText}
-            onChangeText={(text) => {
-              setInputText(text);
-              if (text.length > 0) {
-                handleTypingStart();
-                // Clear existing timeout
-                if (typingTimeoutRef.current) {
-                  clearTimeout(typingTimeoutRef.current);
-                }
-                // Set new timeout to stop typing
-                typingTimeoutRef.current = setTimeout(() => {
-                  handleTypingStop();
-                }, 1000);
-              } else {
-                handleTypingStop();
-              }
-            }}
+            onChangeText={setInputText}
             onSubmitEditing={sendMessage}
             multiline
             maxLength={500}
@@ -768,16 +678,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.15)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  retryButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   messagesList: {
     paddingHorizontal: 16,

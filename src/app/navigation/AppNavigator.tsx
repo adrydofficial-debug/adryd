@@ -9,7 +9,7 @@ import SingleBoardDetail from '../../features/boards/screens/SingleBoardDetail';
 import CreateCompanyScreen from '../../features/companies/screens/CreateCompanyScreen';
 import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen';
 import UpdateProfile from '../../features/profile/screens/UpdateProfile';
-import ChatScreen from '../../components/ChatScreen';
+import { ChatScreen } from '../../features/chat';
 import ContactSupportScreen from '../../components/ContactSupportScreen';
 import BottomTab from './BottomTab';
 
