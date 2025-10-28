@@ -22,6 +22,7 @@ import { useFilteredBoards } from '../hooks/useFilteredBoards';
 import { useSearchBoards } from '../hooks/useSearchBoards';
 // TypeScript interfaces - using BoardList's BoardItem interface
 import { BoardItem } from '../../../components/BoardList';
+ 
 
 interface FilterCategoryListProps {
   route: {
@@ -230,7 +231,6 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
           )}
         </View>
       ) : (
-        <View style={styles.boardSection}>
         <BoardList
           data={data}
           onPressDetail={handleDetailPress}
@@ -239,8 +239,8 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
           navigation={navigation}
           numColumns={2}
         />
-        </View>
       )}
+       <NoInternet />
     </View>
   );
 
@@ -290,20 +290,17 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff' ,paddingBottom:250},
   header: {
     width,
-     height: height * 0.26,
+    // reduce header height so BoardList sits closer to BoardTabs
+    height: height * 0.24,
     // paddingTop: height * 0.04,
     // paddingHorizontal: width * 0.05,
     // marginBottom: 35,
   },
-  mainView:{
+  mainView: {
     paddingHorizontal: width * 0.04,
-  },
-  boardSection:{
-    position: 'absolute',
-    bottom: -height * 0.02,
   },
   searchRow: {
     flexDirection: 'row',
@@ -339,8 +336,9 @@ const styles = StyleSheet.create({
   },
   filterBtn: { marginLeft: 10 },
   filterIcon: { width: 20, height: 20 },
-  boardSection: { 
-    marginTop: height * 0.02, 
+  boardSection: {
+    // reduce the top margin so tabs are closer to the list below
+    marginTop: height * 0.01,
     // marginBottom: 10,
     marginLeft: -10, // Adjusted to account for 15px padding
   },

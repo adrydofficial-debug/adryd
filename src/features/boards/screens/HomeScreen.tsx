@@ -22,6 +22,7 @@ import { useAuthStore } from '../../../store/authStore';
 import BoardTabs, { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
 import { useProfile } from '../../profile/hooks/useProfile';
+import NoInternet from '../../../components/NoInternet';
 // import { useFocusEffect } from '@react-navigation/native';
 
 type Props = {
@@ -342,6 +343,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Drawer Component */}
       <DrawerComponent visible={drawerVisible} onClose={handleCloseDrawer} />
+       <NoInternet />
     </View>
   );
 };

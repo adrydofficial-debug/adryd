@@ -28,6 +28,7 @@ import {
   useResetPassword,
 } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
+import NoInternet from '../../../components/NoInternet';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -269,6 +270,7 @@ const ForgotPassword: React.FC = () => {
         onResend={handleResendOTP}
         phoneNumber={phoneNumber}
       />
+       <NoInternet />
     </LinearGradient>
   );
 };

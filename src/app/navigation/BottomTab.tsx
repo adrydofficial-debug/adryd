@@ -8,9 +8,6 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Path } from 'react-native-svg';
-import { SvgXml } from 'react-native-svg';
-
-// Import SVG files directly
 import HomeIcon from '../../assets/images/pinkHome.svg';
 import GrayHomeIcon from '../../assets/images/grayHome.svg';
 import GrayActive from '../../assets/images/grayActive.svg';
@@ -24,27 +21,19 @@ import GrayMsg from '../../assets/images/GrayMsg.svg';
 import ProfileIcon from '../../assets/images/pinkProfile.svg';
 import GrayProfileIcon from '../../assets/images/grayProfile.svg';
 import HomeScreen from '../../features/boards/screens/HomeScreen';
-import CompaignScreen from '../../features/advertisments/screens/CompaignScreen';
+import CompaignStatus from '../../features/advertisments/screens/CompaignStatus';
 import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen';
 import UpdateProfile from '../../features/profile/screens/UpdateProfile';
-
 const { width, height } = Dimensions.get('window');
-
 type TabName = 'Home' | 'Boards' | 'Add' | 'Chat' | 'Profile';
-
 interface BottomTabProps {
   // Remove activeTab and onTabPress since we'll manage state internally
 }
-
-
 const BottomTab: React.FC<BottomTabProps> = () => {
   const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState<TabName>('Home');
-
   const handleTabPress = (tabName: string) => {
     setActiveTab(tabName as TabName);
-    
-    // Only navigate to external screens for specific actions, not for tab switching
     switch (tabName) {
       case 'Home':
         // Home is already the default, no action needed
@@ -74,13 +63,13 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       case 'Home':
         return <HomeScreen navigation={navigation} />;
       case 'Boards':
-        return <HomeScreen navigation={navigation} />; // You can create a dedicated BoardsScreen later
+        return <CompaignStatus navigation={navigation} />; // You can create a dedicated BoardsScreen later
       case 'Add':
         return <HomeScreen navigation={navigation} />; // This will navigate to AdvertismentCreateScreen
       case 'Chat':
         return <FavouritesScreen navigation={navigation} />; // Using FavouritesScreen as placeholder
       case 'Profile':
-        return <CompaignScreen navigation={navigation} />;
+        return <CompaignStatus navigation={navigation} />;
       default:
         return <HomeScreen navigation={navigation} />;
     }
@@ -119,25 +108,37 @@ const BottomTab: React.FC<BottomTabProps> = () => {
         onPress={() => handleTabPress(tab.name)}
         activeOpacity={0.7}
       >
-        <IconComponent width={22} height={22} />
+        <IconComponent width={24} height={24} />
       </TouchableOpacity>
     );
   };
 
   const renderCurvedBar = () => {
     const centerX = width / 2;
-    const fabRadius = 30;
-    const barHeight = 60;
-    const curveDepth = 15;
-    
+    // match FAB radius to visual FAB size
+  const fabRadius = 35;
+  const barHeight = 70;
+  // how deep the center dip goes (bigger = deeper)
+  const curveDepth = 28;
+  // small horizontal padding left/right of the rounded cut
+  const sideGap = 20;
+
+    // total half-width of the semicircular cut
+    const r = fabRadius + sideGap;
+    const leftStart = centerX - r;
+    const rightEnd = centerX + r;
+
+    // cubic-bezier constant for approximating a circular arc
+    const k = 0.5522847498;
+    const cpOffset = k * r;
+
     const path = `
       M 0 ${barHeight}
       L 0 25
       Q 0 0 25 0
-      L ${centerX - fabRadius - 10} 0
-      Q ${centerX - fabRadius} 0 ${centerX - fabRadius} 10
-      Q ${centerX} ${curveDepth} ${centerX + fabRadius} 10
-      Q ${centerX + fabRadius + 10} 0 ${centerX + fabRadius + 10} 0
+      L ${leftStart} 0
+      C ${leftStart + cpOffset} 0 ${centerX - cpOffset} ${curveDepth} ${centerX} ${curveDepth}
+      C ${centerX + cpOffset} ${curveDepth} ${rightEnd - cpOffset} 0 ${rightEnd} 0
       L ${width - 25} 0
       Q ${width} 0 ${width} 25
       L ${width} ${barHeight}
@@ -189,34 +190,50 @@ const BottomTab: React.FC<BottomTabProps> = () => {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FAF9F6',
   },
   content: {
     flex: 1,
-    paddingBottom: 0, // Space for bottom tab
+    paddingBottom: 20, 
   },
   bottomTabContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 70,
+    height: 100,
     zIndex: 1000,
-  
+    // allow FAB to overflow outside the container area so it visually sits above
+    overflow: 'visible',
+    elevation: 30,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -8,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
   },
   curvedBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    
+    elevation: 25,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -6,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
   navigationContent: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 70,
+  height: 110,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -225,27 +242,34 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: -2,
+      height: -4,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    // lower elevation so FAB (with higher elevation/zIndex) sits visually above
+    elevation: 25,
+    zIndex: 0,
+    backgroundColor: 'transparent',
   },
   leftTabs: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
     justifyContent: 'flex-start',
+    marginBottom: -20,
+    zIndex: 0,
   },
   rightTabs: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
     justifyContent: 'flex-end',
+    marginBottom: -20,
+    zIndex: 0,
   },
   centerSpace: {
-    width: 60,
-    height: 60,
+    width: 90,
+    height: 90,
     // This creates the space for the FAB
   },
   tabButton: {
@@ -257,22 +281,25 @@ const styles = StyleSheet.create({
   },
   fabButton: {
     position: 'absolute',
-    bottom: 25,
-    left: width / 2 - 30,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    // lift the FAB higher so it visually sits above the other icons
+    bottom: 50,
+    left: width / 2 - 34,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#C539A5',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#C539A5',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 8,
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    // ensure FAB sits on top of navigationContent and curved bar
+    elevation: 99999,
+    zIndex: 99999,
   },
 });
 

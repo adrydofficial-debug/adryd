@@ -21,6 +21,7 @@ import CustomInput from '../../../components/CustomInput';
 import { AuthStackParamList } from '../AuthNavigator';
 import { useResetPassword } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
+import NoInternet from '../../../components/NoInternet';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -246,6 +247,7 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
           </View>
         </View>
       </Modal>
+       <NoInternet />
     </LinearGradient>
   );
 };

@@ -126,7 +126,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
        onPress: () => {
         onClose(); // Close the drawer first
         try {
-          navigation.navigate('CampaignScreen' as never);
+          navigation.navigate('CompaignStatus' as never);
           console.log('✅ Navigation to PreviousCompanyScreen successful');
         } catch (error) {
           console.error('❌ Navigation error:', error);

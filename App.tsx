@@ -12,6 +12,7 @@ import { enableScreens } from 'react-native-screens';
 import AppNavigator from './src/app/navigation/AppNavigator';
 import AuthNavigator from './src/features/auth/AuthNavigator';
 import { useAuthStore } from './src/store/authStore';
+import './src/i18n';
 enableScreens();
 // ⚡ React Query client with conservative defaults to avoid auto-refetching
 const queryClient = new QueryClient({

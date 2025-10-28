@@ -20,6 +20,7 @@ import OTPModal from '../../../components/OTPModal';
 import { supabase } from '../../../services/supabase';
 import { useRegister, useVerifyOtp } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
+import NoInternet from '../../../components/NoInternet';
 
 // ----------------------
 // Helpers
@@ -318,6 +319,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         onVerify={handleVerifyOtp}
         onResend={handleResendOtp}
       />
+       <NoInternet />
     </LinearGradient>
   );
 };

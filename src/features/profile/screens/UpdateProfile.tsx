@@ -15,7 +15,7 @@ import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
 import ProfileUser from '../../../components/ProfileUser';
 import { useProfile, useUpdateProfile, useUploadProfileAvatar } from '../hooks';
-
+import NoInternet from '../../../components/NoInternet';
 const { width, height } = Dimensions.get('window');
 const wp = (p: number) => (width * p) / 100;
 const hp = (p: number) => (height * p) / 100;
@@ -159,6 +159,7 @@ const UpdateProfile: React.FC = () => {
           />
         </View>
       </ScrollView>
+       <NoInternet />
     </KeyboardAvoidingView>
   );
 };

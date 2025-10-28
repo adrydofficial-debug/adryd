@@ -26,6 +26,7 @@ import Location from '../../../assets/images/location-pinkSVG.svg';
 // import Line from '../../assets/icons/line.svg';
 import Heart from '../../../assets/images/Heart.svg';
 import BackButton from '../../../components/BackButton';
+import NoInternet from '../../../components/NoInternet';
 // Removed typed RootStack import to avoid cross-module typing dependency
 
 // Using untyped navigation to avoid cross-module type coupling issues
@@ -394,6 +395,7 @@ const SingleBoardDetail: React.FC = () => {
           </View>
         </View>
       </Modal>
+       <NoInternet />
     </View>
   );
 };

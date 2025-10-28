@@ -79,7 +79,7 @@ interface ActiveCampaignProps {
   };
 }
 
-const CampaignScreen: React.FC<ActiveCampaignProps> = ({ navigation }) => {
+const CompaignStatus: React.FC<ActiveCampaignProps> = ({ navigation }) => {
   const [expandedCard, setExpandedCard] = useState<number | null>(1);
   const [activeBottomTab, setActiveBottomTab] = useState<string>('Boards');
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -1000,4 +1000,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CampaignScreen;
+export default CompaignStatus;

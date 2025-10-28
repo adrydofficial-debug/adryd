@@ -20,6 +20,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Yup from 'yup';
 import CustomInput from '../../../components/CustomInput';
 import DrawerComponent from '../../../components/DrawerComponent';
+import NoInternet from '../../../components/NoInternet';
 import { useAuthStore } from '../../../store/authStore';
 import { AuthStackParamList } from '../AuthNavigator';
 import { useLogin } from '../hooks/useAuth';
@@ -256,6 +257,7 @@ const LoginScreen: React.FC = () => {
         </ScrollView>
       </KeyboardAvoidingView>
       <DrawerComponent visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
+      <NoInternet />
     </LinearGradient>
   );
 };

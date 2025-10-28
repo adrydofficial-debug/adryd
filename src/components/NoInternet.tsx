@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
   View,
@@ -6,9 +6,74 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
+  Linking,
+  Platform,
 } from "react-native";
-const NoInternet: React.FC = () => {
-  const [visible, setVisible] = useState<boolean>(true);
+import NetInfo from "@react-native-community/netinfo";
+import AndroidOpenSettings from 'react-native-android-open-settings';
+
+interface NoInternetProps {
+  // Optional: Allow parent to control if component should be rendered at all
+  enabled?: boolean;
+}
+
+const NoInternet: React.FC<NoInternetProps> = ({ enabled = true }) => {
+  const [isConnected, setIsConnected] = useState<boolean>(true);
+  const [visible, setVisible] = useState<boolean>(false);
+
+  // Monitor internet connectivity
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const connected = state.isConnected && state.isInternetReachable;
+      setIsConnected(connected ?? true);
+      
+      // Show modal if no internet, hide if connected
+      if (!connected) {
+        setVisible(true);
+      } else {
+        setVisible(false);
+      }
+    });
+
+    // Check initial state
+    NetInfo.fetch().then(state => {
+      const connected = state.isConnected && state.isInternetReachable;
+      setIsConnected(connected ?? true);
+      if (!connected) {
+        setVisible(true);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [enabled]);
+
+  const handleRetry = () => {
+    NetInfo.fetch().then(state => {
+      const connected = state.isConnected && state.isInternetReachable;
+      setIsConnected(connected ?? true);
+      if (connected) {
+        setVisible(false);
+      } else {
+        // If still no internet, open device settings
+        openSettings();
+      }
+    });
+  };
+
+  const openSettings = () => {
+    if (Platform.OS === 'android') {
+      // Use the library to open WiFi settings directly
+      AndroidOpenSettings.wifiSettings();
+    } else {
+      // iOS: Open Settings app
+      Linking.openSettings();
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -19,7 +84,7 @@ const NoInternet: React.FC = () => {
       <View style={styles.overlay}>
         <View style={styles.modalBox}>
           <Image
-            source={require("../assets/images/noIntrnet.png")}
+            source={require("../assets/images/noInternet.png")}
             style={styles.image}
             resizeMode="contain"
           />
@@ -29,9 +94,9 @@ const NoInternet: React.FC = () => {
           </Text>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => setVisible(false)}
+            onPress={handleRetry}
           >
-            <Text style={styles.buttonText}>Retry</Text>
+            <Text style={styles.buttonText}>Allow</Text>
           </TouchableOpacity>
         </View>
       </View>
