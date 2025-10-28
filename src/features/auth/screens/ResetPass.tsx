@@ -18,6 +18,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomInput from '../../../components/CustomInput';
+import { useTranslation } from 'react-i18next';
 import { AuthStackParamList } from '../AuthNavigator';
 import { useResetPassword } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
@@ -29,6 +30,7 @@ const hp = (percentage: number) => (height * percentage) / 100;
 type ResetPassProps = NativeStackScreenProps<AuthStackParamList, 'ResetPass'>;
 
 const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
+  const { t } = useTranslation('auth');
   const resetPassword = useResetPassword();
 
   const [password, setPassword] = useState('');
@@ -142,16 +144,16 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
 
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.title}>Reset Password</Text>
+              <Text style={styles.title}>{t('reset.title')}</Text>
               <Text style={styles.subtitle}>
-                Enter your new password below to reset your account password.
+                {t('reset.subtitle')}
               </Text>
             </View>
 
             {/* Password Input */}
             <View style={styles.inputContainer}>
               <CustomInput
-                label="New Password"
+                label={t('reset.newPassword')}
                 placeholder="Enter new password"
                 secureTextEntry={!showPassword}
                 value={password}
@@ -177,7 +179,7 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
             {/* Confirm Password Input */}
             <View style={styles.inputContainer}>
               <CustomInput
-                label="Confirm Password"
+                label={t('reset.confirmPassword')}
                 placeholder="Confirm password"
                 secureTextEntry={!showConfirmPassword}
                 value={confirmPassword}
@@ -222,7 +224,7 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
                   />
                 )}
                 <Text style={styles.buttonText}>
-                  {resetPassword.isPending ? 'Resetting...' : 'Reset Password'}
+                  {resetPassword.isPending ? t('reset.resetting') : t('reset.cta')}
                 </Text>
               </View>
             </TouchableOpacity>

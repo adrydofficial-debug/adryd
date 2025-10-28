@@ -15,6 +15,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Yup from 'yup';
+import { useTranslation } from 'react-i18next';
 import CustomInput from '../../../components/CustomInput';
 import OTPModal from '../../../components/OTPModal';
 import { supabase } from '../../../services/supabase';
@@ -72,6 +73,7 @@ const validationSchema = Yup.object().shape({
 // Component
 // ----------------------
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
+  const { t } = useTranslation('auth');
   const registerMutation = useRegister();
   const verifyOtpMutation = useVerifyOtp();
 
@@ -173,10 +175,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         >
           <BackButton/>
           <View style={styles.mainContainer}>
-            <Text style={styles.title}>Register</Text>
+            <Text style={styles.title}>{t('register.title')}</Text>
             <Text style={styles.subtitle}>
-              Create an <Text style={styles.highlight}>Account</Text> to access
-              all features of <Text style={styles.highlight}>Adryd</Text>.
+              {t('register.subtitle.start')}{' '}
+              <Text style={styles.highlight}>{t('register.subtitle.highlight1')}</Text>{' '}
+              {t('register.subtitle.middle')}{' '}
+              <Text style={styles.highlight}>{t('register.subtitle.highlight2')}</Text>
+              {t('register.subtitle.end')}
             </Text>
 
             <Formik
@@ -200,7 +205,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               }) => (
                 <>
                   <CustomInput
-                    label="Username"
+                    label={t('register.username')}
                     placeholder="Enter Username"
                     value={values.username}
                     onChangeText={handleChange('username')}
@@ -211,7 +216,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                   />
 
                   <CustomInput
-                    label="Company Name"
+                    label={t('register.companyName')}
                     placeholder="Enter Company Name"
                     value={values.companyName}
                     onChangeText={handleChange('companyName')}
@@ -222,7 +227,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                   />
 
                   <CustomInput
-                    label="Phone Number"
+                    label={t('login.phoneNumber')}
                     placeholder="3XXXXXXXXX"
                     keyboardType="phone-pad"
                     value={values.phoneNumber}
@@ -237,7 +242,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
                   {/* Password */}
                   <View style={styles.passwordContainer}>
-                    <Text style={styles.inputLabel}>Password</Text>
+                    <Text style={styles.inputLabel}>{t('register.password')}</Text>
                     <View style={styles.passwordInputContainer}>
                       <TextInput
                         style={[
@@ -290,7 +295,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                         />
                       )}
                       <Text style={styles.buttonText}>
-                        {isLoading ? 'Registering...' : 'Register'}
+                        {isLoading ? t('register.registering') : t('register.cta')}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -300,11 +305,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
             <View style={styles.grayLine} />
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Already have an account?</Text>
+              <Text style={styles.footerText}>{t('register.already')}</Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('LoginScreen')}
               >
-                <Text style={styles.loginLink}> Login</Text>
+                <Text style={styles.loginLink}> {t('login.title')}</Text>
               </TouchableOpacity>
             </View>
           </View>

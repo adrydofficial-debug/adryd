@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 import * as Yup from 'yup';
 import CustomInput from '../../../components/CustomInput';
 import DrawerComponent from '../../../components/DrawerComponent';
@@ -43,6 +44,7 @@ const LoginScreen: React.FC = () => {
     useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const loginMutation = useLogin();
   const setUser = useAuthStore(s => s.setUser);
+  const { t } = useTranslation('auth');
 
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -124,11 +126,11 @@ const LoginScreen: React.FC = () => {
           <View style={styles.mainContainer}>
             <View style={styles.header}>
               <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.7}>
-                <Text style={styles.title}>Login</Text>
+                <Text style={styles.title}>{t('login.title')}</Text>
               </TouchableOpacity>
               <Text style={styles.subtitle}>
-                Login now and turn your{' '}
-                <Text style={styles.highlight}>ideas</Text> into reality.
+                {t('login.subtitle')}{' '}
+                <Text style={styles.highlight}>{t('login.highlight')}</Text> {t('login.subtitleEnd')}
               </Text>
             </View>
 
@@ -152,7 +154,7 @@ const LoginScreen: React.FC = () => {
                 <>
                   {/* Phone input */}
                   <CustomInput
-                    label="Phone Number"
+                    label={t('login.phoneNumber')}
                     placeholder="3XXXXXXXXX"
                     keyboardType="phone-pad"
                     value={values.phoneNumber}
@@ -170,7 +172,7 @@ const LoginScreen: React.FC = () => {
 
                   {/* Password input */}
                   <View style={styles.passwordContainer}>
-                    <Text style={styles.inputLabel}>Your Password</Text>
+                    <Text style={styles.inputLabel}>{t('login.password')}</Text>
                     <View style={styles.passwordInputContainer}>
                       <TextInput
                         style={[
@@ -211,7 +213,7 @@ const LoginScreen: React.FC = () => {
                     onPress={() => navigation.navigate('ForgotPassword')}
                   >
                     <Text style={styles.forgotPasswordText}>
-                      Forgot Password?
+                      {t('login.forgotPassword')}
                     </Text>
                   </TouchableOpacity>
 
@@ -234,7 +236,7 @@ const LoginScreen: React.FC = () => {
                         />
                       )}
                       <Text style={styles.buttonText}>
-                        {loginMutation.isPending ? 'Logging in...' : 'Login'}
+                        {loginMutation.isPending ? t('login.loggingIn') : t('login.cta')}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -246,11 +248,11 @@ const LoginScreen: React.FC = () => {
 
             {/* Footer */}
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
+              <Text style={styles.footerText}>{t('login.noAccount')} </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('RegisterScreen')}
               >
-                <Text style={styles.registerLink}>Register</Text>
+                <Text style={styles.registerLink}>{t('login.register')}</Text>
               </TouchableOpacity>
             </View>
           </View>

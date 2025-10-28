@@ -2,34 +2,24 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { I18nManager, Platform } from 'react-native';
 
-// Load translation resources per feature and language
-// You can add more languages by mirroring the structure under src/locales/<lang>/
-import en_common from '../locales/en/common.json';
-import en_auth from '../locales/en/auth.json';
-import en_boards from '../locales/en/boards.json';
-import en_advertisments from '../locales/en/advertisments.json';
-import en_profile from '../locales/en/profile.json';
-
-import hi_common from '../locales/hi/common.json';
-import hi_auth from '../locales/hi/auth.json';
-import hi_boards from '../locales/hi/boards.json';
-import hi_advertisments from '../locales/hi/advertisments.json';
-import hi_profile from '../locales/hi/profile.json';
+// Load combined translation resources per feature with language keys inside
+import authCombined from '../features/auth/locales/index.json';
+import boardsCombined from '../features/boards/locales/index.json';
+import advertismentsCombined from '../features/advertisments/locales/index.json';
+import profileCombined from '../features/profile/locales/index.json';
 
 const resources = {
   en: {
-    common: en_common,
-    auth: en_auth,
-    boards: en_boards,
-    advertisments: en_advertisments,
-    profile: en_profile,
+    auth: (authCombined as any).en,
+    boards: (boardsCombined as any).en,
+    advertisments: (advertismentsCombined as any).en,
+    profile: (profileCombined as any).en,
   },
-  hi: {
-    common: hi_common,
-    auth: hi_auth,
-    boards: hi_boards,
-    advertisments: hi_advertisments,
-    profile: hi_profile,
+  ur: {
+    auth: (authCombined as any).ur,
+    boards: (boardsCombined as any).ur,
+    advertisments: (advertismentsCombined as any).ur,
+    profile: (profileCombined as any).ur,
   },
 };
 
@@ -53,12 +43,12 @@ function applyLayoutDirection(lang: string) {
 i18n
   .use(initReactI18next)
   .init({
-    compatibilityJSON: 'v3',
+    compatibilityJSON: 'v4',
     resources,
     lng: 'en',
     fallbackLng: 'en',
-    ns: ['common', 'auth', 'boards', 'advertisments', 'profile'],
-    defaultNS: 'common',
+    ns: ['auth', 'boards', 'advertisments', 'profile'],
+    defaultNS: 'auth',
     interpolation: {
       escapeValue: false,
     },
