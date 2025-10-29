@@ -22,6 +22,7 @@ import { useFilteredBoards } from '../hooks/useFilteredBoards';
 import { useSearchBoards } from '../hooks/useSearchBoards';
 // TypeScript interfaces - using BoardList's BoardItem interface
 import { BoardItem } from '../../../components/BoardList';
+import { useTranslation } from 'react-i18next';
  
 
 interface FilterCategoryListProps {
@@ -40,6 +41,7 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
   route,
   navigation,
 }) => {
+  const { t } = useTranslation('boards');
   const { slug } = route.params || {};
 
   const [selectedTab, setSelectedTab] = useState<Tab | null>(null);
@@ -205,7 +207,7 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
        
       </LinearGradient>
       {!user ? (
-        <Text style={{ padding: 20 }}>Please login to view listings</Text>
+        <Text style={{ padding: 20 }}>{t('pleaseLogin')}</Text>
       ) : isLoading ? (
         <ActivityIndicator
           size="large"
@@ -213,20 +215,18 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
           style={{ marginTop: 20 }}
         />
       ) : error ? (
-        <Text style={{ padding: 20 }}>
-          Error: {error.message || 'Something went wrong'}
-        </Text>
+        <Text style={{ padding: 20 }}>Error: {error.message || 'Something went wrong'}</Text>
       ) : data.length === 0 ? (
         <View style={{ padding: 0, alignItems: 'center' }}>
           <Text style={{ fontSize: 16, color: '#666', marginBottom: 8 }}>
             {debouncedSearchQuery 
-              ? `No results found for "${debouncedSearchQuery}"` 
-              : 'No listings found'
+              ? t('noResultsFor', { query: debouncedSearchQuery })
+              : t('noListings')
             }
           </Text>
           {debouncedSearchQuery && (
             <Text style={{ fontSize: 14, color: '#999' }}>
-              Try a different search term
+              {t('tryDifferentSearch')}
             </Text>
           )}
         </View>
@@ -254,7 +254,7 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search"
+            placeholder={t('searchPlaceholder')}
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}

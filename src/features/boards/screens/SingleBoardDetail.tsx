@@ -27,6 +27,7 @@ import Location from '../../../assets/images/location-pinkSVG.svg';
 import Heart from '../../../assets/images/Heart.svg';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
+import { useTranslation } from 'react-i18next';
 // Removed typed RootStack import to avoid cross-module typing dependency
 
 // Using untyped navigation to avoid cross-module type coupling issues
@@ -75,6 +76,7 @@ const renderStars = (rating: string) => {
 };
 
 const SingleBoardDetail: React.FC = () => {
+  const { t } = useTranslation('boards');
   const navigation = useNavigation();
   const route = useRoute();
   const { item } = (route.params as { item: any }) || { item: null };
@@ -286,21 +288,21 @@ const SingleBoardDetail: React.FC = () => {
             <View style={styles.line} />
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Size</Text>
+              <Text style={styles.sectionTitle}>{t('size')}</Text>
               <Text style={styles.sectionText}>{billboard.size}</Text>
             </View>
 
             <View style={styles.line} />
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>About</Text>
+              <Text style={styles.sectionTitle}>{t('about')}</Text>
               <Text style={styles.sectionText}>{billboard.about}</Text>
             </View>
 
             <View style={styles.line} />
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Location</Text>
+              <Text style={styles.sectionTitle}>{t('location')}</Text>
             </View>
           </View>
 
@@ -328,7 +330,7 @@ const SingleBoardDetail: React.FC = () => {
           {/* Button */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Let's Connect</Text>
+              <Text style={styles.buttonText}>{t('letsConnect')}</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -83,26 +83,13 @@ const LanguageSelectionModal: React.FC<LanguageSelectionModalProps> = ({
               >
                 <Text style={[
                   styles.languageButtonText,
-                  selectedLang === 'hi' && styles.languageButtonTextSelected
+                  selectedLang === 'ur' && styles.languageButtonTextSelected
                 ]}>
                   اردو
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={() => onSelectLanguage(selectedLang)}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#C539A5', '#E91E63']}
-              style={styles.continueButtonGradient}
-            >
-              <Text style={styles.continueButtonText}>Continue</Text>
-            </LinearGradient>
-          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -172,25 +159,6 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   languageButtonTextSelected: {
-    color: 'white',
-  },
-  continueButton: {
-    width: '100%',
-    borderRadius: width * 0.03,
-    overflow: 'hidden',
-    shadowColor: '#C539A5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  continueButtonGradient: {
-    paddingVertical: height * 0.025,
-    alignItems: 'center',
-  },
-  continueButtonText: {
-    fontSize: width * 0.045,
-    fontWeight: 'bold',
     color: 'white',
   },
 });

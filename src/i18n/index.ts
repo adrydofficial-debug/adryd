@@ -4,9 +4,10 @@ import { I18nManager, Platform } from 'react-native';
 
 // Load combined translation resources per feature with language keys inside
 import authCombined from '../features/auth/locales/index.json';
-import boardsCombined from '../features/boards/locales/index.json';
-import advertismentsCombined from '../features/advertisments/locales/index.json';
+import boardsCombined from '../features/boards/locales';
+import advertismentsCombined from '../features/advertisments/locales';
 import profileCombined from '../features/profile/locales/index.json';
+import companiesCombined from '../features/companies/locales';
 
 const resources = {
   en: {
@@ -14,12 +15,14 @@ const resources = {
     boards: (boardsCombined as any).en,
     advertisments: (advertismentsCombined as any).en,
     profile: (profileCombined as any).en,
+    companies: (companiesCombined as any).en,
   },
   ur: {
     auth: (authCombined as any).ur,
     boards: (boardsCombined as any).ur,
     advertisments: (advertismentsCombined as any).ur,
     profile: (profileCombined as any).ur,
+    companies: (companiesCombined as any).ur,
   },
 };
 
@@ -47,13 +50,21 @@ i18n
     resources,
     lng: 'en',
     fallbackLng: 'en',
-    ns: ['auth', 'boards', 'advertisments', 'profile'],
+    ns: ['auth', 'boards', 'advertisments', 'profile', 'companies'],
     defaultNS: 'auth',
+    react: { useSuspense: false },
     interpolation: {
       escapeValue: false,
     },
   })
   .then(() => applyLayoutDirection(i18n.language));
+
+// Update layout direction on runtime language changes as well
+i18n.on('languageChanged', (lang: string) => {
+  try {
+    applyLayoutDirection(lang);
+  } catch {}
+});
 
 export default i18n;
 

@@ -1,15 +1,93 @@
 {
   "en": {
     "title": "Profile",
-    "edit": "Edit Profile"
-  },
-  "hi": {
-    "title": "प्रोफ़ाइल",
-    "edit": "प्रोफ़ाइल संपादित करें"
+    "edit": "Edit Profile",
+    "updateProfile": {
+      "screenTitle": "Profile",
+      "fullName": "Full Name",
+      "enterFullName": "Enter your full name",
+      "phoneNumber": "Phone Number",
+      "phonePlaceholder": "Phone number",
+      "phoneNote": "Your phone number is verified and cannot be changed.",
+      "cta": "Update Profile"
+    },
+    "changePassword": {
+      "title": "Change Password",
+      "subtitle": "Choose a new password enter and confirm your new password to regain access.",
+      "current": "Current Password",
+      "currentPlaceholder": "Enter current password",
+      "new": "New Password",
+      "newPlaceholder": "Enter new password",
+      "confirm": "Confirm New Password",
+      "confirmPlaceholder": "Confirm new password",
+      "changing": "Changing...",
+      "save": "Save",
+      "errorMatch": "New passwords do not match.",
+      "errorMin": "New password must be at least 6 characters.",
+      "successTitle": "Success",
+      "successMessage": "Password changed successfully!",
+      "ok": "OK"
+    },
+    "previousCompany": {
+      "select": "Select",
+      "selectPrevious": "Select previous company",
+      "loading": "Loading companies...",
+      "error": "Failed to load companies. Please try again.",
+      "retry": "Retry",
+      "empty": "No companies found",
+      "emptyHint": "Add your first company to get started",
+      "business": "Business",
+      "ntn": "NTN",
+      "address": "Address",
+      "email": "Email",
+      "number": "Number",
+      "continueBusiness": "Continue this business"
+    }
   },
   "ur": {
     "title": "پروفائل",
-    "edit": "پروفائل میں ترمیم کریں"
+    "edit": "پروفائل میں ترمیم کریں",
+    "updateProfile": {
+      "screenTitle": "پروفائل",
+      "fullName": "پورا نام",
+      "enterFullName": "اپنا پورا نام درج کریں",
+      "phoneNumber": "فون نمبر",
+      "phonePlaceholder": "فون نمبر",
+      "phoneNote": "آپ کا فون نمبر تصدیق شدہ ہے اور تبدیل نہیں کیا جا سکتا۔",
+      "cta": "پروفائل اپڈیٹ کریں"
+    },
+    "changePassword": {
+      "title": "پاس ورڈ تبدیل کریں",
+      "subtitle": "نیا پاس ورڈ منتخب کریں، نیا پاس ورڈ درج کریں اور تصدیق کریں۔",
+      "current": "موجودہ پاس ورڈ",
+      "currentPlaceholder": "موجودہ پاس ورڈ درج کریں",
+      "new": "نیا پاس ورڈ",
+      "newPlaceholder": "نیا پاس ورڈ درج کریں",
+      "confirm": "نئے پاس ورڈ کی تصدیق",
+      "confirmPlaceholder": "نئے پاس ورڈ کی تصدیق کریں",
+      "changing": "تبدیل کیا جا رہا ہے...",
+      "save": "محفوظ کریں",
+      "errorMatch": "نئے پاس ورڈ ایک جیسے نہیں ہیں۔",
+      "errorMin": "نیا پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے۔",
+      "successTitle": "کامیابی",
+      "successMessage": "پاس ورڈ کامیابی سے تبدیل ہو گیا!",
+      "ok": "ٹھیک ہے"
+    },
+    "previousCompany": {
+      "select": "منتخب کریں",
+      "selectPrevious": "پچھلی کمپنی منتخب کریں",
+      "loading": "کمپنیوں کو لوڈ کیا جا رہا ہے...",
+      "error": "کمپنیوں کو لوڈ کرنے میں ناکامی۔ دوبارہ کوشش کریں۔",
+      "retry": "دوبارہ کوشش کریں",
+      "empty": "کوئی کمپنی نہیں ملی",
+      "emptyHint": "شروع کرنے کے لئے اپنی پہلی کمپنی شامل کریں",
+      "business": "کاروبار",
+      "ntn": "این ٹی این",
+      "address": "پتہ",
+      "email": "ای میل",
+      "number": "نمبر",
+      "continueBusiness": "اس کاروبار کو جاری رکھیں"
+    }
   }
 }
 
