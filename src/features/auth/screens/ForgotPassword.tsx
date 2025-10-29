@@ -19,6 +19,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Yup from 'yup';
+import { useTranslation } from 'react-i18next';
 import CustomInput from '../../../components/CustomInput';
 import OTPModal from '../../../components/OTPModal';
 import { AuthStackParamList } from '../AuthNavigator';
@@ -28,6 +29,7 @@ import {
   useResetPassword,
 } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
+import NoInternet from '../../../components/NoInternet';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -49,6 +51,7 @@ const validationSchema = Yup.object().shape({
 const ForgotPassword: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+  const { t } = useTranslation('auth');
 
   const forgotPassword = useForgotPassword(); // sends OTP
   const resetPassword = useResetPassword(); // verifies OTP + updates password
@@ -147,10 +150,9 @@ const ForgotPassword: React.FC = () => {
 
           <View style={styles.mainContainer}>
             <View style={styles.header}>
-              <Text style={styles.title}>Forgot Password</Text>
+              <Text style={styles.title}>{t('forgot.title')}</Text>
               <Text style={styles.subtitle}>
-                Enter your phone number and new password. We'll send you an OTP
-                on WhatsApp to confirm the reset.
+                {t('forgot.subtitle')}
               </Text>
             </View>
 
@@ -174,7 +176,7 @@ const ForgotPassword: React.FC = () => {
               }) => (
                 <>
                   <CustomInput
-                    label="Phone Number"
+                    label={t('login.phoneNumber')}
                     placeholder="+923XXXXXXXXX"
                     keyboardType="phone-pad"
                     value={values.phoneNumber}
@@ -190,7 +192,7 @@ const ForgotPassword: React.FC = () => {
                   />
 
                   <CustomInput
-                    label="New Password"
+                    label={t('forgot.newPassword')}
                     placeholder="Enter new password"
                     secureTextEntry
                     value={values.newPassword}
@@ -206,7 +208,7 @@ const ForgotPassword: React.FC = () => {
                   />
 
                   <CustomInput
-                    label="Confirm Password"
+                    label={t('forgot.confirmPassword')}
                     placeholder="Re-enter new password"
                     secureTextEntry
                     value={values.confirmPassword}
@@ -241,8 +243,8 @@ const ForgotPassword: React.FC = () => {
                       )}
                       <Text style={styles.buttonText}>
                         {isSubmitting || forgotPassword.isPending
-                          ? 'Sending...'
-                          : 'Continue'}
+                          ? t('forgot.sending')
+                          : t('forgot.cta')}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -251,11 +253,11 @@ const ForgotPassword: React.FC = () => {
             </Formik>
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Remember your password? </Text>
+              <Text style={styles.footerText}>{t('forgot.remember')} </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('LoginScreen')}
               >
-                <Text style={styles.loginLink}>Login</Text>
+                <Text style={styles.loginLink}>{t('login.title')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -269,6 +271,7 @@ const ForgotPassword: React.FC = () => {
         onResend={handleResendOTP}
         phoneNumber={phoneNumber}
       />
+       <NoInternet />
     </LinearGradient>
   );
 };

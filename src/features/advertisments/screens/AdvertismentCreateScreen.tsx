@@ -247,11 +247,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                   style={styles.calendarButton}
                   onPress={openCalendar}
                 >
-                  <Ionicons
-                    name="calendar-outline"
-                    size={width * 0.06}
-                    color="#C538A5"
-                  />
+                  <Ionicons name="calendar-outline" size={width * 0.06} color="#C538A5" />
                   <View style={styles.dateRangeDisplay}>
                     <Text style={styles.dateRangeText}>
                       {formatDate(startDate)} - {formatDate(endDate)}
@@ -730,21 +726,21 @@ const styles = StyleSheet.create({
   calendarButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
     borderRadius: width * 0.02,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    paddingHorizontal: width * 0.04,
-    paddingVertical: height * 0.015,
+    paddingHorizontal: width * 0.03,
+    paddingVertical: height * 0.007,
     marginBottom: height * 0.015,
   },
   dateRangeDisplay: {
     flex: 1,
-    marginLeft: width * 0.03,
+    marginLeft: width * 0.015,
   },
   dateRangeText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
     color: '#333',
     marginBottom: 2,
   },
@@ -817,7 +813,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   clearButton: {
-    backgroundColor: '#FF5722',
+    backgroundColor: '#C539A5',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 6,
@@ -970,7 +966,7 @@ const styles = StyleSheet.create({
   selectionSummary: {
     marginTop: 15,
     paddingVertical: 10,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: 'transparent',
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -1067,7 +1063,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     paddingHorizontal: width * 0.05,
-    paddingBottom: height * 0.05,
+    paddingBottom: height * 0.06,
     justifyContent: 'center',
     alignItems: 'center',
   },

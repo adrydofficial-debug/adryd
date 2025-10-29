@@ -56,10 +56,14 @@ const BoardTabs: React.FC<BoardTabsProps> = ({
       >
         {tabs.map(tab => {
           const isActive = selectedTab?.slug === tab.slug;
+          const isDraft = tab.slug === 'draft' || tab.label.toLowerCase() === 'draft';
           return (
             <TouchableOpacity
               key={`${tab.slug}`}
-              style={isActive ? styles.tabActive : styles.tab}
+              style={[
+                isActive ? styles.tabActive : styles.tab,
+                isDraft && styles.draftTab
+              ]}
               onPress={() => onTabPress(tab)} // ✅ pass full tab object
             >
               <Text style={isActive ? styles.tabTextActive : styles.tabText}>
@@ -110,6 +114,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     marginBottom: 3,
+  },
+  draftTab: {
+    backgroundColor: '#F0F9EE',
+    borderColor: '#23AF11',
   },
 });
 

@@ -90,3 +90,5 @@ export function isLocalFileUri(uri: string): boolean {
 export function isDataUrl(uri: string): boolean {
   return uri.startsWith('data:image/');
 }
+
+

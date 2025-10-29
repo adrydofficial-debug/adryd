@@ -26,6 +26,7 @@ import {
   useCompanyCategoryGroups,
   useCreateCompany,
 } from '../hooks/useCompanies';
+import NoInternet from '../../../components/NoInternet';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -85,20 +86,12 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     console.log('Validation errors state updated:', validationErrors);
   }, [validationErrors]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
-  // Initialize the create company mutation hook
   const createCompanyMutation = useCreateCompany();
-
-  // Fetch business categories for dropdown
   const { data: categoriesData, isLoading: categoriesLoading } =
     useCompanyCategoryGroups();
-
-  // Prepare business category data for dropdown
   const businessCategoryData = useMemo(() => {
     console.log('Categories Data:', categoriesData);
     console.log('Categories Loading:', categoriesLoading);
-
-    // Fallback test data if API data is not available
     const testData = [
       { label: 'Restaurant', value: '1' },
       { label: 'Cafe', value: '2' },
@@ -118,7 +111,6 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       console.log('Using test data');
       return testData;
     }
-
     const data = categoriesData.groups.flatMap(
       (group: any) =>
         group.categories?.map((category: any) => ({
@@ -156,16 +148,13 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     }
     return true;
   };
-
   const openImagePicker = async (): Promise<void> => {
     let hasPermission = false;
-
     if (Platform.OS === 'android') {
       hasPermission = await requestAndroidPermission();
     } else {
       hasPermission = true;
     }
-
     const options = {
       mediaType: 'photo' as const,
       quality: 0.8 as const,
@@ -173,7 +162,6 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       maxHeight: 3000,
       includeBase64: false,
     };
-
     if (hasPermission) {
       launchImageLibrary(options, (response: any) => {
         if (response.didCancel) {
@@ -203,8 +191,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       });
     }
   };
-
-  const renderProgressStep = (
+ const renderProgressStep = (
     stepNumber: number,
     isActive: boolean,
     isCompleted: boolean,
@@ -241,8 +228,6 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     console.log('businessName:', businessName);
     console.log('selectedBusinessCategory:', selectedBusinessCategory);
     console.log('companyEmail:', companyEmail);
-
-    // Reset validation errors
     setValidationErrors({
       companyName: false,
       businessName: false,
@@ -251,8 +236,6 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       companyAddress: false,
       companyNTN: false,
     });
-
-    // Validate required fields
     const errors = {
       companyName: !companyName.trim(),
       businessName: !businessName.trim(),
@@ -263,8 +246,6 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     };
 
     console.log('Validation errors:', errors);
-
-    // Check if there are any validation errors
     const hasErrors = Object.values(errors).some(error => error);
     console.log('Has errors:', hasErrors);
 
@@ -273,11 +254,8 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       console.log('Missing fields:', errors);
       return;
     }
-
     try {
       setIsSubmitting(true);
-
-      // Check if user is authenticated
       const {
         data: { user },
         error: userError,
@@ -339,7 +317,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       });
 
       // Navigate to CampaignUploadFiles screen on success
-      // navigation.navigate('CampaignUploadFiles');
+      navigation.navigate('AdvertismentCreateScreen');
     } catch (error: any) {
       console.error('Create company error:', error);
 
@@ -567,6 +545,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
           />
         </View>
       </LinearGradient>
+       <NoInternet />
     </View>
   );
 };
@@ -720,7 +699,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     paddingHorizontal: width * 0.05,
-    paddingBottom: height * 0.05,
+    paddingBottom: height * 0.06,
     justifyContent: 'center',
     alignItems: 'center',
   },

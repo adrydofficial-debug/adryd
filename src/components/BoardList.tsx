@@ -17,7 +17,7 @@ const BASE_HEIGHT = 912;
 
 // 🔹 Increased card size by ~20%
 const CARD_WIDTH = (175 / BASE_WIDTH) * width;
-const CARD_HEIGHT = (230 / BASE_HEIGHT) * height;
+const CARD_HEIGHT = (210 / BASE_HEIGHT) * height;
 
 // 🔹 Data item type
 export interface BoardItem {
@@ -167,7 +167,7 @@ const BoardList: React.FC<BoardListProps> = ({
       <View style={styles.header}>
         <Text style={styles.heading}>{heading}</Text>
         <TouchableOpacity onPress={handleSeeAllPress}>
-          <Text style={styles.seeAll}>See All</Text>
+          {/* <Text style={styles.seeAll}>See All</Text> */}
         </TouchableOpacity>
       </View>
       <FlatList
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     // paddingVertical: 5,
     borderRadius: 20,
-    marginTop: -5, // Pull the BoardList up closer to BoardTabs
+    // marginTop: -15, // Pull the BoardList up closer to BoardTabs
   },
   sizeStyle: {
     position: 'absolute',
@@ -215,16 +215,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center', // Ensure vertical alignment
     paddingHorizontal: 15,
-    marginBottom: 2, // Further reduced from 5 to 2
-    marginTop: -3, // Pull header up closer to BoardTabs
+    marginBottom: -20, // Negative margin to pull cards closer
+    paddingBottom: 0, // Remove any bottom padding
   },
   subHeading: {
     fontSize: width * 0.055,
     fontWeight: 'bold',
     color: '#222',
     marginLeft: 15,
-    marginBottom: 2, // Reduced from 4 to 2
+    marginBottom: -3, // Negative margin to reduce space
   },
   heading: {
     fontSize: 17,
@@ -290,3 +291,5 @@ const styles = StyleSheet.create({
 });
 
 export default BoardList;
+
+

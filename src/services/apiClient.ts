@@ -9,7 +9,7 @@ import { supabase } from './supabase';
 
 // 🔹 Axios instance
 const apiClient: AxiosInstance = axios.create({
-  baseURL: 'https://adryd-backend.onrender.com',
+  baseURL: 'http://localhost:3000',
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });

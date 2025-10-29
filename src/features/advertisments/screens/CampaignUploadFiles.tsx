@@ -387,7 +387,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
                 }));
                 await uploadFiles({ uploadUrl, files: formattedFiles });
                 Alert.alert('Success', 'Files uploaded successfully!');
-                navigation.navigate('CompaignUploadConfirmation');
+                navigation.navigate('AdvertismentConfirmationScreen');
               } catch (error: any) {
                 console.error('Upload failed:', error);
                 Alert.alert(

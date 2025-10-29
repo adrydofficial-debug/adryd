@@ -14,10 +14,11 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AddIcon from '../../../assets/images/add.svg';
-import AdrydLogo from '../../../assets/images/AdrydLogo.png';
+
 import AxoVoltLogo from '../../../assets/images/AxoVolt.png';
 import { useCompanies } from '../../companies/hooks/useCompanies';
 import { Company as ApiCompany } from '../../companies/domain/entities';
+import NoInternet from '../../../components/NoInternet';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -285,6 +286,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
           </ScrollView>
         )}
       </View>
+       <NoInternet />
     </SafeAreaView>
   );
 };

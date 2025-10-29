@@ -15,7 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import CustomInput from '../../../components/CustomInput';
-
+import NoInternet  from '../../../components/NoInternet';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -240,6 +240,7 @@ const ChangePassword: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+       <NoInternet />
     </View>
   );
 };
@@ -248,6 +249,7 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1,
     backgroundColor: '#FFFFFF',
+    paddingTop:20
   },
   keyboardAvoidingView: { flex: 1 },
   scrollView: { flex: 1 },

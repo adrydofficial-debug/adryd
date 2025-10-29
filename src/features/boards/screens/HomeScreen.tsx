@@ -22,6 +22,7 @@ import { useAuthStore } from '../../../store/authStore';
 import BoardTabs, { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
 import { useProfile } from '../../profile/hooks/useProfile';
+import NoInternet from '../../../components/NoInternet';
 // import { useFocusEffect } from '@react-navigation/native';
 
 type Props = {
@@ -316,6 +317,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   {/* Category header - shown only once */}
                   <View style={styles.categoryHeader}>
                     <Text style={styles.categoryTitle}>{category.name}</Text>
+                    <TouchableOpacity onPress={() => {
+                      // Handle see all for this category
+                      console.log('See all for category:', category.name);
+                    }}>
+                      <Text style={styles.seeAllText}>See All</Text>
+                    </TouchableOpacity>
                   </View>
 
                   {/* Groups within this category */}
@@ -324,8 +331,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                       key={`${category.slug}-${group.slug}`}
                       data={group.boards.map(convertBoardToBoardItem)}
                       onPressDetail={handleDetailPress}
-                      heading={group.name}
-                      subHeading={group.description}
                       navigation={navigation}
                     />
                   ))}
@@ -338,6 +343,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Drawer Component */}
       <DrawerComponent visible={drawerVisible} onClose={handleCloseDrawer} />
+       <NoInternet />
     </View>
   );
 };
@@ -349,7 +355,7 @@ const styles = StyleSheet.create({
     height: height * 0.31,
     paddingTop: height * 0.04,
     paddingHorizontal: width * 0.05,
-    marginBottom: 2,
+    // marginBottom: 2,
   },
   profileRow: {
     flexDirection: 'row',
@@ -467,7 +473,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   boardSection: { 
-    marginTop: height * 0.001, 
+    // marginTop: height * 0.001, 
     marginHorizontal: width * 0.01,
     marginLeft: -10, // Adjusted to account for 15px padding
   },
@@ -475,9 +481,9 @@ const styles = StyleSheet.create({
     fontSize: width * 0.055,
     fontWeight: 'bold',
     color: '#222',
-    marginBottom: 10, // Reduced from 0.015 to 0.005
+    marginBottom: 15, // Reduced from 0.015 to 0.005
     paddingHorizontal: 20,
-    marginTop: -10,
+    marginTop: -25,
 
   },
   errorContainer: {
@@ -581,6 +587,9 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 10,
     marginTop: 15,
@@ -589,6 +598,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: '#0f0e0fff',
+    fontWeight: '600',
   },
 });
 export default HomeScreen;

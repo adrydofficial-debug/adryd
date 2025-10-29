@@ -1,0 +1,100 @@
+{
+  "en": {
+    "login": {
+      "title": "Login",
+      "subtitle": "Login now and turn your",
+      "highlight": "ideas",
+      "subtitleEnd": "into reality.",
+      "phoneNumber": "Phone Number",
+      "password": "Your Password",
+      "forgotPassword": "Forgot Password?",
+      "cta": "Login",
+      "loggingIn": "Logging in...",
+      "noAccount": "Don't have an account?",
+      "register": "Register"
+    },
+    "forgot": {
+      "title": "Forgot Password",
+      "subtitle": "Enter your phone number and new password. We'll send you an OTP on WhatsApp to confirm the reset.",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "sending": "Sending...",
+      "cta": "Continue",
+      "remember": "Remember your password?"
+    },
+    "register": {
+      "title": "Register",
+      "subtitle": {
+        "start": "Create an",
+        "highlight1": "Account",
+        "middle": "to access all features of",
+        "highlight2": "Adryd",
+        "end": "."
+      },
+      "username": "Username",
+      "companyName": "Company Name",
+      "password": "Password",
+      "registering": "Registering...",
+      "cta": "Register",
+      "already": "Already have an account?"
+    },
+    "reset": {
+      "title": "Reset Password",
+      "subtitle": "Enter your new password below to reset your account password.",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm Password",
+      "resetting": "Resetting...",
+      "cta": "Reset Password"
+    }
+  },
+  "ur": {
+    "login": {
+      "title": "لاگ اِن",
+      "subtitle": "ابھی لاگ اِن کریں اور اپنے",
+      "highlight": "خیالات",
+      "subtitleEnd": "کو حقیقت میں بدلیں۔",
+      "phoneNumber": "فون نمبر",
+      "password": "آپ کا پاس ورڈ",
+      "forgotPassword": "پاس ورڈ بھول گئے؟",
+      "cta": "لاگ اِن",
+      "loggingIn": "لاگ اِن ہو رہے ہیں...",
+      "noAccount": "اکاؤنٹ نہیں ہے؟",
+      "register": "رجسٹر کریں"
+    },
+    "forgot": {
+      "title": "پاس ورڈ بھول گئے",
+      "subtitle": "اپنا فون نمبر اور نیا پاس ورڈ درج کریں۔ ہم واٹس ایپ پر OTP بھیجیں گے۔",
+      "newPassword": "نیا پاس ورڈ",
+      "confirmPassword": "پاس ورڈ کی تصدیق کریں",
+      "sending": "بھیجا جا رہا ہے...",
+      "cta": "جاری رکھیں",
+      "remember": "پاس ورڈ یاد ہے؟"
+    },
+    "register": {
+      "title": "رجسٹر کریں",
+      "subtitle": {
+        "start": "اپنا",
+        "highlight1": "اکاؤنٹ",
+        "middle": "بنائیں تاکہ",
+        "highlight2": "Adryd",
+        "end": " کی تمام خصوصیات تک رسائی حاصل ہو۔"
+      },
+      "username": "یوزرنیم",
+      "companyName": "کمپنی کا نام",
+      "password": "پاس ورڈ",
+      "registering": "رجسٹر کیا جا رہا ہے...",
+      "cta": "رجسٹر کریں",
+      "already": "کیا آپ کا پہلے سے اکاؤنٹ ہے؟"
+    },
+    "reset": {
+      "title": "پاس ورڈ ری سیٹ کریں",
+      "subtitle": "اپنا نیا پاس ورڈ درج کریں تاکہ اکاؤنٹ کا پاس ورڈ ری سیٹ ہو جائے۔",
+      "newPassword": "نیا پاس ورڈ",
+      "confirmPassword": "پاس ورڈ کی تصدیق کریں",
+      "resetting": "ری سیٹ کیا جا رہا ہے...",
+      "cta": "ری سیٹ کریں"
+    }
+  }
+}
+
+

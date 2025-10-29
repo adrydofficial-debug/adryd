@@ -1,0 +1,22 @@
+{
+  "en": {
+    "campaigns": {
+      "title": "Campaigns",
+      "create": "Create campaign"
+    }
+  },
+  "hi": {
+    "campaigns": {
+      "title": "अभियान",
+      "create": "अभियान बनाएं"
+    }
+  },
+  "ur": {
+    "campaigns": {
+      "title": "مہمات",
+      "create": "مہم بنائیں"
+    }
+  }
+}
+
+

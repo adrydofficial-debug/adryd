@@ -22,6 +22,7 @@ import { useFilteredBoards } from '../hooks/useFilteredBoards';
 import { useSearchBoards } from '../hooks/useSearchBoards';
 // TypeScript interfaces - using BoardList's BoardItem interface
 import { BoardItem } from '../../../components/BoardList';
+ 
 
 interface FilterCategoryListProps {
   route: {
@@ -216,7 +217,7 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
           Error: {error.message || 'Something went wrong'}
         </Text>
       ) : data.length === 0 ? (
-        <View style={{ padding: 20, alignItems: 'center' }}>
+        <View style={{ padding: 0, alignItems: 'center' }}>
           <Text style={{ fontSize: 16, color: '#666', marginBottom: 8 }}>
             {debouncedSearchQuery 
               ? `No results found for "${debouncedSearchQuery}"` 
@@ -233,12 +234,13 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
         <BoardList
           data={data}
           onPressDetail={handleDetailPress}
-          heading={selectedTab?.label || 'Boards'}
-          subHeading={`${data.length} boards found`}
+          // heading={selectedTab?.label || 'Boards'}
+          // subHeading={`${data.length} boards found`}
           navigation={navigation}
           numColumns={2}
         />
       )}
+       <NoInternet />
     </View>
   );
 
@@ -288,15 +290,16 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff' ,paddingBottom:250},
   header: {
     width,
-    height: height * 0.28,
+    // reduce header height so BoardList sits closer to BoardTabs
+    height: height * 0.24,
     // paddingTop: height * 0.04,
     // paddingHorizontal: width * 0.05,
-    marginBottom: 35,
+    // marginBottom: 35,
   },
-  mainView:{
+  mainView: {
     paddingHorizontal: width * 0.04,
   },
   searchRow: {
@@ -333,9 +336,10 @@ const styles = StyleSheet.create({
   },
   filterBtn: { marginLeft: 10 },
   filterIcon: { width: 20, height: 20 },
-  boardSection: { 
-    marginTop: height * 0.02, 
-    marginBottom: 10,
+  boardSection: {
+    // reduce the top margin so tabs are closer to the list below
+    marginTop: height * 0.01,
+    // marginBottom: 10,
     marginLeft: -10, // Adjusted to account for 15px padding
   },
 });
