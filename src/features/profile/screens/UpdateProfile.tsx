@@ -17,6 +17,7 @@ import ProfileUser from '../../../components/ProfileUser';
 import { useProfile, useUpdateProfile, useUploadProfileAvatar } from '../hooks';
 import NoInternet from '../../../components/NoInternet';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n';
 const { width, height } = Dimensions.get('window');
 const wp = (p: number) => (width * p) / 100;
 const hp = (p: number) => (height * p) / 100;
@@ -25,6 +26,7 @@ const UpdateProfile: React.FC = () => {
   const navigation = useNavigation();
   const { t } = useTranslation('profile');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [languageKey, setLanguageKey] = useState(0);
 
   // Profile data from Supabase
   const { data: profile, isLoading: profileLoading, refetch } = useProfile();
@@ -34,6 +36,17 @@ const UpdateProfile: React.FC = () => {
   // State for the editable fields
   const [fullName, setFullName] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | undefined>(undefined);
+
+  // Listen for language changes and force re-render
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      setLanguageKey(prev => prev + 1);
+    };
+    i18n.on('languageChanged', handleLanguageChange);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, []);
 
   // Initialize fields from profile data
   useEffect(() => {
@@ -48,6 +61,7 @@ const UpdateProfile: React.FC = () => {
     useCallback(() => {
       setRefreshKey(prev => prev + 1);
       refetch();
+      setLanguageKey(prev => prev + 1);
     }, [refetch]),
   );
 
@@ -78,6 +92,7 @@ const UpdateProfile: React.FC = () => {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
+      key={languageKey}
     >
       <ScrollView
         contentContainerStyle={styles.content}
@@ -91,7 +106,7 @@ const UpdateProfile: React.FC = () => {
           >
             <Ionicons name="chevron-back" size={22} color="#111" />
           </TouchableOpacity>
-          <Text style={styles.title}>{t('updateProfile.screenTitle')}</Text>
+          <Text style={styles.title} key={`title-${languageKey}`}>{t('updateProfile.screenTitle')}</Text>
           <View style={{ width: 32 }} />
         </View>
 

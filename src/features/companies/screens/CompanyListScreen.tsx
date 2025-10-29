@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useTranslation } from 'react-i18next';
 import { useCompanies, useDeleteCompany } from '../hooks';
 import { Company } from '../types';
 
@@ -25,6 +26,7 @@ const CompanyListScreen: React.FC<CompanyListScreenProps> = ({
   onCompanyPress,
   onCreateCompany,
 }) => {
+  const { t } = useTranslation('companies');
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -62,7 +64,7 @@ const CompanyListScreen: React.FC<CompanyListScreenProps> = ({
         <View style={styles.companyInfo}>
           <Text style={styles.companyName}>{item.company_name}</Text>
           <Text style={styles.companyCategory}>
-            {item.business_category_ref?.name || 'No Category'}
+            {item.business_category_ref?.name || t('list.noCategory')}
           </Text>
         </View>
         <View style={styles.companyActions}>
@@ -111,7 +113,7 @@ const CompanyListScreen: React.FC<CompanyListScreenProps> = ({
               { color: item.is_verified ? '#4CAF50' : '#FF9800' },
             ]}
           >
-            {item.is_verified ? 'Verified' : 'Pending'}
+            {item.is_verified ? t('list.verified') : t('list.pending')}
           </Text>
         </View>
         <Text style={styles.createdDate}>
@@ -122,27 +124,27 @@ const CompanyListScreen: React.FC<CompanyListScreenProps> = ({
   );
 
   const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="business" size={64} color="#ccc" />
-      <Text style={styles.emptyTitle}>No Companies Found</Text>
-      <Text style={styles.emptySubtitle}>
-        {searchQuery
-          ? 'Try adjusting your search terms'
-          : 'Create your first company to get started'}
-      </Text>
-      {!searchQuery && (
-        <TouchableOpacity style={styles.createButton} onPress={onCreateCompany}>
-          <Text style={styles.createButtonText}>Create Company</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+      <View style={styles.emptyContainer}>
+        <Ionicons name="business" size={64} color="#ccc" />
+        <Text style={styles.emptyTitle}>{t('list.empty')}</Text>
+        <Text style={styles.emptySubtitle}>
+          {searchQuery
+            ? t('list.searchPlaceholder')
+            : t('list.emptyHint')}
+        </Text>
+        {!searchQuery && (
+          <TouchableOpacity style={styles.createButton} onPress={onCreateCompany}>
+            <Text style={styles.createButtonText}>{t('list.createCompany')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
   );
 
   if (isLoading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#C539A5" />
-        <Text style={styles.loadingText}>Loading companies...</Text>
+        <Text style={styles.loadingText}>{t('list.loading')}</Text>
       </View>
     );
   }
@@ -151,12 +153,12 @@ const CompanyListScreen: React.FC<CompanyListScreenProps> = ({
     return (
       <View style={styles.errorContainer}>
         <Ionicons name="alert-circle" size={64} color="#ff4444" />
-        <Text style={styles.errorTitle}>Something went wrong</Text>
+        <Text style={styles.errorTitle}>{t('list.error')}</Text>
         <Text style={styles.errorSubtitle}>
-          Failed to load companies. Please try again.
+          {t('list.error')}
         </Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
-          <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={styles.retryButtonText}>{t('list.retry')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -171,7 +173,7 @@ const CompanyListScreen: React.FC<CompanyListScreenProps> = ({
         style={styles.header}
       >
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Companies</Text>
+          <Text style={styles.headerTitle}>{t('list.title')}</Text>
           <TouchableOpacity style={styles.addButton} onPress={onCreateCompany}>
             <Ionicons name="add" size={24} color="#fff" />
           </TouchableOpacity>

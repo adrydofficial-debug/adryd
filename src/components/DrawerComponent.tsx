@@ -12,6 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useProfile } from '../features/profile/hooks/useProfile';
 import SecurityIcon from '../assets/images/security.svg';
@@ -44,6 +45,7 @@ const DRAWER_WIDTH = Math.min(width * 0.82, 340);
 
 const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) => {
   const navigation = useNavigation();
+  const { t } = useTranslation('profile');
   // Only fetch profile when drawer is visible to prevent unnecessary API calls
   const { data: profile } = useProfile(visible);
   const { user } = useAuthStore();
@@ -88,8 +90,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   const menuItems: DrawerItem[] = [
     {
       id: 1,
-      title: 'Security',
-      subtitle: 'Phone number & Password',
+      title: t('drawer.security'),
+      subtitle: t('drawer.securitySubtitle'),
       onPress: () => {
         onClose();
         try {
@@ -104,8 +106,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
     },
     {
       id: 2,
-      title: 'Companies',
-      subtitle: 'Saved Your Business',
+      title: t('drawer.companies'),
+      subtitle: t('drawer.companiesSubtitle'),
       onPress: () => {
         onClose(); // Close the drawer first
         try {
@@ -121,8 +123,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
 
     {
       id: 4,
-      title: 'Favorite',
-      subtitle: 'Your Favorite Campaigns',
+      title: t('drawer.favorite'),
+      subtitle: t('drawer.favoriteSubtitle'),
        onPress: () => {
         onClose(); // Close the drawer first
         try {
@@ -137,8 +139,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
     },
     {
       id: 5,
-      title: 'Invite',
-      subtitle: 'Invite Family Friends',
+      title: t('drawer.invite'),
+      subtitle: t('drawer.inviteSubtitle'),
       onPress: () => {},
       // color: '#4CAF50',
       icon: 'invite',
@@ -146,13 +148,13 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   ];
 
   const supportItems: DrawerItem[] = [
-    { id: 6, title: 'Help / FAQs', onPress: () => {},
+    { id: 6, title: t('drawer.help'), onPress: () => {},
     //  color: '#607D8B', 
     icon: 'help' },
-    { id: 7, title: 'Terms & Privacy', onPress: () => {},
+    { id: 7, title: t('drawer.terms'), onPress: () => {},
     //  color: '#795548',
       icon: 'terms' },
-    { id: 8, title: 'Contact Support', onPress: () => {},
+    { id: 8, title: t('drawer.contact'), onPress: () => {},
     //  color: '#009688',
       icon: 'contact' },
   ];
@@ -208,6 +210,9 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
           styles.drawer,
           {
             transform: [{ translateX }],
+            // Force drawer to always be on the left, even in RTL mode
+            left: 0,
+            right: undefined,
           },
         ]}
       >
@@ -237,7 +242,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
                  'User'}
               </Text>
               <Text style={styles.profilePhone}>
-                {profile?.phone || 'No phone number'}
+                {profile?.phone || t('drawer.noPhone')}
               </Text>
             </View>
              <TouchableOpacity 
@@ -286,7 +291,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
                 </View>
               </View>
               <View style={styles.menuItemCenter}>
-                <Text style={styles.menuItemTitle}>Log Out</Text>
+                <Text style={styles.menuItemTitle}>{t('drawer.logout')}</Text>
               </View>
               <View style={styles.menuItemRight} />
             </TouchableOpacity>
@@ -309,6 +314,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     left: 0,
+    right: undefined,
     width: DRAWER_WIDTH,
     backgroundColor: '#FFFFFF',
     // paddingTop: 16,
@@ -318,6 +324,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
+    // Force drawer to always open from left, ignore RTL
+    ...({ writingDirection: 'ltr' } as any),
   },
   profileCard: {
     backgroundColor: '#BF349E',

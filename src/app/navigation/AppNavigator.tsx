@@ -60,7 +60,7 @@ const AppNavigator = () => (
       name="CurrentLocation"
       component={CurrentLocationMinimalMap}
     /> */}
-    {/* <Stack.Screen name="UpdateProfile" component={UpdateProfile} /> */}
+    <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
    
   </Stack.Navigator>
 );
