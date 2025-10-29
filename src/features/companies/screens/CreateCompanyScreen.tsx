@@ -19,6 +19,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import BusinessCategoryDropdown from '../../../components/BusinessCategoryDropdown';
 import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
+import { useTranslation } from 'react-i18next';
 import { Company } from '../domain/entities';
 // import {AppScreens} from '../../../app/navigation/AppNavigator';
 import { supabase } from '../../../services/supabase';
@@ -51,6 +52,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   navigation,
   company,
 }) => {
+  const { t } = useTranslation('companies');
   const [companyName, setCompanyName] = useState(
     company?.company_name || 'Adryd',
   );
@@ -363,7 +365,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
           >
             <Ionicons name="arrow-back" size={wp(6)} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Company Detail</Text>
+          <Text style={styles.headerTitle}>{t('create.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.progressContainer}>
@@ -406,9 +408,9 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                       size={width * 0.08}
                       style={styles.uploadIcon}
                     />
-                    <Text style={styles.uploadText}>Upload Company Logo</Text>
+                    <Text style={styles.uploadText}>{t('create.uploadLogo')}</Text>
                     <Text style={styles.uploadSubtext}>
-                      Format: .jpeg, .png & Max file size: 25 MB
+                      {t('create.uploadFormat')}
                     </Text>
                   </>
                 )}
@@ -416,8 +418,8 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
             </TouchableOpacity>
             <View style={styles.formFields}>
               <CustomInput
-                label="Company Name"
-                placeholder="Enter company name"
+                label={t('create.companyName')}
+                placeholder={t('create.enterCompanyName')}
                 value={companyName}
                 onChangeText={text => {
                   setCompanyName(text);
@@ -434,8 +436,8 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
               />
 
               <CustomInput
-                label="Business Name"
-                placeholder="Enter business name"
+                label={t('create.companyName')}
+                placeholder={t('create.enterCompanyName')}
                 value={businessName}
                 onChangeText={text => {
                   setBusinessName(text);
@@ -453,7 +455,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
 
               {/* Business Category Input Field with Element Dropdown */}
               <View style={styles.customInputContainer}>
-                <Text style={styles.inputLabel}>Business Category</Text>
+                <Text style={styles.inputLabel}>{t('create.category')}</Text>
                 <BusinessCategoryDropdown
                   label=""
                   data={businessCategoryData}
@@ -469,7 +471,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                       }));
                     }
                   }}
-                  placeholder="Select business category"
+                  placeholder={t('create.selectCategory')}
                   required={true}
                   containerStyle={styles.dropdownWrapper}
                   error={validationErrors.businessCategory}
@@ -477,8 +479,8 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
               </View>
 
               <CustomInput
-                label="Company NTN"
-                placeholder="Optional"
+                label={t('create.ntn')}
+                placeholder={t('create.enterNtn')}
                 value={companyNTN}
                 onChangeText={text => {
                   setCompanyNTN(text);
@@ -494,8 +496,8 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                 error={validationErrors.companyNTN}
               />
               <CustomInput
-                label="Company Address"
-                placeholder="Optional"
+                label={t('create.address')}
+                placeholder={t('create.enterAddress')}
                 value={companyAddress}
                 onChangeText={text => {
                   setCompanyAddress(text);
@@ -511,8 +513,8 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                 error={validationErrors.companyAddress}
               />
               <CustomInput
-                label="Company Email"
-                placeholder="Enter company email"
+                label={t('create.email')}
+                placeholder={t('create.enterEmail')}
                 value={companyEmail}
                 onChangeText={text => {
                   setCompanyEmail(text);
@@ -533,7 +535,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         </ScrollView>
         <View style={styles.buttonContainer}>
           <CustomButton
-            title={isSubmitting ? 'Creating...' : 'Next'}
+            title={isSubmitting ? t('create.saving') : t('create.save')}
             onPress={handleNext}
             variant="primary"
             size="medium"

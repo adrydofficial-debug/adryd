@@ -183,7 +183,7 @@
 //             onPress={() => navigation.goBack()}>
 //             <Ionicons name="arrow-back" size={wp(6)} color="#000" />
 //           </TouchableOpacity>
-//           <Text style={styles.headerTitle}>Company Detail</Text>
+//           <Text style={styles.headerTitle}>{t('detail.title')}</Text>
 //           <View style={styles.headerSpacer} />
 //         </View>
 //         <View style={styles.progressContainer}>

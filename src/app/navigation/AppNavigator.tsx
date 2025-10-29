@@ -63,8 +63,16 @@ const AppNavigator = () => (
     <Stack.Screen name="FilterCategoryList" component={FilterCategoryList} />
     <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
     <Stack.Screen name="ChangePassword" component={ChangePassword} />
-    <Stack.Screen name="PreviousCompanyScreen" component={PreviousCompanyScreen} />
-    <Stack.Screen name="ChatScreen" component={ChatScreen} />
+    <Stack.Screen
+      name="PreviousCompanyScreen"
+      component={PreviousCompanyScreen}
+    />
+    {/* <Stack.Screen
+      name="CurrentLocation"
+      component={CurrentLocationMinimalMap}
+    /> */}
+  
+   <Stack.Screen name="ChatScreen" component={ChatScreen} />
     <Stack.Screen name="ContactSupportScreen" component={ContactSupportScreen} />
     <Stack.Screen name="AdvertismentConfirmationScreen" component={AdvertismentConfirmationScreen} />
     <Stack.Screen name="AdvertismentCongratulateScreen" component={AdvertismentCongratulateScreen} />

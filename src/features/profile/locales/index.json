@@ -42,6 +42,21 @@
       "email": "Email",
       "number": "Number",
       "continueBusiness": "Continue this business"
+    },
+    "drawer": {
+      "security": "Security",
+      "securitySubtitle": "Phone number & Password",
+      "companies": "Companies",
+      "companiesSubtitle": "Saved Your Business",
+      "favorite": "Favorite",
+      "favoriteSubtitle": "Your Favorite Campaigns",
+      "invite": "Invite",
+      "inviteSubtitle": "Invite Family Friends",
+      "help": "Help / FAQs",
+      "terms": "Terms & Privacy",
+      "contact": "Contact Support",
+      "logout": "Log Out",
+      "noPhone": "No phone number"
     }
   },
   "ur": {
@@ -87,6 +102,21 @@
       "email": "ای میل",
       "number": "نمبر",
       "continueBusiness": "اس کاروبار کو جاری رکھیں"
+    },
+    "drawer": {
+      "security": "سیکیورٹی",
+      "securitySubtitle": "فون نمبر اور پاس ورڈ",
+      "companies": "کمپنیاں",
+      "companiesSubtitle": "آپ کا کاروبار محفوظ",
+      "favorite": "پسندیدہ",
+      "favoriteSubtitle": "آپ کی پسندیدہ مہمات",
+      "invite": "دعوت",
+      "inviteSubtitle": "خاندان اور دوستوں کو دعوت دیں",
+      "help": "مدد / FAQ",
+      "terms": "شرائط اور رازداری",
+      "contact": "سپورٹ سے رابطہ کریں",
+      "logout": "لاگ آؤٹ",
+      "noPhone": "کوئی فون نمبر نہیں"
     }
   }
 }

@@ -68,7 +68,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
     return apiCompanies.map((apiCompany: ApiCompany) => ({
       id: apiCompany.id.toString(),
       name: apiCompany.company_name,
-      logo: apiCompany.logo_url ? { uri: apiCompany.logo_url } : AdrydLogo, // Fallback to default logo
+      logo: apiCompany.logo_url ?{ uri: apiCompany.logo_url }:'' , // Fallback to default logo
       color: '#C539A5', // Default color, could be dynamic based on category
       business: apiCompany.category?.name || 'Business',
       ntn: apiCompany.company_ntn || 'N/A',
