@@ -23,6 +23,7 @@ import BoardTabs, { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
 import { useProfile } from '../../profile/hooks/useProfile';
 import NoInternet from '../../../components/NoInternet';
+import { useTranslation } from 'react-i18next';
 // import { useFocusEffect } from '@react-navigation/native';
 
 type Props = {
@@ -32,6 +33,7 @@ type Props = {
 const { width, height } = Dimensions.get('window');
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation('boards');
   const [selectedTab, setSelectedTab] = useState<Tab | null>({
     label: 'See All',
     slug: 'see-all',
@@ -159,7 +161,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             />
           </TouchableOpacity>
           <View style={{ marginRight: 25,marginLeft:6 }}>
-            <Text style={styles.greeting}>Hi</Text>
+            <Text style={styles.greeting}>{t('greetingHi')}</Text>
             <Text style={styles.name}>
               {profile?.full_name ||
                 user?.user_metadata?.full_name ||
@@ -214,7 +216,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       </LinearGradient>
 
       <View style={styles.boardSection}>
-        <Text style={styles.boardTitle}>Find your Board</Text>
+        <Text style={styles.boardTitle}>{t('findBoard')}</Text>
         <BoardTabs
           tabs={tabs}
           selectedTab={selectedTab}
@@ -241,7 +243,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         ) : hasError ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>
-              Failed to load boards. Please try again.
+              {t('errorLoadingBoards')}
             </Text>
             <TouchableOpacity
               style={styles.retryButton}
@@ -249,7 +251,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 refetchBoardFilters();
               }}
             >
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text style={styles.retryButtonText}>{t('retry')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -272,7 +274,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     convertBoardToBoardItem,
                   )}
                   onPressDetail={handleDetailPress}
-                  heading="Recommended"
+                  heading={t('recommended')}
                   navigation={navigation}
                 />
               )}
@@ -283,7 +285,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 <BoardList
                   data={boardFiltersData.nearest.map(convertBoardToBoardItem)}
                   onPressDetail={handleDetailPress}
-                  heading="Nearest Boards"
+                  heading={t('nearestBoards')}
                   navigation={navigation}
                 />
               )}
@@ -321,7 +323,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                       // Handle see all for this category
                       console.log('See all for category:', category.name);
                     }}>
-                      <Text style={styles.seeAllText}>See All</Text>
+                      <Text style={styles.seeAllText}>{t('seeAll')}</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -331,6 +333,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                       key={`${category.slug}-${group.slug}`}
                       data={group.boards.map(convertBoardToBoardItem)}
                       onPressDetail={handleDetailPress}
+                      heading={group.name}
                       navigation={navigation}
                     />
                   ))}

@@ -16,12 +16,14 @@ import CustomInput from '../../../components/CustomInput';
 import ProfileUser from '../../../components/ProfileUser';
 import { useProfile, useUpdateProfile, useUploadProfileAvatar } from '../hooks';
 import NoInternet from '../../../components/NoInternet';
+import { useTranslation } from 'react-i18next';
 const { width, height } = Dimensions.get('window');
 const wp = (p: number) => (width * p) / 100;
 const hp = (p: number) => (height * p) / 100;
 
 const UpdateProfile: React.FC = () => {
   const navigation = useNavigation();
+  const { t } = useTranslation('profile');
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Profile data from Supabase
@@ -89,7 +91,7 @@ const UpdateProfile: React.FC = () => {
           >
             <Ionicons name="chevron-back" size={22} color="#111" />
           </TouchableOpacity>
-          <Text style={styles.title}>Profile</Text>
+          <Text style={styles.title}>{t('updateProfile.screenTitle')}</Text>
           <View style={{ width: 32 }} />
         </View>
 
@@ -129,30 +131,30 @@ const UpdateProfile: React.FC = () => {
 
         {/* Form */}
         <View style={styles.form}>
-          <Text style={styles.smallLabel}>Full Name</Text>
+          <Text style={styles.smallLabel}>{t('updateProfile.fullName')}</Text>
           <CustomInput
             value={fullName}
             onChangeText={setFullName}
-            placeholder="Enter your full name"
+            placeholder={t('updateProfile.enterFullName')}
             containerStyle={styles.inputContainerFix}
           />
 
-          <Text style={styles.smallLabel}>Phone Number</Text>
+          <Text style={styles.smallLabel}>{t('updateProfile.phoneNumber')}</Text>
           <CustomInput
             value={profile?.phone || ''}
             onChangeText={() => {}} // Read-only
-            placeholder="Phone number"
+            placeholder={t('updateProfile.phonePlaceholder')}
             containerStyle={styles.inputContainerFix}
           />
           <Text style={styles.noteText}>
-            Your phone number is verified and cannot be changed.
+            {t('updateProfile.phoneNote')}
           </Text>
         </View>
 
         {/* Buttons */}
         <View style={styles.buttonWrap}>
           <CustomButton
-            title="Update Profile"
+            title={t('updateProfile.cta')}
             onPress={handleSave}
             loading={updateProfile.isPending}
             disabled={updateProfile.isPending}
