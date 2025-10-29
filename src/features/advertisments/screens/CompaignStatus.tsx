@@ -16,6 +16,7 @@ import BottomTab from '../../../app/navigation/BottomTab';
 import { useAdvertisements } from '../hooks/useAdvertisements';
 import CampaignTabs, { CampaignTab } from '../components/CampaignTabs';
 import { AdvertisementStatus } from '../domain/entities';
+import BackButton from '../../../components/BackButton';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -74,12 +75,10 @@ interface CampaignCard {
 }
 
 interface ActiveCampaignProps {
-  navigation: {
-    goBack: () => void;
-  };
+  navigation?: any;
 }
 
-const CompaignStatus: React.FC<ActiveCampaignProps> = ({ navigation }) => {
+const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
   const [expandedCard, setExpandedCard] = useState<number | null>(1);
   const [activeBottomTab, setActiveBottomTab] = useState<string>('Boards');
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -426,9 +425,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={wp(6)} color="#000" />
-        </TouchableOpacity>
+        <BackButton />
         <Text style={styles.headerTitle}>
           All Campaigns
         </Text>
