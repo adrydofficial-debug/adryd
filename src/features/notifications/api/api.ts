@@ -34,7 +34,9 @@ function mapNotification(n: NotificationResponse): NotificationEntity {
 
 export const notificationsApi = {
   async getAll(): Promise<NotificationEntity[]> {
+    console.log('[Notifications] GET /api/notifications');
     const res = await apiClient.get<NotificationResponse[]>('/api/notifications');
+    console.log('[Notifications] response:', res.status, Array.isArray(res.data) ? res.data.length : 'n/a');
     return (res.data || []).map(mapNotification);
   },
 };
