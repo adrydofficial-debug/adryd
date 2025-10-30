@@ -11,6 +11,7 @@ import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen
 import BottomTab from './BottomTab';
 import CompaignStatus from '../../features/advertisments/screens/CompaignStatus';
 import UpdateProfile from '../../features/profile/screens/UpdateProfile';
+import ChatScreen from '../../features/chat/screens/ChatScreen';  
 // import CurrentLocationMinimalMap from '../../features/location/CurrentLocationMinimalMap';
   import ChangePassword from '../../features/profile/screens/ChangePassword';
   import PreviousCompanyScreen from '../../features/profile/screens/PreviousCompany';
@@ -36,6 +37,7 @@ export type AppStackParamList = {
   SingleBoardDetail: { item: any };
   AdvertismentConfirmationScreen: { campaignId: string };
   AdvertismentCongratulateScreen: { campaignId: string};
+  ChatScreen: { chatId: string; userName: string };
 };
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const AppNavigator = () => (
@@ -56,6 +58,8 @@ const AppNavigator = () => (
       name="PreviousCompanyScreen"
       component={PreviousCompanyScreen}
     />
+       <Stack.Screen name="ChatScreen" component={ChatScreen} />
+
     {/* <Stack.Screen
       name="CurrentLocation"
       component={CurrentLocationMinimalMap}

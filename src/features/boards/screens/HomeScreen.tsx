@@ -31,6 +31,7 @@ type Props = {
 };
 
 const { width, height } = Dimensions.get('window');
+const RIGHT_ACTIONS_WIDTH = width * 0.38;
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { t } = useTranslation('boards');
@@ -160,9 +161,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.avatar}
             />
           </TouchableOpacity>
-          <View style={{ marginRight: 25,marginLeft:6 }}>
-            <Text style={styles.greeting}>{t('greetingHi')}</Text>
-            <Text style={styles.name}>
+          <View style={styles.nameWrap}>
+            <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">{t('greetingHi')}</Text>
+            <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
               {profile?.full_name ||
                 user?.user_metadata?.full_name ||
                 user?.user_metadata?.name ||
@@ -359,13 +360,17 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.04,
     paddingHorizontal: width * 0.05,
     // marginBottom: 2,
+    // Enforce LTR so header children order is preserved across RTL languages
+    ...({ writingDirection: 'ltr' } as any),
   },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 0,
-    
+    // Always keep LTR order regardless of RTL language
+    ...({ writingDirection: 'ltr' } as any),
+    flexShrink: 0,
   },
   avatar: {
     width: width * 0.13,
@@ -373,14 +378,19 @@ const styles = StyleSheet.create({
     borderRadius: width * 0.065,
     borderWidth: 1,
     borderColor: '#fff',
-   
   },
+  nameWrap: { flex: 1, paddingHorizontal: 6, minWidth: 0 },
   greeting: { fontSize: 12, color: '#fff', fontWeight: '400' },
   name: { fontSize: 15, color: '#fff', fontWeight: 'bold', marginTop: -5 },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: width * -0.001,
+    // Enforce LTR so right action buttons stay to the right
+    ...({ writingDirection: 'ltr' } as any),
+    justifyContent: 'flex-end',
+    flexShrink: 0,
+    width: RIGHT_ACTIONS_WIDTH,
   },
   locationBtnCustom: {
     flexDirection: 'row',

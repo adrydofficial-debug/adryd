@@ -42,6 +42,8 @@ type DrawerComponentProps = {
 
 const { width, height } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(width * 0.82, 340);
+// Push the drawer slightly beyond its width to avoid any visible sliver in RTL/layout transitions
+const OFFSCREEN_X = DRAWER_WIDTH + 40;
 
 const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) => {
   const navigation = useNavigation();
@@ -50,7 +52,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   const { data: profile } = useProfile(visible);
   const { user } = useAuthStore();
   const logout = useAuthStore(s => s.logout);
-  const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const translateX = useRef(new Animated.Value(-OFFSCREEN_X)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -72,7 +74,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
     } else {
       Animated.parallel([
         Animated.timing(translateX, {
-          toValue: -DRAWER_WIDTH,
+          toValue: -OFFSCREEN_X,
           duration: 220,
           easing: Easing.in(Easing.cubic),
           useNativeDriver: true,
@@ -200,7 +202,10 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   );
 
   return (
-    <View pointerEvents={visible ? 'auto' : 'none'} style={StyleSheet.absoluteFill}>
+    <View
+      pointerEvents={visible ? 'auto' : 'none'}
+      style={[StyleSheet.absoluteFill, ({ direction: 'ltr' } as any)]}
+    >
       <TouchableWithoutFeedback onPress={onClose}>
         <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]} />
       </TouchableWithoutFeedback>
@@ -213,6 +218,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
             // Force drawer to always be on the left, even in RTL mode
             left: 0,
             right: undefined,
+            zIndex: visible ? 1 : -1,
           },
         ]}
       >
