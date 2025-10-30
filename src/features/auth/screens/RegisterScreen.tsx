@@ -1,5 +1,5 @@
 import { Formik } from 'formik';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -83,6 +83,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState('');
+  const companyRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
   const [, setPasswordValidation] = useState<PasswordValidation>({
     hasUppercase: false,
     hasLowercase: false,
@@ -163,7 +166,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   // JSX
   // ----------------------
   return (
-    <LinearGradient colors={['#FFF4FD', '#fef3f9']} style={styles.container}>
+    <LinearGradient colors={['#F5F5F5', '#F5F5F5']} style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -213,9 +216,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     focused={focusedField === 'username'}
                     onFocus={() => setFocusedField('username')}
                     error={apiError}
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => companyRef.current?.focus()}
                   />
 
                   <CustomInput
+                    ref={companyRef}
                     label={t('register.companyName')}
                     placeholder="Enter Company Name"
                     value={values.companyName}
@@ -224,9 +231,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     focused={focusedField === 'companyName'}
                     onFocus={() => setFocusedField('companyName')}
                     error={apiError}
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => phoneRef.current?.focus()}
                   />
 
                   <CustomInput
+                    ref={phoneRef}
                     label={t('login.phoneNumber')}
                     placeholder="3XXXXXXXXX"
                     keyboardType="phone-pad"
@@ -238,6 +249,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     onFocus={() => setFocusedField('phoneNumber')}
                     focused={focusedField === 'phoneNumber'}
                     error={!!errors.phoneNumber || apiError}
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => passwordRef.current?.focus()}
                   />
 
                   {/* Password */}
@@ -245,6 +259,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     <Text style={styles.inputLabel}>{t('register.password')}</Text>
                     <View style={styles.passwordInputContainer}>
                       <TextInput
+                        ref={passwordRef}
                         style={[
                           styles.passwordInput,
                           errors.password &&
@@ -261,6 +276,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                         onBlur={handleBlur('password')}
                         onFocus={() => setFocusedField('password')}
                         placeholderTextColor="#999"
+                        returnKeyType="done"
                       />
                       <TouchableOpacity
                         style={styles.eyeIconContainer}

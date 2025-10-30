@@ -3,7 +3,7 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Formik, FormikHelpers } from 'formik';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -61,6 +61,9 @@ const ForgotPassword: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const phoneRef = useRef<any>(null);
+  const newPwdRef = useRef<any>(null);
+  const confirmPwdRef = useRef<any>(null);
 
   // ---------- Submit ----------
   const handleSubmit = (
@@ -129,7 +132,7 @@ const ForgotPassword: React.FC = () => {
 
   return (
     <LinearGradient
-      colors={['#FFF4FD', '#fef3f9']}
+      colors={['#F5F5F5', '#F5F5F5']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={styles.container}
@@ -158,9 +161,9 @@ const ForgotPassword: React.FC = () => {
 
             <Formik
               initialValues={{
-                phoneNumber: '+923236102030',
-                newPassword: '6AJ$kk3m9',
-                confirmPassword: '6AJ$kk3m9',
+                phoneNumber: '+923359857379',
+                newPassword: 'Taimoor12@',
+                confirmPassword: 'Taimoor12@',
               }}
               validationSchema={validationSchema}
               onSubmit={handleSubmit}
@@ -176,6 +179,7 @@ const ForgotPassword: React.FC = () => {
               }) => (
                 <>
                   <CustomInput
+                    ref={phoneRef}
                     label={t('login.phoneNumber')}
                     placeholder="+923XXXXXXXXX"
                     keyboardType="phone-pad"
@@ -189,9 +193,13 @@ const ForgotPassword: React.FC = () => {
                         ? errors.phoneNumber
                         : undefined
                     }
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => newPwdRef.current?.focus()}
                   />
 
                   <CustomInput
+                    ref={newPwdRef}
                     label={t('forgot.newPassword')}
                     placeholder="Enter new password"
                     secureTextEntry
@@ -205,9 +213,13 @@ const ForgotPassword: React.FC = () => {
                         ? errors.newPassword
                         : undefined
                     }
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => confirmPwdRef.current?.focus()}
                   />
 
                   <CustomInput
+                    ref={confirmPwdRef}
                     label={t('forgot.confirmPassword')}
                     placeholder="Re-enter new password"
                     secureTextEntry
@@ -221,6 +233,9 @@ const ForgotPassword: React.FC = () => {
                         ? errors.confirmPassword
                         : undefined
                     }
+                    returnKeyType="done"
+                    blurOnSubmit={true}
+                    onSubmitEditing={() => formikSubmit()}
                   />
 
                   <TouchableOpacity
