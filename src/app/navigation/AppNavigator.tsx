@@ -18,6 +18,7 @@ import ChatScreen from '../../features/chat/screens/ChatScreen';
 //  import UpdateProfile from '../../features/profile/screens/UpdateProfile';
 import AdvertismentConfirmationScreen from '../..//features/advertisments/screens/AdvertismentConfirmationScreen';
 import AdvertismentCongratulateScreen from '../../features/advertisments/screens/AdvertismentCongratulateScreen';
+import GetAllNotification from '../../features/notifications/screens/GetAllNotification';
 // 🔹 Define navigation param types
 export type AppStackParamList = {
   BottomTab: undefined;
@@ -38,6 +39,7 @@ export type AppStackParamList = {
   AdvertismentConfirmationScreen: { campaignId: string };
   AdvertismentCongratulateScreen: { campaignId: string};
   ChatScreen: { chatId: string; userName: string };
+  Notifications: undefined;
 };
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const AppNavigator = () => (
@@ -65,6 +67,7 @@ const AppNavigator = () => (
       component={CurrentLocationMinimalMap}
     /> */}
     <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
+    <Stack.Screen name="Notifications" component={GetAllNotification} />
    
   </Stack.Navigator>
 );

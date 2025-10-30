@@ -23,7 +23,7 @@ import { useSearchBoards } from '../hooks/useSearchBoards';
 // TypeScript interfaces - using BoardList's BoardItem interface
 import { BoardItem } from '../../../components/BoardList';
 import { useTranslation } from 'react-i18next';
- 
+ import NoInternet from '../../../components/NoInternet';
 
 interface FilterCategoryListProps {
   route: {
@@ -290,14 +290,14 @@ const FilterCategoryList: React.FC<FilterCategoryListProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' ,paddingBottom:250},
+  container: { flex: 1, backgroundColor: '#fff',paddingBottom:200},
   header: {
     width,
     // reduce header height so BoardList sits closer to BoardTabs
     height: height * 0.24,
     // paddingTop: height * 0.04,
     // paddingHorizontal: width * 0.05,
-    // marginBottom: 35,
+     marginBottom: 35,
   },
   mainView: {
     paddingHorizontal: width * 0.04,

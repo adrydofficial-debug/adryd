@@ -197,7 +197,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.FilterIcon}
               />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.bellBtn}>
+            <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
               <Image
                 style={styles.bellIcon}
                 source={require('../../../assets/images/PinkBell.png')}
