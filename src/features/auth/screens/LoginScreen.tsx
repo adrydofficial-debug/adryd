@@ -2,7 +2,7 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Formik, FormikHelpers } from 'formik';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -50,6 +50,7 @@ const LoginScreen: React.FC = () => {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
 
   const handleFocus = (field: string) => setFocusedField(field);
   const handleBlur = (field: string, formikBlur: (f: string) => void) => {
@@ -109,7 +110,7 @@ const LoginScreen: React.FC = () => {
 
   return (
     <LinearGradient
-      colors={['#FFF4FD', '#fef3f9']}
+      colors={['#F5F5F5', '#F5F5F5']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={styles.container}
@@ -136,8 +137,8 @@ const LoginScreen: React.FC = () => {
 
             <Formik<LoginCredentials>
               initialValues={{
-                phoneNumber: '+923236102030',
-                password: '6AJ$kk3m8',
+                phoneNumber: '+923359857379',
+                password: 'Taimoor12@',
               }}
               validationSchema={loginValidationSchema}
               onSubmit={handleLogin}
@@ -168,6 +169,9 @@ const LoginScreen: React.FC = () => {
                       (touched.phoneNumber && errors.phoneNumber) || apiError
                     }
                     showErrorText={false}
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => passwordRef.current?.focus()}
                   />
 
                   {/* Password input */}
@@ -175,6 +179,7 @@ const LoginScreen: React.FC = () => {
                     <Text style={styles.inputLabel}>{t('login.password')}</Text>
                     <View style={styles.passwordInputContainer}>
                       <TextInput
+                        ref={passwordRef}
                         style={[
                           styles.passwordInput,
                           (touched.password && errors.password) || apiError
@@ -193,6 +198,7 @@ const LoginScreen: React.FC = () => {
                         onBlur={() => handleBlur('password', formikBlur)}
                         onFocus={() => handleFocus('password')}
                         placeholderTextColor="#999"
+                        returnKeyType="done"
                       />
                       <TouchableOpacity
                         style={styles.eyeIconContainer}
