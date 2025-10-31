@@ -24,6 +24,7 @@ import { useBoardFilters } from '../hooks/useBoardFilters';
 import { useProfile } from '../../profile/hooks/useProfile';
 import NoInternet from '../../../components/NoInternet';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n';
 // import { useFocusEffect } from '@react-navigation/native';
 
 type Props = {
@@ -83,6 +84,19 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Drawer state
   const [drawerVisible, setDrawerVisible] = useState<boolean>(false);
+  
+  // Language change tracking for forced re-render
+  const [languageKey, setLanguageKey] = useState(0);
+  
+  useEffect(() => {
+    const handleLangChange = () => {
+      setLanguageKey(prev => prev + 1);
+    };
+    i18n.on('languageChanged', handleLangChange);
+    return () => {
+      i18n.off('languageChanged', handleLangChange);
+    };
+  }, []);
 
   // Banner images
   const bannerImages = [

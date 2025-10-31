@@ -3,6 +3,8 @@ import {
   Animated,
   Dimensions,
   Easing,
+  I18nManager,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -82,8 +84,20 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   const handleLanguageToggle = async (lang: 'en' | 'ur') => {
     try {
       await saveLanguage(lang);
-      i18n.changeLanguage(lang);
+      const isRTL = lang === 'ur';
+      
+      // Update I18nManager BEFORE changing language to ensure proper layout direction
+      if (I18nManager.isRTL !== isRTL) {
+        I18nManager.forceRTL(isRTL);
+        I18nManager.allowRTL(isRTL);
+      }
+      
+      // Change language - this will trigger languageChanged event
+      await i18n.changeLanguage(lang);
       setCurrentLanguage(lang);
+      
+      // On Android, RN Native may require a reload for RTL changes, but we try without first
+      // The languageChanged listener in i18n/index.ts will also apply layout direction
     } catch (error) {
       console.error('Error changing language:', error);
     }

@@ -17,6 +17,7 @@ import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import BoardList from '../../../components/BoardList';
 import { useFavoritesBoards } from '../../boards/hooks/useFavorites';
 import { BoardItem } from '../../../components/BoardList';
+import BackButton from '../../../components/BackButton';
 
 const {width, height} = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -116,13 +117,9 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
         end={{x: 0, y: 1}}
         style={styles.container}>
         
-        {/* Header with Back Arrow */}
+        {/* Header with BackButton component */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={wp(6)} color="#000" />
-          </TouchableOpacity>
+          <BackButton />
           <Text style={styles.headerTitle}>My Favourites</Text>
           <View style={styles.headerSpacer} />
         </View>
