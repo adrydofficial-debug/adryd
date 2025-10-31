@@ -25,6 +25,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
+import { useTranslation } from 'react-i18next';
 import { useUploadAdvertisementFiles } from '../hooks/hooks';
 
 // Types for navigation
@@ -90,6 +91,7 @@ interface Props {
 }
 
 const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
+  const { t } = useTranslation('advertisments');
   const [selectedFiles, setSelectedFiles] = useState<FileItem[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
@@ -252,7 +254,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
           >
             <Ionicons name="arrow-back" size={wp(6)} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Campaign Detail</Text>
+          <Text style={styles.headerTitle}>{t('uploadFiles.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -292,13 +294,13 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
                       isDragOver && styles.uploadTextDragOver,
                     ]}
                   >
-                    {isDragOver ? 'Drop files here' : 'Drag & drop files or '}
+                    {isDragOver ? t('uploadFiles.dragDrop') : t('uploadFiles.dragDrop')}
                     {!isDragOver && (
-                      <Text style={styles.browseText}>Browse</Text>
+                      <Text style={styles.browseText}>{t('uploadFiles.browse')}</Text>
                     )}
                   </Text>
-                  <Text style={styles.fileTypesText}>Images & Videos</Text>
-                  <Text style={styles.fileSizeText}>Max file size: 25 MB</Text>
+                  <Text style={styles.fileTypesText}>{t('uploadFiles.imagesVideos')}</Text>
+                  <Text style={styles.fileSizeText}>{t('uploadFiles.maxFileSize')}</Text>
                 </TouchableOpacity>
               </PanGestureHandler>
             </View>
@@ -306,9 +308,8 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
             {selectedFiles.length > 0 && (
               <View style={styles.statusSection}>
                 <Text style={styles.statusText}>
-                  {isUploading ? 'Uploading' : 'Ready to Upload'} -{' '}
-                  {selectedFiles.length} file
-                  {selectedFiles.length > 1 ? 's' : ''}
+                  {isUploading ? t('uploadFiles.uploading') : t('uploadFiles.readyToUpload')} -{' '}
+                  {selectedFiles.length} {selectedFiles.length > 1 ? t('uploadFiles.file') + 's' : t('uploadFiles.file')}
                 </Text>
               </View>
             )}
@@ -367,7 +368,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
 
         <View style={styles.buttonContainer}>
           <CustomButton
-            title={isPending ? 'UPLOADING...' : 'UPLOAD FILES'}
+            title={isPending ? t('uploadFiles.uploadingFiles') : t('uploadFiles.uploadFiles')}
             disabled={isPending}
             onPress={async () => {
               if (!uploadUrl) {

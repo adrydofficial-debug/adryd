@@ -16,10 +16,29 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const BackButton: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
 
+  const handleBackPress = () => {
+    try {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        // If we can't go back, navigate to the main BottomTab screen
+        navigation.navigate('BottomTab' as never);
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback: Try to navigate to the main screen
+      try {
+        navigation.navigate('BottomTab' as never);
+      } catch (fallbackError) {
+        console.error('Fallback navigation error:', fallbackError);
+      }
+    }
+  };
+
   return (
     <TouchableOpacity
       style={styles.backButton}
-      onPress={() => navigation.goBack()}
+      onPress={handleBackPress}
     >
       <Ionicons name="arrow-back" size={width * 0.06} color="#000" />
     </TouchableOpacity>

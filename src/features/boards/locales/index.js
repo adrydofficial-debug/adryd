@@ -1,0 +1,46 @@
+const boardsLocales = {
+  en: {
+    title: 'Boards',
+    empty: 'No boards found',
+    findBoard: 'Find your Board',
+    recommended: 'Recommended',
+    nearestBoards: 'Nearest Boards',
+    seeAll: 'See All',
+    errorLoadingBoards: 'Failed to load boards. Please try again.',
+    retry: 'Retry',
+    pleaseLogin: 'Please login to view listings',
+    searchPlaceholder: 'Search',
+    noResultsFor: 'No results found for "{{query}}"',
+    tryDifferentSearch: 'Try a different search term',
+    noListings: 'No listings found',
+    letsConnect: "Let's Connect",
+    size: 'Size',
+    about: 'About',
+    location: 'Location',
+    greetingHi: 'Hi',
+  },
+  ur: {
+    title: 'بورڈز',
+    empty: 'کوئی بورڈ نہیں ملا',
+    findBoard: 'اپنا بورڈ تلاش کریں',
+    recommended: 'تجاویز',
+    nearestBoards: 'قریب ترین بورڈز',
+    seeAll: 'سب دیکھیں',
+    errorLoadingBoards: 'بورڈز لوڈ کرنے میں ناکامی۔ دوبارہ کوشش کریں۔',
+    retry: 'دوبارہ کوشش کریں',
+    pleaseLogin: 'لسٹنگ دیکھنے کے لئے لاگ اِن کریں',
+    searchPlaceholder: 'تلاش کریں',
+    noResultsFor: '"{{query}}" کے لئے کوئی نتیجہ نہیں ملا',
+    tryDifferentSearch: 'کوئی اور تلاش آزمائیں',
+    noListings: 'کوئی لسٹنگ نہیں ملی',
+    letsConnect: 'رابطہ کریں',
+    size: 'سائز',
+    about: 'تفصیل',
+    location: 'مقام',
+    greetingHi: 'السلام علیکم',
+  },
+};
+
+export default boardsLocales;
+
+

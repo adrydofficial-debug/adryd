@@ -17,6 +17,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
+import { useTranslation } from 'react-i18next';
 import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
 import { CreateAdvertisementRequest } from '../types';
 const { width, height } = Dimensions.get('window');
@@ -30,6 +31,7 @@ interface Props {
   navigation: NavigationProp | any;
 }
 const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation('advertisments');
   const COMPANY_ID = 8;
   const BOARD_ID = 24;
   const [campaignName] = useState<string>('Test Ad');
@@ -201,7 +203,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
           >
             <Ionicons name="arrow-back" size={wp(6)} color="#000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Campaign Detail</Text>
+          <Text style={styles.headerTitle}>{t('createScreen.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.progressContainer}>
@@ -227,21 +229,21 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
           >
             <View style={styles.formCard}>
               <CustomInput
-                label="Campaign Name"
-                placeholder="Enter campaign name"
+                label={t('createScreen.campaignName')}
+                placeholder={t('createScreen.enterCampaignName')}
                 value={campaignName}
                 onChangeText={() => {}}
                 containerStyle={styles.customInputContainer}
               />
               <CustomInput
-                label="Campaign Categroty"
-                placeholder="Select category"
+                label={t('createScreen.category')}
+                placeholder={t('createScreen.selectCategory')}
                 value={campaignCategory}
                 onChangeText={() => {}}
                 containerStyle={styles.customInputContainer}
               />
               <View style={styles.dateTimeContainer}>
-                <Text style={styles.dateTimeLabel}>Campaign Duration</Text>
+                <Text style={styles.dateTimeLabel}>{t('createScreen.startDate')}</Text>
 
                 <TouchableOpacity
                   style={styles.calendarButton}
@@ -266,18 +268,18 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                 {selectedDays.length === 1 && (
                   <View style={styles.selectionHint}>
                     <Text style={styles.hintText}>
-                      Now tap your end date to complete the range
+                      {t('createScreen.selectDates')}
                     </Text>
                   </View>
                 )}
               </View>
               <View style={styles.descriptionContainer}>
-                <Text style={styles.descriptionLabel}>Description</Text>
+                <Text style={styles.descriptionLabel}>{t('createScreen.description')}</Text>
                 <TextInput
                   style={styles.descriptionInput}
                   value={description}
                   onChangeText={() => {}}
-                  placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim."
+                  placeholder={t('createScreen.enterDescription')}
                   placeholderTextColor="#999"
                   multiline={true}
                   numberOfLines={4}
@@ -285,7 +287,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                 />
               </View>
               <View style={styles.locationContainer}>
-                <Text style={styles.locationLabel}>Loaction</Text>
+                <Text style={styles.locationLabel}>{t('createScreen.location')}</Text>
                 <View style={styles.mapContainer}>
                   <View style={styles.mapPlaceholder}>
                     <Ionicons
@@ -306,7 +308,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.calendarModal}>
             <View style={styles.calendarContainer}>
               <View style={styles.calendarHeader}>
-                <Text style={styles.calendarTitle}>Select Date Range</Text>
+                <Text style={styles.calendarTitle}>{t('createScreen.selectDates')}</Text>
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setShowCalendar(false)}
@@ -409,7 +411,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                       );
                     }}
                   >
-                    <Text style={styles.clearButtonText}>Clear</Text>
+                    <Text style={styles.clearButtonText}>{t('createScreen.cancel')}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -426,7 +428,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                         selectedDays.length === 0 && styles.disabledButtonText,
                       ]}
                     >
-                      Confirm Selection
+                      {t('createScreen.confirm')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -439,8 +441,8 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
           <CustomButton
             title={
               createAdMutation.isPending
-                ? 'Creating...'
-                : 'Create Advertisement'
+                ? t('createScreen.next')
+                : t('campaigns.create')
             }
             onPress={() => {
               // Validate form data

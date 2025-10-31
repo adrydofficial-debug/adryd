@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -12,6 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useProfile } from '../features/profile/hooks/useProfile';
 import SecurityIcon from '../assets/images/security.svg';
@@ -24,6 +25,10 @@ import ContactIcon from '../assets/images/Chat.svg';
 import Logout from '../assets/images/Logout.svg';
 import EditSquare from '../assets/images/EditSquare.svg';
 import { useAuthStore } from '../store/authStore';
+import messaging from '@react-native-firebase/messaging';
+import { deleteFcmToken } from '../features/fcmtoken/api/api';
+import i18n from '../i18n';
+import { saveLanguage } from '../services/languageStorage';
 
 type DrawerItem = {
   id: number;
@@ -41,15 +46,48 @@ type DrawerComponentProps = {
 
 const { width, height } = Dimensions.get('window');
 const DRAWER_WIDTH = Math.min(width * 0.82, 340);
+// Push the drawer slightly beyond its width to avoid any visible sliver in RTL/layout transitions
+const OFFSCREEN_X = DRAWER_WIDTH + 40;
 
 const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) => {
   const navigation = useNavigation();
+  const { t } = useTranslation('profile');
   // Only fetch profile when drawer is visible to prevent unnecessary API calls
   const { data: profile } = useProfile(visible);
   const { user } = useAuthStore();
   const logout = useAuthStore(s => s.logout);
-  const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const translateX = useRef(new Animated.Value(-OFFSCREEN_X)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ur'>(
+    (i18n.language as 'en' | 'ur') || 'en'
+  );
+
+  useEffect(() => {
+    if (visible) {
+      const lang = (i18n.language as 'en' | 'ur') || 'en';
+      setCurrentLanguage(lang);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    const handleLangChange = (lang: string) => {
+      setCurrentLanguage((lang as 'en' | 'ur') || 'en');
+    };
+    i18n.on('languageChanged', handleLangChange);
+    return () => {
+      i18n.off('languageChanged', handleLangChange);
+    };
+  }, []);
+
+  const handleLanguageToggle = async (lang: 'en' | 'ur') => {
+    try {
+      await saveLanguage(lang);
+      i18n.changeLanguage(lang);
+      setCurrentLanguage(lang);
+    } catch (error) {
+      console.error('Error changing language:', error);
+    }
+  };
 
   useEffect(() => {
     if (visible) {
@@ -70,7 +108,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
     } else {
       Animated.parallel([
         Animated.timing(translateX, {
-          toValue: -DRAWER_WIDTH,
+          toValue: -OFFSCREEN_X,
           duration: 220,
           easing: Easing.in(Easing.cubic),
           useNativeDriver: true,
@@ -88,8 +126,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   const menuItems: DrawerItem[] = [
     {
       id: 1,
-      title: 'Security',
-      subtitle: 'Phone number & Password',
+      title: t('drawer.security'),
+      subtitle: t('drawer.securitySubtitle'),
       onPress: () => {
         onClose();
         try {
@@ -104,8 +142,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
     },
     {
       id: 2,
-      title: 'Companies',
-      subtitle: 'Saved Your Business',
+      title: t('drawer.companies'),
+      subtitle: t('drawer.companiesSubtitle'),
       onPress: () => {
         onClose(); // Close the drawer first
         try {
@@ -121,8 +159,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
 
     {
       id: 4,
-      title: 'Favorite',
-      subtitle: 'Your Favorite Campaigns',
+      title: t('drawer.favorite'),
+      subtitle: t('drawer.favoriteSubtitle'),
        onPress: () => {
         onClose(); // Close the drawer first
         try {
@@ -137,8 +175,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
     },
     {
       id: 5,
-      title: 'Invite',
-      subtitle: 'Invite Family Friends',
+      title: t('drawer.invite'),
+      subtitle: t('drawer.inviteSubtitle'),
       onPress: () => {},
       // color: '#4CAF50',
       icon: 'invite',
@@ -146,21 +184,13 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   ];
 
   const supportItems: DrawerItem[] = [
-    { id: 6, title: 'Help / FAQs', onPress: () => {},
+    { id: 6, title: t('drawer.help'), onPress: () => {},
     //  color: '#607D8B', 
     icon: 'help' },
-    { id: 7, title: 'Terms & Privacy', onPress: () => {},
+    { id: 7, title: t('drawer.terms'), onPress: () => {},
     //  color: '#795548',
       icon: 'terms' },
-    { id: 8, title: 'Contact Support', onPress: () => {
-        onClose(); // Close the drawer first
-        try {
-          navigation.navigate('ContactSupportScreen' as never);
-          console.log('✅ Navigation to ContactSupportScreen successful');
-        } catch (error) {
-          console.error('❌ Navigation error:', error);
-        }
-      },
+    { id: 8, title: t('drawer.contact'), onPress: () => {},
     //  color: '#009688',
       icon: 'contact' },
   ];
@@ -206,7 +236,10 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   );
 
   return (
-    <View pointerEvents={visible ? 'auto' : 'none'} style={StyleSheet.absoluteFill}>
+    <View
+      pointerEvents={visible ? 'auto' : 'none'}
+      style={[StyleSheet.absoluteFill, ({ direction: 'ltr' } as any)]}
+    >
       <TouchableWithoutFeedback onPress={onClose}>
         <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]} />
       </TouchableWithoutFeedback>
@@ -216,6 +249,10 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
           styles.drawer,
           {
             transform: [{ translateX }],
+            // Force drawer to always be on the left, even in RTL mode
+            left: 0,
+            right: undefined,
+            zIndex: visible ? 1 : -1,
           },
         ]}
       >
@@ -245,7 +282,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
                  'User'}
               </Text>
               <Text style={styles.profilePhone}>
-                {profile?.phone || 'No phone number'}
+                {profile?.phone || t('drawer.noPhone')}
               </Text>
             </View>
              <TouchableOpacity 
@@ -273,12 +310,64 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
 
           <View style={styles.menuCard}>{supportItems.map(i => renderMenuItem(i, false))}</View>
 
+          {/* Language Toggle */}
+          <View style={styles.menuCard}>
+            <View style={styles.languageToggleContainer}>
+              <Text style={styles.languageToggleLabel}>Language</Text>
+              <View style={styles.languageToggle}>
+                <TouchableOpacity
+                  style={[
+                    styles.languageOption,
+                    currentLanguage === 'en' && styles.languageOptionActive,
+                  ]}
+                  onPress={() => handleLanguageToggle('en')}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      currentLanguage === 'en' && styles.languageOptionTextActive,
+                    ]}
+                  >
+                    ENG
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.languageOption,
+                    currentLanguage === 'ur' && styles.languageOptionActive,
+                  ]}
+                  onPress={() => handleLanguageToggle('ur')}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      currentLanguage === 'ur' && styles.languageOptionTextActive,
+                    ]}
+                  >
+                    URDU
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
           <View style={styles.menuCard}>
             <TouchableOpacity
               style={[styles.menuItem, styles.logoutItem]}
               onPress={async () => {
                 try {
                   onClose();
+                  // Best-effort delete FCM token before logout
+                  try {
+                    const token = await messaging().getToken();
+                    if (token) {
+                      await deleteFcmToken(token);
+                    }
+                  } catch (e) {
+                    console.warn('[FCM] delete on logout failed:', e);
+                  }
                   await logout();
                   // AuthGate will switch to AuthNavigator; for safety, attempt nav
                   navigation.navigate('LoginScreen' as never);
@@ -294,7 +383,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
                 </View>
               </View>
               <View style={styles.menuItemCenter}>
-                <Text style={styles.menuItemTitle}>Log Out</Text>
+                <Text style={styles.menuItemTitle}>{t('drawer.logout')}</Text>
               </View>
               <View style={styles.menuItemRight} />
             </TouchableOpacity>
@@ -317,6 +406,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     left: 0,
+    right: undefined,
     width: DRAWER_WIDTH,
     backgroundColor: '#FFFFFF',
     // paddingTop: 16,
@@ -326,6 +416,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
+    // Force drawer to always open from left, ignore RTL
+    ...({ writingDirection: 'ltr' } as any),
   },
   profileCard: {
     backgroundColor: '#BF349E',
@@ -425,6 +517,43 @@ const styles = StyleSheet.create({
   menuItemSubtitle: { fontSize: 11, color: '#9E9E9E' },
   menuItemRight: { width: width * 0.06, alignItems: 'center' },
   arrowIcon: { fontSize: 20, color: '#BDBDBD', fontWeight: '300' },
+  languageToggleContainer: {
+    paddingHorizontal: width * 0.045,
+    paddingVertical: 12,
+  },
+  languageToggleLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#3D3D3D',
+    marginBottom: 8,
+  },
+  languageToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 4,
+  },
+  languageOption: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  languageOptionActive: {
+    backgroundColor: '#C539A5',
+  },
+  languageOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  languageOptionTextActive: {
+    color: '#FFFFFF',
+  },
 });
 
 export default DrawerComponent;
+
+
