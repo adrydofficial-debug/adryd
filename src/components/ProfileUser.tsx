@@ -120,47 +120,8 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
 
           // Upload to Supabase Storage if we have a user
           if (user?.id && isLocalFileUri(asset.uri)) {
-            setIsUploading(true);
-            try {
-              console.log('📤 Uploading profile image...');
-
-              // Try Supabase Storage first, fallback to user metadata
-              let uploadedImage;
-              try {
-                uploadedImage = await uploadProfileImage(asset.uri, user.id);
-                console.log(
-                  '✅ Profile image uploaded to Supabase Storage:',
-                  uploadedImage.publicUrl,
-                );
-              } catch (storageError) {
-                console.warn(
-                  '⚠️ Supabase Storage failed, using fallback method:',
-                  storageError,
-                );
-                uploadedImage = await uploadProfileImageFallback(
-                  asset.uri,
-                  user.id,
-                );
-                console.log(
-                  '✅ Profile image stored in user metadata:',
-                  uploadedImage.publicUrl,
-                );
-              }
-
-              // Update with the public URL
-              setSelectedImage(uploadedImage.publicUrl);
-              onImageUploaded?.(uploadedImage);
-            } catch (error) {
-              console.error('❌ Upload failed:', error);
-              Alert.alert(
-                'Upload Failed',
-                'Failed to upload image. Please try again.',
-              );
-              // Revert to local image
-              setSelectedImage(asset.uri);
-            } finally {
-              setIsUploading(false);
-            }
+            // Do NOT upload automatically; parent will upload on save button
+            return;
           }
         }
       }
@@ -179,9 +140,7 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
           onPress={pickImage}
         >
           <View style={styles.avatarInner}>
-            {isUploading ? (
-              <ActivityIndicator size="large" color="#C539A5" />
-            ) : selectedImage ? (
+            {selectedImage ? (
               <Image
                 source={{ uri: selectedImage }}
                 style={styles.avatarImage}

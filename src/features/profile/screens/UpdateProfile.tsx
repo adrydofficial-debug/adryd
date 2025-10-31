@@ -120,26 +120,8 @@ const UpdateProfile: React.FC = () => {
             setAvatarUri(imageUri);
           }}
           onImageUploaded={async uploadedImage => {
-            // Update with the uploaded image URL
+            // Only stage the selected avatar; actual update will occur on button press
             setAvatarUri(uploadedImage.publicUrl);
-
-            // Save directly to Supabase, preserving existing profile data
-            try {
-              await updateProfile.mutateAsync({
-                full_name: fullName.trim(),
-                first_name: profile?.first_name,
-                last_name: profile?.last_name,
-                avatar_url: uploadedImage.publicUrl,
-              });
-
-              // Force refresh by updating key and refetching
-              setRefreshKey(prev => prev + 1);
-              await refetch();
-            } catch (error: any) {
-              console.error('Avatar update error:', error);
-              // Revert local state on error
-              setAvatarUri(profile?.avatar_url || undefined);
-            }
           }}
           containerStyle={styles.headerCard}
         />

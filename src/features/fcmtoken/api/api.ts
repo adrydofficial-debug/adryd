@@ -19,8 +19,16 @@ export const fcmTokenApi = {
     console.log('[FCM] ==============================Register token response:', res.data);
     return res.data;
   },
+  async deleteToken(token: string): Promise<RegisterFcmTokenResponse> {
+    const path = `/api/tokens/${encodeURIComponent(token)}`;
+    console.log('[FCM] Delete token → DELETE', path);
+    const res = await apiClient.delete<RegisterFcmTokenResponse>(path);
+    console.log('[FCM] Delete token response:', res.status, res.data);
+    return res.data;
+  },
 };
 
 export const registerFcmToken = fcmTokenApi.registerToken;
+export const deleteFcmToken = fcmTokenApi.deleteToken;
 
 

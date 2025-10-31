@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -25,6 +25,10 @@ import ContactIcon from '../assets/images/Chat.svg';
 import Logout from '../assets/images/Logout.svg';
 import EditSquare from '../assets/images/EditSquare.svg';
 import { useAuthStore } from '../store/authStore';
+import messaging from '@react-native-firebase/messaging';
+import { deleteFcmToken } from '../features/fcmtoken/api/api';
+import i18n from '../i18n';
+import { saveLanguage } from '../services/languageStorage';
 
 type DrawerItem = {
   id: number;
@@ -54,6 +58,36 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   const logout = useAuthStore(s => s.logout);
   const translateX = useRef(new Animated.Value(-OFFSCREEN_X)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ur'>(
+    (i18n.language as 'en' | 'ur') || 'en'
+  );
+
+  useEffect(() => {
+    if (visible) {
+      const lang = (i18n.language as 'en' | 'ur') || 'en';
+      setCurrentLanguage(lang);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    const handleLangChange = (lang: string) => {
+      setCurrentLanguage((lang as 'en' | 'ur') || 'en');
+    };
+    i18n.on('languageChanged', handleLangChange);
+    return () => {
+      i18n.off('languageChanged', handleLangChange);
+    };
+  }, []);
+
+  const handleLanguageToggle = async (lang: 'en' | 'ur') => {
+    try {
+      await saveLanguage(lang);
+      i18n.changeLanguage(lang);
+      setCurrentLanguage(lang);
+    } catch (error) {
+      console.error('Error changing language:', error);
+    }
+  };
 
   useEffect(() => {
     if (visible) {
@@ -276,12 +310,64 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
 
           <View style={styles.menuCard}>{supportItems.map(i => renderMenuItem(i, false))}</View>
 
+          {/* Language Toggle */}
+          <View style={styles.menuCard}>
+            <View style={styles.languageToggleContainer}>
+              <Text style={styles.languageToggleLabel}>Language</Text>
+              <View style={styles.languageToggle}>
+                <TouchableOpacity
+                  style={[
+                    styles.languageOption,
+                    currentLanguage === 'en' && styles.languageOptionActive,
+                  ]}
+                  onPress={() => handleLanguageToggle('en')}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      currentLanguage === 'en' && styles.languageOptionTextActive,
+                    ]}
+                  >
+                    ENG
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.languageOption,
+                    currentLanguage === 'ur' && styles.languageOptionActive,
+                  ]}
+                  onPress={() => handleLanguageToggle('ur')}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      currentLanguage === 'ur' && styles.languageOptionTextActive,
+                    ]}
+                  >
+                    URDU
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
           <View style={styles.menuCard}>
             <TouchableOpacity
               style={[styles.menuItem, styles.logoutItem]}
               onPress={async () => {
                 try {
                   onClose();
+                  // Best-effort delete FCM token before logout
+                  try {
+                    const token = await messaging().getToken();
+                    if (token) {
+                      await deleteFcmToken(token);
+                    }
+                  } catch (e) {
+                    console.warn('[FCM] delete on logout failed:', e);
+                  }
                   await logout();
                   // AuthGate will switch to AuthNavigator; for safety, attempt nav
                   navigation.navigate('LoginScreen' as never);
@@ -431,6 +517,41 @@ const styles = StyleSheet.create({
   menuItemSubtitle: { fontSize: 11, color: '#9E9E9E' },
   menuItemRight: { width: width * 0.06, alignItems: 'center' },
   arrowIcon: { fontSize: 20, color: '#BDBDBD', fontWeight: '300' },
+  languageToggleContainer: {
+    paddingHorizontal: width * 0.045,
+    paddingVertical: 12,
+  },
+  languageToggleLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#3D3D3D',
+    marginBottom: 8,
+  },
+  languageToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 4,
+  },
+  languageOption: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  languageOptionActive: {
+    backgroundColor: '#C539A5',
+  },
+  languageOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  languageOptionTextActive: {
+    color: '#FFFFFF',
+  },
 });
 
 export default DrawerComponent;

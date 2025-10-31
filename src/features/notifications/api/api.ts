@@ -39,8 +39,18 @@ export const notificationsApi = {
     console.log('[Notifications] response:', res.status, Array.isArray(res.data) ? res.data.length : 'n/a');
     return (res.data || []).map(mapNotification);
   },
+  async markAllRead(): Promise<{ success: boolean; message: string }> {
+    console.log('[Notifications] PUT /api/notifications/mark-all-read');
+    const res = await apiClient.put<{ success: boolean; message: string }>(
+      '/api/notifications/mark-all-read',
+      {},
+    );
+    console.log('[Notifications] mark-all-read response================:', res.status, res.data);
+    return res.data;
+  },
 };
 
 export const fetchNotifications = notificationsApi.getAll;
+export const markAllNotificationsRead = notificationsApi.markAllRead;
 
 

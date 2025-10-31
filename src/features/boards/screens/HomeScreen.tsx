@@ -43,6 +43,36 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Get user data from authStore and profile data
   const { user } = useAuthStore();
   const { data: profile } = useProfile();
+  
+  // Determine avatar URL
+  const avatarUrl = (profile?.avatar_url || user?.user_metadata?.avatar_url || '').toString().trim();
+  const looksLikeUrl = /^(https?:\/\/|file:\/\/|content:\/\/)/i.test(avatarUrl);
+  const hasBadToken = /null|undefined/i.test(avatarUrl);
+  const isValidAvatarUrl = avatarUrl.length > 0 && looksLikeUrl && !hasBadToken;
+  
+  // Get display name for initial
+  const displayName = (
+    profile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.user_metadata?.username ||
+    user?.email?.split('@')[0] ||
+    'U'
+  ).toString().trim();
+  
+  const initial = displayName.charAt(0).toUpperCase() || 'U';
+  const [avatarError, setAvatarError] = useState(false);
+
+  useEffect(() => {
+    // Reset error whenever source URL changes
+    setAvatarError(false);
+  }, [avatarUrl]);
+
+  // Debug: verify avatar/initial state once per render (comment out if noisy)
+  try {
+    // Only log when values change significantly
+    // console.log('[Home] avatarUrl:', avatarUrl, 'valid:', isValidAvatarUrl, 'displayName:', displayName, 'initial:', initial);
+  } catch {}
 
   // Banner state
   const [currentBannerIndex, setCurrentBannerIndex] = useState<number>(0);
@@ -151,19 +181,23 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         {/* Profile */}
         <View style={styles.profileRow}>
           <TouchableOpacity onPress={handleProfilePress}>
-            <Image
-              source={{
-                uri:
-                  profile?.avatar_url ||
-                  user?.user_metadata?.avatar_url ||
-                  'https://randomuser.me/api/portraits/men/1.jpg',
-              }}
-              style={styles.avatar}
-            />
+            {isValidAvatarUrl && !avatarError ? (
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatar}
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarInitial} numberOfLines={1}>
+                  {initial}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           <View style={styles.nameWrap}>
-            <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">{t('greetingHi')}</Text>
-            <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+            <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail" allowFontScaling={false}>{t('greetingHi')}</Text>
+            <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail" allowFontScaling={false}>
               {profile?.full_name ||
                 user?.user_metadata?.full_name ||
                 user?.user_metadata?.name ||
@@ -371,6 +405,7 @@ const styles = StyleSheet.create({
     // Always keep LTR order regardless of RTL language
     ...({ writingDirection: 'ltr' } as any),
     flexShrink: 0,
+    minHeight: width * 0.13,
   },
   avatar: {
     width: width * 0.13,
@@ -378,6 +413,20 @@ const styles = StyleSheet.create({
     borderRadius: width * 0.065,
     borderWidth: 1,
     borderColor: '#fff',
+  },
+  avatarPlaceholder: {
+    backgroundColor: '#FDE7FB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarInitial: {
+    color: '#C539A5',
+    fontSize: width * 0.06,
+    fontWeight: '700',
+    textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   nameWrap: { flex: 1, paddingHorizontal: 6, minWidth: 0 },
   greeting: { fontSize: 12, color: '#fff', fontWeight: '400' },

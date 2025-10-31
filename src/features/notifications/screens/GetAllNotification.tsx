@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNotifications } from '../hooks/useNotifications';
+import { markAllNotificationsRead } from '../api/api';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -22,6 +23,19 @@ type Props = {
 const GetAllNotification: React.FC<Props> = ({ navigation }) => {
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const { data, isLoading, error, refetch } = useNotifications();
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const res = await markAllNotificationsRead();
+        console.log('[Notifications] markAll after 5s:', res);
+        refetch();
+      } catch (e) {
+        console.warn('[Notifications] markAll failed:', e);
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [refetch]);
 
   const renderNotificationItem = ({ item }: any) => (
     <TouchableOpacity
@@ -171,9 +185,12 @@ const styles = StyleSheet.create({
     marginRight: width * 0.02,
   },
   notificationDate: {
-    fontSize: width * 0.035,
+    fontSize: width * 0.025,
     color: '#666',
     fontWeight: '500',
+    position:'absolute',
+    bottom:10,
+    right:0
   },
   notificationDescription: {
     fontSize: width * 0.032,
