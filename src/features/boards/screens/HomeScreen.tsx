@@ -1,5 +1,6 @@
 // src/features/boards/HomeScreen.tsx
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dimensions,
   Image,
@@ -15,15 +16,14 @@ import {
   default as LinearGradientLib,
 } from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
-import PinkLocation from '../../../assets/images/PinkkLocation.svg';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
+import NoInternet from '../../../components/NoInternet';
 import { useAuthStore } from '../../../store/authStore';
+import LocationButton from '../../locations/components/LocationButton';
+import { useProfile } from '../../profile/hooks/useProfile';
 import BoardTabs, { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
-import { useProfile } from '../../profile/hooks/useProfile';
-import NoInternet from '../../../components/NoInternet';
-import { useTranslation } from 'react-i18next';
 // import { useFocusEffect } from '@react-navigation/native';
 
 type Props = {
@@ -43,13 +43,19 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Get user data from authStore and profile data
   const { user } = useAuthStore();
   const { data: profile } = useProfile();
-  
+
   // Determine avatar URL
-  const avatarUrl = (profile?.avatar_url || user?.user_metadata?.avatar_url || '').toString().trim();
+  const avatarUrl = (
+    profile?.avatar_url ||
+    user?.user_metadata?.avatar_url ||
+    ''
+  )
+    .toString()
+    .trim();
   const looksLikeUrl = /^(https?:\/\/|file:\/\/|content:\/\/)/i.test(avatarUrl);
   const hasBadToken = /null|undefined/i.test(avatarUrl);
   const isValidAvatarUrl = avatarUrl.length > 0 && looksLikeUrl && !hasBadToken;
-  
+
   // Get display name for initial
   const displayName = (
     profile?.full_name ||
@@ -58,8 +64,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     user?.user_metadata?.username ||
     user?.email?.split('@')[0] ||
     'U'
-  ).toString().trim();
-  
+  )
+    .toString()
+    .trim();
+
   const initial = displayName.charAt(0).toUpperCase() || 'U';
   const [avatarError, setAvatarError] = useState(false);
 
@@ -114,7 +122,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     isLoading: isBoardFiltersLoading,
     error: boardFiltersError,
     refetch: refetchBoardFilters,
-  } = useBoardFilters();
+  } = useBoardFilters(4);
 
   // Removed auto-refetch on screen focus to avoid repeated API calls.
   // If you need manual refresh, call `refetchBoardFilters()` explicitly (e.g., pull-to-refresh or a Retry button).
@@ -196,8 +204,20 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             )}
           </TouchableOpacity>
           <View style={styles.nameWrap}>
-            <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail" allowFontScaling={false}>{t('greetingHi')}</Text>
-            <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail" allowFontScaling={false}>
+            <Text
+              style={styles.greeting}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              allowFontScaling={false}
+            >
+              {t('greetingHi')}
+            </Text>
+            <Text
+              style={styles.name}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              allowFontScaling={false}
+            >
               {profile?.full_name ||
                 user?.user_metadata?.full_name ||
                 user?.user_metadata?.name ||
@@ -208,14 +228,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </View>
           <View style={styles.locationRow}>
-            <View style={styles.locationBtnCustom}>
-              <PinkLocation
-                width={width * 0.03}
-                height={width * 0.03}
-                style={{ marginRight: width * 0.011 }}
-              />
-              <Text style={styles.locationBtnText}>Lahore Gulberg</Text>
-            </View>
+            <LocationButton label="Lahore Gulberg" />
             <TouchableOpacity
               style={styles.bellBtn}
               onPress={() =>
@@ -231,7 +244,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.FilterIcon}
               />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
+            <TouchableOpacity
+              style={styles.bellBtn}
+              onPress={() => navigation.navigate('Notifications')}
+            >
               <Image
                 style={styles.bellIcon}
                 source={require('../../../assets/images/PinkBell.png')}
@@ -260,7 +276,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <ScrollView
-        style={{ flex: 1, backgroundColor: '#fff', marginBottom: 10, marginTop: -height * 0.03 }}
+        style={{
+          flex: 1,
+          backgroundColor: '#fff',
+          marginBottom: 10,
+          marginTop: -height * 0.03,
+        }}
       >
         {isLoading ? (
           [...Array(3)].map((_, idx) => (
@@ -277,9 +298,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           ))
         ) : hasError ? (
           <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>
-              {t('errorLoadingBoards')}
-            </Text>
+            <Text style={styles.errorText}>{t('errorLoadingBoards')}</Text>
             <TouchableOpacity
               style={styles.retryButton}
               onPress={() => {
@@ -354,10 +373,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   {/* Category header - shown only once */}
                   <View style={styles.categoryHeader}>
                     <Text style={styles.categoryTitle}>{category.name}</Text>
-                    <TouchableOpacity onPress={() => {
-                      // Handle see all for this category
-                      console.log('See all for category:', category.name);
-                    }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        // Handle see all for this category
+                        console.log('See all for category:', category.name);
+                      }}
+                    >
                       <Text style={styles.seeAllText}>{t('seeAll')}</Text>
                     </TouchableOpacity>
                   </View>
@@ -381,7 +402,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Drawer Component */}
       <DrawerComponent visible={drawerVisible} onClose={handleCloseDrawer} />
-       <NoInternet />
+      <NoInternet />
     </View>
   );
 };
@@ -534,8 +555,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  boardSection: { 
-    // marginTop: height * 0.001, 
+  boardSection: {
+    // marginTop: height * 0.001,
     marginHorizontal: width * 0.01,
     marginLeft: -10, // Adjusted to account for 15px padding
   },
@@ -546,7 +567,6 @@ const styles = StyleSheet.create({
     marginBottom: 15, // Reduced from 0.015 to 0.005
     paddingHorizontal: 20,
     marginTop: -25,
-
   },
   errorContainer: {
     flex: 1,

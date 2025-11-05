@@ -12,8 +12,12 @@ import {
 } from './types/responses';
 
 // 🎯 Get all filters (groups, recommended, nearest, see all)
-export const fetchBoardFilters = () =>
-  apiClient.get<FiltersResponse>('/api/boards/filters').then(res => res.data);
+export const fetchBoardFilters = (cityId?: number) =>
+  apiClient
+    .get<FiltersResponse>('/api/boards/filters', {
+      params: cityId ? { city_id: cityId } : undefined,
+    })
+    .then(res => res.data);
 
 // 🔍 Get filtered boards (paginated)
 export const fetchFilteredBoards = (params: FilterBoardsParams) =>

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const BASE_WIDTH = 375;
 const BASE_HEIGHT = 912;
 
@@ -103,7 +103,7 @@ const BoardList: React.FC<BoardListProps> = ({
     }
   };
 
-  const renderItem = ({item}: {item: BoardItem}) => {
+  const renderItem = ({ item }: { item: BoardItem }) => {
     const imageSource =
       item.image ||
       (item.image_url
@@ -112,7 +112,7 @@ const BoardList: React.FC<BoardListProps> = ({
           }
         : require('../assets/images/bannerBg.png'));
     const title = item.title || 'Unknown';
-    const location = item.location || 'Unknown Location';
+    const locationName = item.location?.name || 'Unknown Location';
     const distance = item.distance || '1.6 km';
     const size = item.size || '12x8';
 
@@ -122,11 +122,13 @@ const BoardList: React.FC<BoardListProps> = ({
           styles.card,
           numColumns > 1 && styles.cardGrid, // Apply grid-specific styles
         ]}
-        onPress={() => handleCardPress(item)}>
+        onPress={() => handleCardPress(item)}
+      >
         <ImageBackground
           source={imageSource}
           style={styles.image}
-          imageStyle={styles.imageBg}>
+          imageStyle={styles.imageBg}
+        >
           <Text style={styles.sizeStyle}>{size}</Text>
           <View style={styles.infoOverlay}>
             <View style={styles.detailTextWrapper}>
@@ -139,19 +141,20 @@ const BoardList: React.FC<BoardListProps> = ({
                   flexDirection: 'row',
                   alignItems: 'center',
                   paddingHorizontal: 8,
-                }}>
+                }}
+              >
                 <Ionicons
                   name="location-sharp"
                   size={9}
                   color="#888"
-                  style={{paddingHorizontal: -6}}
+                  style={{ paddingHorizontal: -6 }}
                 />
                 <Text style={styles.subtitle} numberOfLines={1}>
-                  {location.split(' ').slice(0, 10).join(' ')}
-                  {location.split(' ').length > 12 ? '...' : ''}
+                  {locationName.split(' ').slice(0, 10).join(' ')}
+                  {locationName.split(' ').length > 12 ? '...' : ''}
                 </Text>
               </View>
-              <Text style={[styles.subtitle, {paddingHorizontal: 8}]}>
+              <Text style={[styles.subtitle, { paddingHorizontal: 8 }]}>
                 {distance}
               </Text>
             </View>
@@ -291,5 +294,3 @@ const styles = StyleSheet.create({
 });
 
 export default BoardList;
-
-
