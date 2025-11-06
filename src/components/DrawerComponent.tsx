@@ -31,7 +31,6 @@ import messaging from '@react-native-firebase/messaging';
 import { deleteFcmToken } from '../features/fcmtoken/api/api';
 import i18n from '../i18n';
 import { saveLanguage } from '../services/languageStorage';
-
 type DrawerItem = {
   id: number;
   title: string;
@@ -161,8 +160,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
       onPress: () => {
         onClose(); // Close the drawer first
         try {
-          navigation.navigate('PreviousCompanyScreen' as never);
-          console.log('✅ Navigation to PreviousCompanyScreen successful');
+          navigation.navigate('CompanyListScreen' as never);
+          console.log('✅ Navigation to CompanyListScreen successful');
         } catch (error) {
           console.error('❌ Navigation error:', error);
         }

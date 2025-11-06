@@ -7,6 +7,7 @@ import FilterCategoryList from '../../features/boards/screens/FilterCategoryList
 import HomeScreen from '../../features/boards/screens/HomeScreen';
 import SingleBoardDetail from '../../features/boards/screens/SingleBoardDetail';
 import CreateCompanyScreen from '../../features/companies/screens/CreateCompanyScreen';
+import CompanyListScreen from '../../features/companies/screens/CompanyListScreen';
 import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen';
 import BottomTab from './BottomTab';
 import CompaignStatus from '../../features/advertisments/screens/CompaignStatus';
@@ -29,6 +30,7 @@ export type AppStackParamList = {
   CurrentLocationMinimalMap: undefined;
   HomeScreen: undefined;
   CompaniesScreen: undefined;
+  CompanyListScreen: undefined;
   CreateCompanyScreen: undefined;
   UpdateProfile: undefined;
   PreviousCompanyScreen: undefined;
@@ -45,6 +47,7 @@ const Stack = createNativeStackNavigator<AppStackParamList>();
 const AppNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
      <Stack.Screen name="BottomTab" component={BottomTab} /> 
+    <Stack.Screen name="CompanyListScreen" component={CompanyListScreen} />
     <Stack.Screen name="CreateCompanyScreen" component={CreateCompanyScreen} />
     <Stack.Screen name="CampaignUploadFiles" component={CampaignUploadFiles} /> 
     <Stack.Screen name="HomeScreen" component={HomeScreen} />

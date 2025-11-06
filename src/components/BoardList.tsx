@@ -146,10 +146,10 @@ const BoardList: React.FC<BoardListProps> = ({
                   color="#888"
                   style={{paddingHorizontal: -6}}
                 />
-                <Text style={styles.subtitle} numberOfLines={1}>
-                  {location.split(' ').slice(0, 10).join(' ')}
-                  {location.split(' ').length > 12 ? '...' : ''}
-                </Text>
+                {/* <Text style={styles.subtitle} numberOfLines={1}> */}
+                  {/* {location.split(' ').slice(0, 10).join(' ')} */}
+                  {/* {location.split(' ').length > 12 ? '...' : ''} */}
+                {/* </Text> */}
               </View>
               <Text style={[styles.subtitle, {paddingHorizontal: 8}]}>
                 {distance}

@@ -12,10 +12,55 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
+import { useCampaign } from '../hooks/useCampaign';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage) => (width * percentage) / 100;
 const hp = (percentage) => (height * percentage) / 100;
 const AdvertismentConfirmationScreen = ({ navigation }) => {
+  const { companyData, advertisementData } = useCampaign();
+  
+  // Helper function to format date
+  const formatDate = (date: Date | string) => {
+    if (!date) return 'N/A';
+    const dateObj = date instanceof Date ? date : new Date(date);
+    if (isNaN(dateObj.getTime())) return 'N/A';
+    return dateObj.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+  
+  // Calculate number of days
+  const calculateDays = () => {
+    if (!advertisementData?.selectedDays || advertisementData.selectedDays.length === 0) {
+      if (advertisementData?.startDate && advertisementData?.endDate) {
+        const start = advertisementData.startDate instanceof Date 
+          ? advertisementData.startDate 
+          : new Date(advertisementData.startDate);
+        const end = advertisementData.endDate instanceof Date 
+          ? advertisementData.endDate 
+          : new Date(advertisementData.endDate);
+        const diffTime = end.getTime() - start.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        return `${diffDays} Days`;
+      }
+      return 'N/A';
+    }
+    return `${advertisementData.selectedDays.length} Days`;
+  };
+  
+  // Get first selected date for display
+  const getFirstDate = () => {
+    if (advertisementData?.selectedDays && advertisementData.selectedDays.length > 0) {
+      const firstDay = advertisementData.selectedDays[0];
+      return formatDate(firstDay instanceof Date ? firstDay : new Date(firstDay));
+    }
+    if (advertisementData?.startDate) {
+      return formatDate(advertisementData.startDate);
+    }
+    return 'N/A';
+  };
   const renderProgressStep = (stepNumber, isActive, isCompleted) => (
     <View style={styles.progressStepContainer}>
       <View style={[
@@ -82,12 +127,12 @@ const AdvertismentConfirmationScreen = ({ navigation }) => {
               <View style={styles.sectionContent}>
                 <View style={styles.verticalLine} />
                 <View style={styles.detailsContainer}>
-                  {renderDetailItem('NAME:', 'Adryd')}
-                  {renderDetailItem('BUSINESS:', 'Marketing')}
-                  {renderDetailItem('NTN:', '151561651654')}
-                  {renderDetailItem('ADDRESS:', 'Lahore DHA Phase-4')}
-                  {renderDetailItem('EMAIL:', 'adryd@app')}
-                  {renderDetailItem('NUMBER:', '03048794564', true)}
+                  {renderDetailItem('NAME:', companyData?.companyName || 'N/A')}
+                  {renderDetailItem('BUSINESS:', companyData?.businessName || 'N/A')}
+                  {renderDetailItem('NTN:', companyData?.companyNTN || 'N/A')}
+                  {renderDetailItem('ADDRESS:', companyData?.companyAddress || 'N/A')}
+                  {renderDetailItem('EMAIL:', companyData?.companyEmail || 'N/A')}
+                  {renderDetailItem('NUMBER:', companyData?.companyNumber || 'N/A', true)}
                 </View>
               </View>
             </View>
@@ -97,10 +142,10 @@ const AdvertismentConfirmationScreen = ({ navigation }) => {
               <View style={styles.sectionContent}>
                 <View style={styles.verticalLine} />
                 <View style={styles.detailsContainer}>
-                  {renderDetailItem('NAME:', 'Adryd Lahore DHA')}
-                  {renderDetailItem('HOW MANY:', '8 Days')}
-                  {renderDetailItem('CATEGORY:', 'Pole Sign Board')}
-                  {renderDetailItem('LOCATION:', 'Lahore DHA Phase-4', true)}
+                  {renderDetailItem('NAME:', advertisementData?.campaignName || 'N/A')}
+                  {renderDetailItem('HOW MANY:', calculateDays())}
+                  {renderDetailItem('CATEGORY:', advertisementData?.category || 'N/A')}
+                  {renderDetailItem('LOCATION:', advertisementData?.location || 'N/A', true)}
                 </View>
               </View>
             </View>
@@ -109,44 +154,36 @@ const AdvertismentConfirmationScreen = ({ navigation }) => {
               <View style={styles.dashedLine} />
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>DATE:</Text>
-                <Text style={styles.summaryValue}>Sep 22.2025</Text>
+                <Text style={styles.summaryValue}>{getFirstDate()}</Text>
               </View>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>TAX:</Text>
-                <Text style={styles.summaryValue}>Pkr 1000</Text>
+                <Text style={styles.summaryValue}>
+                  PKR {advertisementData?.tax?.toLocaleString() || '1,000'}
+                </Text>
               </View>
               {/* Total Amount */}
               <View style={styles.totalContainer}>
                 <Text style={styles.totalLabel}>TOTAL</Text>
-                <Text style={styles.totalValue}>PKR 30.000</Text>
+                <Text style={styles.totalValue}>
+                  PKR {advertisementData?.totalPayment?.toLocaleString() || '5,000'}
+                </Text>
               </View>
             </View>
           </View>
         </ScrollView>
         {/* Next Button */}
-        {/* <View style={styles.buttonContainer}>
+        <View style={styles.buttonContainer}>
           <CustomButton
             title="Next"
             onPress={() => {
-              console.log('Next button pressed');
-              navigation.navigate('CompaignReceipt');
+              navigation.navigate('BottomTab', { tab: 'Home' });
             }}
             variant="primary"
             size="medium"
             buttonStyle={styles.nextButton}
           />
-        </View> */}
-         <View style={styles.buttonContainer}>
-                 <CustomButton
-                  title="UPLOAD FILES"
-                  onPress={() => {
-                   navigation.navigate('CompaignReceipt');
-                  }}
-                  variant="primary"
-                  size="medium"
-                  buttonStyle={styles.mainUploadButton}
-                />
-              </View>
+        </View>
       </LinearGradient>
     </View>
   );

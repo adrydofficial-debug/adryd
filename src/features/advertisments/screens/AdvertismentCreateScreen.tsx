@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
+  Alert,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -19,7 +20,9 @@ import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
 import { useTranslation } from 'react-i18next';
 import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
+import { useAdvertisements } from '../hooks/hooks';
 import { CreateAdvertisementRequest } from '../types';
+import { useCampaignStore } from '../../../store/campaignStore';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -32,8 +35,9 @@ interface Props {
 }
 const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
   const { t } = useTranslation('advertisments');
-  const COMPANY_ID = 8;
-  const BOARD_ID = 24;
+  const setAdvertisementData = useCampaignStore((state) => state.setAdvertisementData);
+  const COMPANY_ID = 1;
+  const BOARD_ID = 1;
   const [campaignName] = useState<string>('Test Ad');
   const [campaignCategory] = useState<string>('Static Category');
   const [startDate, setStartDate] = useState<Date>(new Date());
@@ -49,6 +53,8 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
 
   // Use the hook for API calls
   const createAdMutation = useCreateAdvertisement();
+  
+  // Helper functions
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -65,6 +71,47 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
   const formatDateForCalendar = (date: Date) => {
     return date.toISOString().split('T')[0];
   };
+  
+  // Fetch all existing advertisements to get booked dates
+  // Using a high limit to get all advertisements
+  const { data: advertisementsData, refetch: refetchAdvertisements } = useAdvertisements(1, 1000);
+  
+  // Extract all booked dates from existing advertisements
+  const bookedDates = useMemo(() => {
+    const dates = new Set<string>();
+    if (advertisementsData?.data) {
+      advertisementsData.data.forEach(ad => {
+        if (ad.bookings && Array.isArray(ad.bookings)) {
+          ad.bookings.forEach(booking => {
+            if (booking.start_at && booking.end_at) {
+              const start = new Date(booking.start_at);
+              const end = new Date(booking.end_at);
+              
+              // Add all dates in the range (start_at inclusive, end_at exclusive)
+              // end_at represents the start of the day AFTER the last booked day
+              // Example: If user selects dates 1-7, end_at is date 8 00:00:00
+              // We should only mark dates 1-7 as booked, not date 8
+              
+              // Get the date-only values for comparison (ignore time)
+              const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+              const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+              
+              // Loop through each day from start to end (exclusive of end)
+              const currentDate = new Date(startDateOnly);
+              while (currentDate < endDateOnly) {
+                const dateKey = formatDateForCalendar(new Date(currentDate));
+                dates.add(dateKey);
+                // Move to next day
+                currentDate.setDate(currentDate.getDate() + 1);
+              }
+            }
+          });
+        }
+      });
+    }
+    console.log('Booked dates extracted:', Array.from(dates).sort());
+    return dates;
+  }, [advertisementsData]);
 
   const isSameDay = (date1: Date, date2: Date) => {
     return (
@@ -78,7 +125,22 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
     return selectedDays.some(selectedDate => isSameDay(selectedDate, date));
   };
 
+  // Check if a date is already booked by another user
+  const isDateBooked = (date: Date) => {
+    const dateKey = formatDateForCalendar(date);
+    return bookedDates.has(dateKey);
+  };
+
   const onDayPress = (date: Date) => {
+    // Prevent selection of booked dates
+    if (isDateBooked(date)) {
+      setErrorText('This date is already booked by another user');
+      return;
+    }
+    
+    // Clear error when successfully selecting a date
+    setErrorText('');
+    
     if (isDateSelected(date)) {
       // Remove date if already selected
       setSelectedDays(prev =>
@@ -92,8 +154,22 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const openCalendar = () => {
-    setSelectedDays([]);
+  const openCalendar = async () => {
+    // Refetch advertisements to get the latest booked dates
+    await refetchAdvertisements();
+    // Preserve current selection if dates are already selected, otherwise start fresh
+    if (selectedDays.length === 0 && startDate && endDate) {
+      // If no days are selected but we have a date range, populate selectedDays from the range
+      const days: Date[] = [];
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const current = new Date(start);
+      while (current <= end) {
+        days.push(new Date(current));
+        current.setDate(current.getDate() + 1);
+      }
+      setSelectedDays(days);
+    }
     setShowCalendar(true);
   };
 
@@ -127,6 +203,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
       const isToday = isSameDay(date, today);
       const isPast = date < today && !isToday;
       const isSelected = isDateSelected(date);
+      const isBooked = isDateBooked(date);
 
       days.push({
         date,
@@ -134,6 +211,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
         isToday,
         isPast,
         isSelected,
+        isBooked,
       });
     }
 
@@ -264,14 +342,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                     color="#C538A5"
                   />
                 </TouchableOpacity>
-
-                {selectedDays.length === 1 && (
-                  <View style={styles.selectionHint}>
-                    <Text style={styles.hintText}>
-                      {t('createScreen.selectDates')}
-                    </Text>
-                  </View>
-                )}
               </View>
               <View style={styles.descriptionContainer}>
                 <Text style={styles.descriptionLabel}>{t('createScreen.description')}</Text>
@@ -368,9 +438,10 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                         day.isToday && styles.todayDay,
                         day.isPast && styles.pastDay,
                         day.isSelected && styles.selectedDay,
+                        day.isBooked && styles.bookedDay,
                       ]}
-                      onPress={() => !day.isPast && onDayPress(day.date)}
-                      disabled={day.isPast}
+                      onPress={() => !day.isPast && !day.isBooked && onDayPress(day.date)}
+                      disabled={day.isPast || day.isBooked}
                     >
                       <Text
                         style={[
@@ -379,6 +450,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                           day.isToday && styles.todayText,
                           day.isPast && styles.pastText,
                           day.isSelected && styles.selectedText,
+                          day.isBooked && styles.bookedText,
                         ]}
                       >
                         {day.date.getDate()}
@@ -388,15 +460,15 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
 
                 {/* Selection Summary */}
-                <View style={styles.selectionSummary}>
+                {/* <View style={styles.selectionSummary}>
                   <Text style={styles.selectionText}>
                     {selectedDays.length > 0
                       ? `${selectedDays.length} day${
                           selectedDays.length !== 1 ? 's' : ''
                         } selected`
-                      : 'Tap days to select them'}
+                      : ''}
                   </Text>
-                </View>
+                </View> */}
               </View>
 
               <View style={styles.calendarFooter}>
@@ -454,51 +526,146 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                 setErrorText('Campaign category is required');
                 return;
               }
-              if (selectedDays.length === 0) {
-                setErrorText('Please select at least one day');
+              // Use selectedDays if available, otherwise fall back to startDate/endDate
+              let firstDate: Date;
+              let lastDate: Date;
+              
+              if (selectedDays.length > 0) {
+                const sortedDays = [...selectedDays].sort((a, b) => a.getTime() - b.getTime());
+                firstDate = sortedDays[0];
+                lastDate = sortedDays[sortedDays.length - 1];
+              } else if (startDate && endDate) {
+                // Fallback to startDate/endDate if selectedDays is empty
+                firstDate = startDate;
+                lastDate = endDate;
+              } else {
+                setErrorText('Please select at least one day from the calendar');
                 return;
               }
 
               // Clear any previous errors
               setErrorText('');
+              
+              // Set start_at to beginning of first day in UTC (00:00:00)
+              const startAt = new Date(Date.UTC(
+                firstDate.getFullYear(),
+                firstDate.getMonth(),
+                firstDate.getDate(),
+                0, 0, 0, 0
+              ));
+              
+              // Set end_at to start of the day after last date in UTC (00:00:00)
+              // Backend expects end_at to be exclusive (the day after the last booked day)
+              const endAt = new Date(Date.UTC(
+                lastDate.getFullYear(),
+                lastDate.getMonth(),
+                lastDate.getDate() + 1,
+                0, 0, 0, 0
+              ));
 
-              // Prepare the data for API call
               const advertisementData: CreateAdvertisementRequest = {
                 company_id: COMPANY_ID,
                 board_id: BOARD_ID,
                 title: campaignName,
                 description: description,
-                total_payment: 0,
+                total_payment: 5000,
                 bookings: [
                   {
-                    start_at: startDate.toISOString(),
-                    end_at: endDate.toISOString(),
+                    start_at: startAt.toISOString(),
+                    end_at: endAt.toISOString(),
                   },
                 ],
               };
 
               console.log(
                 'Creating advertisement with data:',
-                advertisementData,
+                JSON.stringify(advertisementData, null, 2),
               );
+
+              // Save advertisement data to store before API call
+              setAdvertisementData({
+                campaignName: campaignName,
+                description: description,
+                location: location,
+                selectedDays: selectedDays.length > 0 ? selectedDays : [firstDate, lastDate],
+                startDate: firstDate,
+                endDate: lastDate,
+                category: campaignCategory,
+                totalPayment: 5000,
+                tax: 1000, // Default tax value
+              });
 
               // Call the API using the hook with callbacks
               createAdMutation.mutate(advertisementData, {
-                onSuccess: response => {
+                onSuccess: async response => {
                   console.log('upload url is :', response.upload.uploadUrl);
-                  navigation.push(
-                    'CampaignUploadFiles',
-                    response.upload.uploadUrl,
-                  );
-                  // navigation.navigate('CampaignUploadFiles', {
-                  //   uploadUrl: response.upload.uploadUrl,
-                  // });
+                  // Refetch advertisements to update booked dates immediately
+                  await refetchAdvertisements();
+                  
+                  // Navigate to AdvertismentConfirmationScreen instead of CampaignUploadFiles
+                  navigation.navigate('AdvertismentConfirmationScreen', {
+                    campaignId: response.advertisement?.id?.toString() || '',
+                  });
                 },
                 onError: error => {
-                  setErrorText(
-                    `Error: ${
-                      error.message || 'Failed to create advertisement'
-                    }`,
+                  // Log full error details for debugging
+                  const anyErr: any = error as any;
+                  
+                  // Comprehensive error logging
+                  console.error('========== ERROR DETAILS ==========');
+                  console.error('Error status:', anyErr?.response?.status);
+                  console.error('Error response:', anyErr?.response);
+                  console.error('Error response data:', anyErr?.response?.data);
+                  console.error('Error response headers:', anyErr?.response?.headers);
+                  console.error('Full error:', JSON.stringify(anyErr, null, 2));
+                  console.error('Request payload that failed:', JSON.stringify(advertisementData, null, 2));
+                  console.error('===================================');
+                  
+                  // Extract detailed error message
+                  const serverData = anyErr?.response?.data;
+                  let errorMessage = 'Failed to create advertisement';
+                  
+                  if (serverData) {
+                    // Try different possible error message formats
+                    if (serverData.message) {
+                      errorMessage = serverData.message;
+                    } else if (serverData.error) {
+                      errorMessage = typeof serverData.error === 'string' 
+                        ? serverData.error 
+                        : JSON.stringify(serverData.error);
+                    } else if (serverData.errors) {
+                      // Handle validation errors
+                      if (Array.isArray(serverData.errors)) {
+                        errorMessage = `Validation errors: ${serverData.errors.join(', ')}`;
+                      } else if (typeof serverData.errors === 'object') {
+                        const errorList = Object.entries(serverData.errors)
+                          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                          .join('; ');
+                        errorMessage = `Validation errors: ${errorList}`;
+                      } else {
+                        errorMessage = `Validation errors: ${serverData.errors}`;
+                      }
+                    } else if (typeof serverData === 'string') {
+                      errorMessage = serverData;
+                    } else {
+                      // Show the entire error object
+                      errorMessage = `Server error: ${JSON.stringify(serverData)}`;
+                    }
+                  } else if (anyErr?.message) {
+                    errorMessage = anyErr.message;
+                  }
+                  
+                  const statusCode = anyErr?.response?.status || 'Unknown';
+                  const finalMessage = `Error (${statusCode}): ${errorMessage}`;
+                  
+                  console.error('Final error message:', finalMessage);
+                  setErrorText(finalMessage);
+                  
+                  // Also show alert for visibility
+                  Alert.alert(
+                    'Error Creating Advertisement',
+                    finalMessage,
+                    [{ text: 'OK' }]
                   );
                 },
               });
@@ -899,7 +1066,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    // marginBottom: 15,
   },
   monthNavButton: {
     padding: 8,
@@ -911,7 +1078,7 @@ const styles = StyleSheet.create({
   },
   dayHeadersRow: {
     flexDirection: 'row',
-    marginBottom: 10,
+    // marginBottom: 10,
   },
   dayHeaderText: {
     flex: 1,
@@ -919,7 +1086,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#666',
-    paddingVertical: 8,
+    // paddingVertical: 8,
   },
   calendarGrid: {
     flexDirection: 'row',
@@ -964,6 +1131,16 @@ const styles = StyleSheet.create({
   selectedText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  bookedDay: {
+    backgroundColor: '#FFE0E0',
+    borderRadius: 20,
+    opacity: 0.6,
+  },
+  bookedText: {
+    color: '#D32F2F',
+    fontWeight: '500',
+    textDecorationLine: 'line-through',
   },
   selectionSummary: {
     marginTop: 15,

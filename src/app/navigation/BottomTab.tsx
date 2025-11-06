@@ -50,8 +50,8 @@ const BottomTab: React.FC<BottomTabProps> = () => {
         // Just switch to boards tab, don't navigate
         break;
       case 'Add':
-        // Navigate to advertisement creation (this should navigate)
-        navigation.navigate('CreateCompanyScreen' as never);
+        // Navigate to PreviousCompanyScreen
+        navigation.navigate('PreviousCompanyScreen' as never);
         // Reset to Home tab after navigation
         setActiveTab('Home');
         break;
