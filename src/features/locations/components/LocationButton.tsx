@@ -5,62 +5,46 @@ import {
   FlatList,
   Modal,
   StyleSheet,
-  Text, 
+  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import PinkLocation from '../../../assets/images/PinkkLocation.svg';
 import { useCities } from '../hooks/hooks';
-import { useCityStore } from '../../../cities/cityStore';
-
 const { width, height } = Dimensions.get('window');
-
 type City = {
   id: number;
   name: string;
 };
-
 type Props = {
   label?: string;
   onSelectCity?: (city: City) => void;
 };
-
 const LocationButton: React.FC<Props> = ({
   label = 'Select City',
   onSelectCity,
 }) => {
-  const { selectedCity, setSelectedCity } = useCityStore();
-
   const [visible, setVisible] = useState(false);
   const [selected, setSelected] = useState(label);
-
   const { data: cities, isLoading, isError } = useCities();
-
-const handleCitySelect = (city: City) => {
-  setSelected(city.name);       // local state for display
-  setSelectedCity(city.name);   // store state
-  setVisible(false);
-  onSelectCity?.(city);         // optional callback
-};
-
-
+  const handleCitySelect = (city: City) => {
+    setSelected(city.name);
+    setVisible(false);
+    onSelectCity?.(city);
+  };
   return (
     <>
-     <TouchableOpacity
-  style={styles.locationBtnCustom}
-  onPress={() => setVisible(true)}
->
-  <PinkLocation
-    width={width * 0.03}
-    height={width * 0.03}
-    style={{ marginRight: width * 0.011 }}
-  />
-  <Text style={styles.locationBtnText}>
-    {selectedCity || selected}   
-  </Text>
-</TouchableOpacity>
-
-
+      <TouchableOpacity
+        style={styles.locationBtnCustom}
+        onPress={() => setVisible(true)}
+      >
+        <PinkLocation
+          width={width * 0.03}
+          height={width * 0.03}
+          style={{ marginRight: width * 0.011 }}
+        />
+        <Text style={styles.locationBtnText}>{selected}</Text>
+      </TouchableOpacity>
       <Modal
         visible={visible}
         animationType="slide"
@@ -70,15 +54,13 @@ const handleCitySelect = (city: City) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Select Your City</Text>
-
             {isLoading && (
               <ActivityIndicator
                 size="small"
-                color="#e91e63"
+                color="#E91E63"
                 style={{ marginVertical: 20 }}
               />
             )}
-
             {isError && (
               <Text
                 style={{
@@ -90,7 +72,6 @@ const handleCitySelect = (city: City) => {
                 Failed to load cities.
               </Text>
             )}
-
             {!isLoading && cities && (
               <FlatList
                 data={cities}
@@ -112,7 +93,6 @@ const handleCitySelect = (city: City) => {
                 )}
               />
             )}
-
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setVisible(false)}
@@ -125,7 +105,6 @@ const handleCitySelect = (city: City) => {
     </>
   );
 };
-
 const styles = StyleSheet.create({
   locationBtnCustom: {
     flexDirection: 'row',
@@ -178,7 +157,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   selectedCityText: {
-    color: '#e91e63',
+    color: '#E91E63',
     fontWeight: '600',
   },
   closeButton: {
@@ -190,5 +169,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
-
 export default LocationButton;

@@ -24,7 +24,7 @@ import LocationButton from '../../locations/components/LocationButton';
 import { useProfile } from '../../profile/hooks/useProfile';
 import BoardTabs, { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
-import { useCityStore } from '../../../cities/cityStore';
+
 
 // import { useFocusEffect } from '@react-navigation/native';
 
@@ -43,7 +43,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   // Get user data from authStore and profile data
-    const { selectedCity } = useCityStore();
+   
   const { user } = useAuthStore();
   const { data: profile } = useProfile();
 
@@ -79,9 +79,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setAvatarError(false);
   }, [avatarUrl]);
 
-  useEffect(() => {
-  console.log('Selected city:', selectedCity);
-}, [selectedCity]);
+
 
   // Debug: verify avatar/initial state once per render (comment out if noisy)
   try {
@@ -328,27 +326,16 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             )} */}
 
             {/* Show Recommended boards */}
-            {boardFiltersData?.recommended &&
+      {boardFiltersData?.recommended &&
               boardFiltersData.recommended.length > 0 && (
-                <>
-                  {boardFiltersData.recommended
-                    .filter((board: any) => !selectedCity || board.location === selectedCity)
-                    .map(convertBoardToBoardItem)
-                    .length > 0 ? (
-                    <BoardList
-                      data={boardFiltersData.recommended
-                        .filter((board: any) => !selectedCity || board.location === selectedCity)
-                        .map(convertBoardToBoardItem)}
-                      onPressDetail={handleDetailPress}
-                      heading={t('recommended')}
-                      navigation={navigation}
-                    />
-                  ) : (
-                    <Text style={{ textAlign: 'center', marginVertical: 20 }}>
-                      {t('noBoardsFound')}
-                    </Text>
+                <BoardList
+                  data={boardFiltersData.recommended.map(
+                    convertBoardToBoardItem,
                   )}
-                </>
+                  onPressDetail={handleDetailPress}
+                  heading={t('recommended')}
+                  navigation={navigation}
+                />
               )}
 
 
