@@ -1,5 +1,3 @@
-// src/features/auth/screens/ForgotPassword.tsx
-
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Formik, FormikHelpers } from 'formik';
@@ -13,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -34,7 +33,6 @@ const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
 
-// ---------- Validation ----------
 const validationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
     .required('Phone number is required')
@@ -47,57 +45,59 @@ const validationSchema = Yup.object().shape({
     .required('Please confirm your password'),
 });
 
-// ---------- Component ----------
 const ForgotPassword: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const { t } = useTranslation('auth');
 
-  const forgotPassword = useForgotPassword(); // sends OTP
-  const resetPassword = useResetPassword(); // verifies OTP + updates password
-  const login = useLogin(); // Logs in with new password
+  const forgotPassword = useForgotPassword();
+  const resetPassword = useResetPassword();
+  const login = useLogin();
 
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const phoneRef = useRef<any>(null);
-  const newPwdRef = useRef<any>(null);
-  const confirmPwdRef = useRef<any>(null);
-
-  // ---------- Submit ----------
-  const handleSubmit = (
+  const handleSubmit = async (
     values: {
       phoneNumber: string;
       newPassword: string;
       confirmPassword: string;
     },
-    { setSubmitting }: FormikHelpers<any>,
+    formikHelpers: FormikHelpers<any>,
   ) => {
+    setValidationAttempted(true);
+
+    const errors = await formikHelpers.validateForm();
+    
+    if (Object.keys(errors).length > 0) {
+      formikHelpers.setTouched({
+        phoneNumber: true,
+        newPassword: true,
+        confirmPassword: true,
+      });
+      formikHelpers.setSubmitting(false);
+      return;
+    }
+
     forgotPassword.mutate(
       { phone: values.phoneNumber },
       {
         onSuccess: () => {
-          setSubmitting(false);
+          formikHelpers.setSubmitting(false);
           setPhoneNumber(values.phoneNumber);
           setNewPassword(values.newPassword);
           setShowOTPModal(true);
         },
         onError: (err: any) => {
-          setSubmitting(false);
+          formikHelpers.setSubmitting(false);
           console.warn('Forgot Password error:', err);
-          Alert.alert(
-            'Error',
-            err?.response?.data?.message ||
-              err?.message ||
-              'Failed to send OTP. Please try again.',
-          );
+         
         },
       },
     );
   };
 
-  // ---------- OTP Verify ----------
   const handleOTPVerify = async (otp: string) => {
     try {
       await resetPassword.mutateAsync({
@@ -106,15 +106,12 @@ const ForgotPassword: React.FC = () => {
         newPassword,
       });
 
-      // ✅ Automatically log the user in after reset
       await login.mutateAsync({ phone: phoneNumber, password: newPassword });
 
       setShowOTPModal(false);
-      Alert.alert('Success', 'Your password has been reset!');
-      // ❌ No need to navigate; App.tsx will pick up new session and reroute
     } catch (error) {
       console.warn('Reset Password error:', error);
-      Alert.alert('Error', 'Invalid or expired OTP. Please try again.');
+   
     }
   };
 
@@ -161,12 +158,14 @@ const ForgotPassword: React.FC = () => {
 
             <Formik
               initialValues={{
-                phoneNumber: '+923359857379',
-                newPassword: 'Taimoor12@',
-                confirmPassword: 'Taimoor12@',
+              phoneNumber: '+923236102030',
+                newPassword: '6AJ$kk3m9',
+                confirmPassword: '6AJ$kk3m9',
               }}
               validationSchema={validationSchema}
-              onSubmit={handleSubmit}
+              onSubmit={(values, formikHelpers) => {
+                handleSubmit(values, formikHelpers);
+              }}
             >
               {({
                 handleChange,
@@ -176,10 +175,9 @@ const ForgotPassword: React.FC = () => {
                 errors,
                 touched,
                 isSubmitting,
-              }) => (
+            }) => (
                 <>
                   <CustomInput
-                    ref={phoneRef}
                     label={t('login.phoneNumber')}
                     placeholder="+923XXXXXXXXX"
                     keyboardType="phone-pad"
@@ -193,13 +191,9 @@ const ForgotPassword: React.FC = () => {
                         ? errors.phoneNumber
                         : undefined
                     }
-                    returnKeyType="next"
-                    blurOnSubmit={false}
-                    onSubmitEditing={() => newPwdRef.current?.focus()}
                   />
 
                   <CustomInput
-                    ref={newPwdRef}
                     label={t('forgot.newPassword')}
                     placeholder="Enter new password"
                     secureTextEntry
@@ -213,13 +207,9 @@ const ForgotPassword: React.FC = () => {
                         ? errors.newPassword
                         : undefined
                     }
-                    returnKeyType="next"
-                    blurOnSubmit={false}
-                    onSubmitEditing={() => confirmPwdRef.current?.focus()}
                   />
 
                   <CustomInput
-                    ref={confirmPwdRef}
                     label={t('forgot.confirmPassword')}
                     placeholder="Re-enter new password"
                     secureTextEntry
@@ -233,9 +223,6 @@ const ForgotPassword: React.FC = () => {
                         ? errors.confirmPassword
                         : undefined
                     }
-                    returnKeyType="done"
-                    blurOnSubmit={true}
-                    onSubmitEditing={() => formikSubmit()}
                   />
 
                   <TouchableOpacity
@@ -264,7 +251,8 @@ const ForgotPassword: React.FC = () => {
                     </View>
                   </TouchableOpacity>
                 </>
-              )}
+                )
+              }}
             </Formik>
 
             <View style={styles.footer}>
@@ -291,7 +279,6 @@ const ForgotPassword: React.FC = () => {
   );
 };
 
-// ---------- Styles ----------
 const styles = StyleSheet.create({
   container: { flex: 1 },
   keyboardAvoidingView: { flex: 1 },
@@ -301,16 +288,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(6),
     paddingBottom: hp(25),
     minHeight: height + hp(10),
-  },
-  backButton: {
-    backgroundColor: '#fff',
-    width: wp(10),
-    height: wp(10),
-    borderRadius: wp(5),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: hp(5),
-    marginBottom: hp(2),
   },
   header: { marginTop: hp(5), marginBottom: hp(4) },
   title: {
@@ -364,6 +341,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textDecorationLine: 'underline',
   },
+  passwordContainer: { marginBottom: hp(2) },
+  inputLabel: { fontSize: 14, color: '#595959', marginBottom: 8 },
+  passwordInputContainer: { flexDirection: 'row', alignItems: 'center' },
+  passwordInput: {
+    borderWidth: 1,
+    borderColor: '#e2d1d1',
+    borderRadius: wp(3),
+    paddingHorizontal: wp(4),
+    height: hp(6),
+    flex: 1,
+    fontSize: 12,
+    backgroundColor: '#fff',
+    color: '#000',
+  },
+  inputError: { borderColor: '#C539A5', borderWidth: 0.6 },
+  eyeIconContainer: { position: 'absolute', right: wp(4) },
 });
 
 export default ForgotPassword;

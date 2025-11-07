@@ -58,6 +58,8 @@ interface PasswordValidation {
 // Validation Schema
 // ----------------------
 const validationSchema = Yup.object().shape({
+  username: Yup.string().required('Username is required'),
+  companyName: Yup.string().required('Company name is required'),
   password: Yup.string()
     .matches(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
@@ -83,10 +85,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState('');
-  const companyRef = useRef<TextInput>(null);
-  const phoneRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
-  const [, setPasswordValidation] = useState<PasswordValidation>({
+const [, setPasswordValidation] = useState<PasswordValidation>({
     hasUppercase: false,
     hasLowercase: false,
     hasNumber: false,
@@ -116,8 +115,25 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     if (cleaned.length <= 13) setFieldValue('phoneNumber', cleaned);
   };
 
-  const handleRegister = (values: RegisterFormValues) => {
+  const handleRegister = async (values: RegisterFormValues, formikHelpers: any) => {
+    setValidationAttempted(true);
     setApiError(false);
+
+    // Validate all fields
+    const errors = await formikHelpers.validateForm();
+    
+    // If there are validation errors, don't proceed
+    if (Object.keys(errors).length > 0) {
+      formikHelpers.setTouched({
+        username: true,
+        companyName: true,
+        phoneNumber: true,
+        password: true,
+      });
+      return;
+    }
+
+    // All fields are valid, proceed with registration
     setIsLoading(true);
 
     const payload = {
@@ -189,13 +205,15 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
             <Formik
               initialValues={{
-                username: 'Han Lee',
-                password: '6AJ$kk3m8',
-                companyName: 'Facility',
-                phoneNumber: '+923236102030',
+                username: '',
+                password: '',
+                companyName: '',
+                phoneNumber: '+92',
               }}
               validationSchema={validationSchema}
-              onSubmit={handleRegister}
+              onSubmit={(values, formikHelpers) => {
+                handleRegister(values, formikHelpers);
+              }}
             >
               {({
                 handleChange,
@@ -205,7 +223,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 errors,
                 touched,
                 setFieldValue,
-              }) => (
+            }) => (
                 <>
                   <CustomInput
                     label={t('register.username')}
@@ -216,13 +234,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     focused={focusedField === 'username'}
                     onFocus={() => setFocusedField('username')}
                     error={apiError}
-                    returnKeyType="next"
-                    blurOnSubmit={false}
-                    onSubmitEditing={() => companyRef.current?.focus()}
                   />
 
                   <CustomInput
-                    ref={companyRef}
                     label={t('register.companyName')}
                     placeholder="Enter Company Name"
                     value={values.companyName}
@@ -231,13 +245,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     focused={focusedField === 'companyName'}
                     onFocus={() => setFocusedField('companyName')}
                     error={apiError}
-                    returnKeyType="next"
-                    blurOnSubmit={false}
-                    onSubmitEditing={() => phoneRef.current?.focus()}
                   />
 
                   <CustomInput
-                    ref={phoneRef}
                     label={t('login.phoneNumber')}
                     placeholder="3XXXXXXXXX"
                     keyboardType="phone-pad"
@@ -249,9 +259,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     onFocus={() => setFocusedField('phoneNumber')}
                     focused={focusedField === 'phoneNumber'}
                     error={!!errors.phoneNumber || apiError}
-                    returnKeyType="next"
-                    blurOnSubmit={false}
-                    onSubmitEditing={() => passwordRef.current?.focus()}
                   />
 
                   {/* Password */}
@@ -262,8 +269,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                         ref={passwordRef}
                         style={[
                           styles.passwordInput,
-                          errors.password &&
-                            touched.password &&
+                          (shouldShowError('password') || (errors.password && touched.password)) &&
                             styles.inputError,
                         ]}
                         placeholder="Enter Password"
@@ -289,9 +295,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                         />
                       </TouchableOpacity>
                     </View>
-                    {touched.password && errors.password && (
-                      <Text style={styles.errorText}>{errors.password}</Text>
-                    )}
                   </View>
 
                   <TouchableOpacity
@@ -299,7 +302,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                       styles.registerButton,
                       isLoading && styles.disabledButton,
                     ]}
-                    onPress={handleSubmit as any}
+                    onPress={() => {
+                      handleSubmit();
+                    }}
                     disabled={isLoading}
                   >
                     <View style={styles.buttonContent}>
@@ -316,7 +321,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     </View>
                   </TouchableOpacity>
                 </>
-              )}
+                )
+              }}
             </Formik>
 
             <View style={styles.grayLine} />
@@ -413,8 +419,10 @@ const styles = StyleSheet.create({
     height: hp(6),
     flex: 1,
     fontSize: 12,
+    backgroundColor: '#fff',
+    color: '#000',
   },
-  inputError: { borderColor: '#ff4444' },
+  inputError: { borderColor: '#C539A5', borderWidth: 0.6 },
   eyeIconContainer: { position: 'absolute', right: wp(4) },
   errorText: { color: '#ff4444', fontSize: wp(3.5), marginTop: hp(0.5) },
 });

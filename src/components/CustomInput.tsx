@@ -194,20 +194,20 @@ const styles = StyleSheet.create({
     paddingVertical: hp(1.5),
   },
   inputError: {
-    borderColor: '#ff4444',
-    borderWidth: 1,
+    borderColor: '#C539A5',
+    borderWidth: 0.6,
   },
   inputFocused: {
-    borderColor: '#C539A5',
-    borderWidth: 2,
+    borderColor: '#c539a5ff',
+    borderWidth: 0.5,
   },
   phoneInputWrapperError: {
-    borderColor: '#ff4444',
-    borderWidth: 1,
+    borderColor: '#C539A5',
+    borderWidth: 0.6,
   },
   phoneInputWrapperFocused: {
     borderColor: '#C539A5',
-    borderWidth: 2,
+    borderWidth: 0.7,
   },
   errorText: {
     color: '#ff4444',

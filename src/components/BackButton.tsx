@@ -20,15 +20,19 @@ const BackButton: React.FC = () => {
     try {
       if (navigation.canGoBack()) {
         navigation.goBack();
-      } else {
-        // If we can't go back, navigate to the main BottomTab screen
-        navigation.navigate('BottomTab' as never);
+        return;
       }
+      const parentNav: any = (navigation as any).getParent?.();
+      if (parentNav && parentNav.canGoBack?.()) {
+        parentNav.goBack();
+        return;
+      }
+      navigation.navigate('BottomTab' as never, { tab: 'Home' } as never);
     } catch (error) {
       console.error('Navigation error:', error);
       // Fallback: Try to navigate to the main screen
       try {
-        navigation.navigate('BottomTab' as never);
+        navigation.navigate('BottomTab' as never, { tab: 'Home' } as never);
       } catch (fallbackError) {
         console.error('Fallback navigation error:', fallbackError);
       }
@@ -38,6 +42,7 @@ const BackButton: React.FC = () => {
   return (
     <TouchableOpacity
       style={styles.backButton}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       onPress={handleBackPress}
     >
       <Ionicons name="arrow-back" size={width * 0.06} color="#000" />

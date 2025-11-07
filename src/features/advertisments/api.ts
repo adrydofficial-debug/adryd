@@ -91,8 +91,15 @@ export const createAdvertisementPost = async (
     return response.data;
   } catch (error) {
     console.error('❌ Request failed:', error);
-    if ((error as any)?.response) {
-      console.error('Server said:', (error as any).response);
+    const anyErr = error as any;
+    if (anyErr?.response) {
+      console.error('Response status:', anyErr.response.status);
+      console.error('Response headers:', anyErr.response.headers);
+      console.error('Response data:', JSON.stringify(anyErr.response.data, null, 2));
+    } else if (anyErr?.request) {
+      console.error('Request was made but no response received:', anyErr.request);
+    } else {
+      console.error('Error setting up request:', anyErr.message);
     }
     console.groupEnd();
     throw error;

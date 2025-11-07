@@ -6,7 +6,7 @@ import {
   Dimensions,
   Text,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Svg, { Path } from 'react-native-svg';
 import HomeIcon from '../../assets/images/pinkHome.svg';
 import GrayHomeIcon from '../../assets/images/grayHome.svg';
@@ -31,7 +31,15 @@ interface BottomTabProps {
 }
 const BottomTab: React.FC<BottomTabProps> = () => {
   const navigation = useNavigation();
+  const route = useRoute() as any;
   const [activeTab, setActiveTab] = useState<TabName>('Home');
+
+  React.useEffect(() => {
+    const desiredTab = route?.params?.tab as TabName | undefined;
+    if (desiredTab) {
+      setActiveTab(desiredTab);
+    }
+  }, [route?.params?.tab]);
   const handleTabPress = (tabName: string) => {
     setActiveTab(tabName as TabName);
     switch (tabName) {
@@ -42,8 +50,8 @@ const BottomTab: React.FC<BottomTabProps> = () => {
         // Just switch to boards tab, don't navigate
         break;
       case 'Add':
-        // Navigate to advertisement creation (this should navigate)
-        navigation.navigate('CreateCompanyScreen' as never);
+        // Navigate to PreviousCompanyScreen
+        navigation.navigate('PreviousCompanyScreen' as never);
         // Reset to Home tab after navigation
         setActiveTab('Home');
         break;

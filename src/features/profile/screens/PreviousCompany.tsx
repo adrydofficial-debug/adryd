@@ -14,7 +14,6 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AddIcon from '../../../assets/images/add.svg';
-
 import AxoVoltLogo from '../../../assets/images/AxoVolt.png';
 import { useCompanies } from '../../companies/hooks/useCompanies';
 import { Company as ApiCompany } from '../../companies/domain/entities';
@@ -94,12 +93,14 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
 
   const handleAddNewCompany = () => {
     onAddNewCompany?.();
+    navigation.navigate('CreateCompanyScreen' as never);
     // Navigate to add company screen or show modal
     console.log('Add new company pressed');
   };
 
   const handleCompanySelect = (company: Company) => {
     onCompanySelect?.(company);
+     navigation.navigate('AdvertismentCreateScreen' as never);
     // Navigate to company details or dashboard
     console.log('Company selected:', company.name);
   };
@@ -127,7 +128,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
         <AddIcon
           width={scaleFont(32)}
           height={scaleFont(32)}
-          // color="#9E9E9E"
+           color="#9E9E9E"
         />
       </View>
     </TouchableOpacity>
@@ -226,7 +227,6 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
             color="#000000"
           />
         </TouchableOpacity>
-        
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Select</Text>
           <Text style={styles.headerSubtitle}>Select previous company</Text>
@@ -339,7 +339,8 @@ const styles = StyleSheet.create({
   addCompanyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: scaleWidth(12),
-    height: scaleHeight(80),
+    height: scaleHeight(70),
+    width: '100%',
     marginBottom: hp(2),
     shadowColor: '#000',
     shadowOffset: {
@@ -356,12 +357,13 @@ const styles = StyleSheet.create({
     width: scaleWidth(40),
     height: scaleWidth(48),
     borderRadius: scaleWidth(24),
-    // backgroundColor: '#F5F5F5',
+    //  backgroundColor: '#c71212ff',
     alignItems: 'center',
     justifyContent: 'center',
   },
   companyList: {
     flex: 1,
+  
   },
   scrollContent: {
     paddingHorizontal: wp(4),

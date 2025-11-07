@@ -28,6 +28,7 @@ import {
   useCreateCompany,
 } from '../hooks/useCompanies';
 import NoInternet from '../../../components/NoInternet';
+import { useCampaignStore } from '../../../store/campaignStore';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -53,6 +54,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   company,
 }) => {
   const { t } = useTranslation('companies');
+  const setCompanyData = useCampaignStore((state) => state.setCompanyData);
   const [companyName, setCompanyName] = useState(
     company?.company_name || 'Adryd',
   );
@@ -318,7 +320,21 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
           : undefined,
       });
 
-      // Navigate to CampaignUploadFiles screen on success
+      // Save company data to store before navigating
+      setCompanyData({
+        companyName: companyName.trim(),
+        businessName: businessName.trim(),
+        businessCategory: selectedBusinessCategory,
+        companyEmail: companyEmail.trim(),
+        companyAddress: companyAddress.trim(),
+        companyNTN: companyNTN.trim() || '0000000-0',
+        companyNumber: '+923000000000',
+        logoUri: selectedImage?.uri,
+        logoType: selectedImage?.type,
+        logoName: selectedImage?.name,
+      });
+
+      // Navigate to AdvertismentCreateScreen on success
       navigation.navigate('AdvertismentCreateScreen');
     } catch (error: any) {
       console.error('Create company error:', error);
