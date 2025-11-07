@@ -36,6 +36,9 @@ interface Props {
 const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
   const { t } = useTranslation('advertisments');
   const setAdvertisementData = useCampaignStore((state) => state.setAdvertisementData);
+  const selectedDaysFromStore = useCampaignStore((state) => state.selectedDays);
+  const setSelectedDaysToStore = useCampaignStore((state) => state.setSelectedDays);
+  const clearSelectedDays = useCampaignStore((state) => state.clearSelectedDays);
   const COMPANY_ID = 1;
   const BOARD_ID = 1;
   const [campaignName] = useState<string>('Test Ad');
@@ -45,7 +48,12 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
     new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   );
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
-  const [selectedDays, setSelectedDays] = useState<Date[]>([]);
+  // Use store for selectedDays, convert strings back to Dates
+  const selectedDays = React.useMemo(() => {
+    return selectedDaysFromStore.map(day => 
+      day instanceof Date ? day : new Date(day)
+    ).filter(day => !isNaN(day.getTime()));
+  }, [selectedDaysFromStore]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [description] = useState<string>('My great test advertisement.');
   const [location] = useState<string>('Lahore');
@@ -74,12 +82,32 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
   
   // Fetch all existing advertisements to get booked dates
   // Using a high limit to get all advertisements
+  // This will fetch ALL advertisements from API, so all users see the same booked dates
   const { data: advertisementsData, refetch: refetchAdvertisements } = useAdvertisements(1, 1000);
   
-  // Extract all booked dates from existing advertisements
+  // Refetch advertisements when screen is focused to get latest booked dates
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('📅 Screen focused - refetching advertisements to get latest booked dates');
+      refetchAdvertisements();
+    });
+    return unsubscribe;
+  }, [navigation, refetchAdvertisements]);
+  
+  // Get global selected dates from store (dates selected by any user - marked as booked)
+  const globalSelectedDates = useCampaignStore((state) => state.globalSelectedDates);
+  const addGlobalSelectedDate = useCampaignStore((state) => state.addGlobalSelectedDate);
+  const addGlobalSelectedDates = useCampaignStore((state) => state.addGlobalSelectedDates);
+  const removeGlobalSelectedDate = useCampaignStore((state) => state.removeGlobalSelectedDate);
+  
+  // Extract all booked dates from existing advertisements (API) AND from global selected dates store
+  // Global selected dates are dates that users have selected (even before submitting) - marked as booked for all users
   const bookedDates = useMemo(() => {
     const dates = new Set<string>();
+    
+    // Add dates from existing advertisements (API) - these are visible to ALL users
     if (advertisementsData?.data) {
+      console.log('📊 Processing', advertisementsData.data.length, 'advertisements for booked dates');
       advertisementsData.data.forEach(ad => {
         if (ad.bookings && Array.isArray(ad.bookings)) {
           ad.bookings.forEach(booking => {
@@ -109,9 +137,30 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
         }
       });
     }
-    console.log('Booked dates extracted:', Array.from(dates).sort());
+    
+    // Add dates from global selected dates store (dates selected by any user, even before submitting)
+    if (globalSelectedDates && globalSelectedDates.length > 0) {
+      globalSelectedDates.forEach(dateStr => {
+        try {
+          // Normalize the date string to YYYY-MM-DD format
+          const date = dateStr instanceof Date ? dateStr : new Date(dateStr);
+          if (!isNaN(date.getTime())) {
+            const dateKey = formatDateForCalendar(date);
+            dates.add(dateKey);
+          }
+        } catch (e) {
+          // If it's already in YYYY-MM-DD format, use it directly
+          if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            dates.add(dateStr);
+          }
+        }
+      });
+      console.log('📅 Added', globalSelectedDates.length, 'dates from global selected dates store');
+    }
+    
+    console.log('✅ Total booked dates (API + Global Store):', Array.from(dates).sort());
     return dates;
-  }, [advertisementsData]);
+  }, [advertisementsData, globalSelectedDates]);
 
   const isSameDay = (date1: Date, date2: Date) => {
     return (
@@ -141,23 +190,30 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
     // Clear error when successfully selecting a date
     setErrorText('');
     
+    let updatedDays: Date[];
     if (isDateSelected(date)) {
       // Remove date if already selected
-      setSelectedDays(prev =>
-        prev.filter(selectedDate => !isSameDay(selectedDate, date)),
-      );
+      updatedDays = selectedDays.filter(selectedDate => !isSameDay(selectedDate, date));
+      // Remove from global selected dates when user deselects
+      removeGlobalSelectedDate(date);
     } else {
       // Add date to selection
-      setSelectedDays(prev =>
-        [...prev, date].sort((a, b) => a.getTime() - b.getTime()),
-      );
+      updatedDays = [...selectedDays, date].sort((a, b) => a.getTime() - b.getTime());
+      // Add to global selected dates when user selects (marked as booked for all users)
+      addGlobalSelectedDate(date);
     }
+    
+    // Save to store immediately
+    setSelectedDaysToStore(updatedDays);
   };
 
   const openCalendar = async () => {
-    // Refetch advertisements to get the latest booked dates
+    // Always refetch advertisements to get the latest booked dates from API
+    // This ensures that dates booked by other users are visible
+    console.log('📅 Opening calendar - refetching advertisements to get latest booked dates');
     await refetchAdvertisements();
-    // Preserve current selection if dates are already selected, otherwise start fresh
+    
+    // Preserve current selection from store, or populate from date range if available
     if (selectedDays.length === 0 && startDate && endDate) {
       // If no days are selected but we have a date range, populate selectedDays from the range
       const days: Date[] = [];
@@ -168,7 +224,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
         days.push(new Date(current));
         current.setDate(current.getDate() + 1);
       }
-      setSelectedDays(days);
+      setSelectedDaysToStore(days);
     }
     setShowCalendar(true);
   };
@@ -476,7 +532,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                   <TouchableOpacity
                     style={styles.clearButton}
                     onPress={() => {
-                      setSelectedDays([]);
+                      setSelectedDaysToStore([]);
                       setStartDate(new Date());
                       setEndDate(
                         new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -599,11 +655,13 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
               createAdMutation.mutate(advertisementData, {
                 onSuccess: async response => {
                   console.log('upload url is :', response.upload.uploadUrl);
+                  // Clear selected days from store since they're now in the API
+                  clearSelectedDays();
                   // Refetch advertisements to update booked dates immediately
                   await refetchAdvertisements();
                   
                   // Navigate to AdvertismentConfirmationScreen instead of CampaignUploadFiles
-                  navigation.navigate('AdvertismentConfirmationScreen', {
+                  navigation.navigate('CampaignUploadFiles', {
                     campaignId: response.advertisement?.id?.toString() || '',
                   });
                 },
