@@ -114,7 +114,9 @@ export const mapBoard = (b: any): any => ({
   slug: b.slug ?? String(b.id ?? ''),
   category: b.category ?? null,
   owner: b.owner ?? null,
-  location: b.location ?? null,
+  location: typeof b.location === 'string'
+  ? b.location
+  : b.location?.name ?? '',
   media: Array.isArray(b.media) ? b.media : [],
   avg_rating: b.avg_rating ?? b.avgRating ?? 0,
   total_ratings: b.total_ratings ?? b.totalRatings ?? 0,
