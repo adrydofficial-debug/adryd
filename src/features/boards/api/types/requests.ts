@@ -14,14 +14,28 @@ export interface ToggleFavoriteRequest {
 
 // 🔍 Filtered boards (query)
 export interface FilterBoardsParams {
-  filter?: string; // recommended | nearest | category | group | favorites | see_all
-  page?: number;
-  limit?: number;
+  // Can now be a single string or an array of slugs
+  slug?: string | string[];
+
+  // Kept for backward compatibility; frontend can use either
+  filter?: string;
+
+  // Can now be a single location ID or multiple
+  location_id?: number | number[];
+
+  // Optional city filter (only one city at a time)
+  city_id?: number;
+
+  // Search and pricing
   search?: string;
-  lat?: number;
-  lng?: number;
-  slug?: string; // unified slug for either category or group
   min_price?: number;
   max_price?: number;
-  location?: string;
+
+  // Geolocation (for nearest)
+  lat?: number;
+  lng?: number;
+
+  // Pagination
+  page?: number;
+  limit?: number;
 }

@@ -7,3 +7,4 @@ export * from './useRateBoard';
 export * from './useGroups';
 export * from './useRecommendedBoards';
 export * from './useNearestBoards';
+export * from './useBoardUnavailableTimes';

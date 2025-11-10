@@ -47,9 +47,13 @@ interface CustomInputProps {
 
   focused?: boolean;
   showErrorText?: boolean;
+  // 🔹 Forward Enter-related props
+  returnKeyType?: TextInputProps['returnKeyType'];
+  blurOnSubmit?: boolean;
+  onSubmitEditing?: TextInputProps['onSubmitEditing'];
 }
 
-const CustomInput: React.FC<CustomInputProps> = ({
+const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
   label,
   placeholder,
   value,
@@ -65,7 +69,10 @@ const CustomInput: React.FC<CustomInputProps> = ({
   error,
   focused = false,
   showErrorText = true,
-}) => {
+  returnKeyType,
+  blurOnSubmit,
+  onSubmitEditing,
+}, ref) => {
   const isPhoneInput =
     keyboardType === 'phone-pad' && value && value.startsWith('+92');
 
@@ -87,6 +94,7 @@ const CustomInput: React.FC<CustomInputProps> = ({
             +92
           </Text>
           <TextInput
+            ref={ref}
             placeholder={placeholder}
             value={value.replace('+92', '')}
             onChangeText={text => {
@@ -100,10 +108,14 @@ const CustomInput: React.FC<CustomInputProps> = ({
             style={[styles.phoneInput, inputStyle]}
             keyboardType={keyboardType}
             placeholderTextColor={placeholderTextColor}
+            returnKeyType={returnKeyType}
+            blurOnSubmit={blurOnSubmit}
+            onSubmitEditing={onSubmitEditing}
           />
         </View>
       ) : (
         <TextInput
+          ref={ref}
           placeholder={placeholder}
           value={value}
           onChangeText={onChangeText}
@@ -118,6 +130,9 @@ const CustomInput: React.FC<CustomInputProps> = ({
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           placeholderTextColor={placeholderTextColor}
+          returnKeyType={returnKeyType}
+          blurOnSubmit={blurOnSubmit}
+          onSubmitEditing={onSubmitEditing}
         />
       )}
 
@@ -126,7 +141,7 @@ const CustomInput: React.FC<CustomInputProps> = ({
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   inputContainer: {

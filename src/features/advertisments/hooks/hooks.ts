@@ -10,6 +10,10 @@ import {
   getAdvertisement,
   getAdvertisements,
   updateAdvertisement,
+  getTemporaryBookings,
+  createTemporaryBookings,
+  deleteTemporaryBooking,
+  clearTemporaryBookings,
 } from '../api/api';
 import { Advertisement, AdvertisementStatus } from '../domain/entities';
 import {
@@ -203,3 +207,153 @@ export const useDeleteAdvertisement = () => {
 
 // --- Helper to access latest upload URL globally ---
 export const getLastUploadUrl = () => uploadCache;
+
+// ==================== GLOBAL SELECTED DATES HOOKS (TanStack Query) ====================
+// These hooks manage selected dates using TanStack Query with AsyncStorage persistence
+// This provides reactive updates across all components and persists data locally
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Use a shared storage key so ALL users on the same device see each other's selected dates
+// This works across different user logins on the same device
+// For cross-device sync, you would need Supabase (see alternative solution below)
+const GLOBAL_SELECTED_DATES_KEY = 'global-selected-dates-shared';
+const SELECTED_DATES_QUERY_KEY = ['global-selected-dates-shared'] as const;
+
+/**
+ * Helper function to normalize date to YYYY-MM-DD format
+ */
+const normalizeDate = (date: Date | string): string => {
+  if (date instanceof Date) {
+    return date.toISOString().split('T')[0];
+  }
+  // If it's already a string, try to parse it
+  const parsed = new Date(date);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split('T')[0];
+  }
+  return date; // Return as-is if can't parse
+};
+
+/**
+ * Hook to fetch global selected dates from AsyncStorage
+ * Returns dates that users have selected (marked as booked for all users)
+ * Uses TanStack Query for reactive updates across components
+ * 
+ * NOTE: This uses shared storage on the same device
+ * ✅ Different users on same device: Will see each other's dates
+ * ❌ Same user on different devices: Will NOT see dates (device-specific storage)
+ * 
+ * For cross-device sync without custom API, you can use Supabase Realtime (see alternative below)
+ */
+export const useGlobalSelectedDates = () => {
+  return useQuery({
+    queryKey: SELECTED_DATES_QUERY_KEY,
+    queryFn: async (): Promise<string[]> => {
+      try {
+        const stored = await AsyncStorage.getItem(GLOBAL_SELECTED_DATES_KEY);
+        if (stored) {
+          const dates = JSON.parse(stored) as string[];
+          // Normalize all dates to YYYY-MM-DD format
+          return dates.map(normalizeDate).filter(Boolean);
+        }
+        return [];
+      } catch (error) {
+        console.error('Error reading global selected dates:', error);
+        return [];
+      }
+    },
+    staleTime: 0, // Always consider data stale to get latest updates
+    gcTime: Infinity, // Keep in cache indefinitely
+    placeholderData: () => [], // Default to empty array
+    refetchInterval: 2000, // Refetch every 2 seconds to catch changes from other users
+  });
+};
+
+/**
+ * Hook to add a date to global selected dates
+ * Uses TanStack Query mutation for reactive updates
+ */
+export const useAddGlobalSelectedDate = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (date: Date | string): Promise<string[]> => {
+      const normalized = normalizeDate(date);
+      
+      // Get current dates
+      const currentData = queryClient.getQueryData<string[]>(SELECTED_DATES_QUERY_KEY) || [];
+      const current = currentData.map(normalizeDate);
+      
+      // Add if not already present
+      if (!current.includes(normalized)) {
+        const updated = [...current, normalized];
+        
+        // Save to AsyncStorage
+        await AsyncStorage.setItem(GLOBAL_SELECTED_DATES_KEY, JSON.stringify(updated));
+        console.log('✅ Added date to global selected dates (TanStack Query):', normalized);
+        
+        return updated;
+      }
+      
+      return current;
+    },
+    onSuccess: (data) => {
+      // Update cache immediately for reactive updates
+      queryClient.setQueryData(SELECTED_DATES_QUERY_KEY, data);
+    },
+  });
+};
+
+/**
+ * Hook to remove a date from global selected dates
+ * Uses TanStack Query mutation for reactive updates
+ */
+export const useRemoveGlobalSelectedDate = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (date: Date | string): Promise<string[]> => {
+      const normalized = normalizeDate(date);
+      
+      // Get current dates
+      const currentData = queryClient.getQueryData<string[]>(SELECTED_DATES_QUERY_KEY) || [];
+      const current = currentData.map(normalizeDate);
+      
+      // Remove the date
+      const updated = current.filter(d => d !== normalized);
+      
+      // Save to AsyncStorage
+      await AsyncStorage.setItem(GLOBAL_SELECTED_DATES_KEY, JSON.stringify(updated));
+      console.log('✅ Removed date from global selected dates (TanStack Query):', normalized);
+      
+      return updated;
+    },
+    onSuccess: (data) => {
+      // Update cache immediately for reactive updates
+      queryClient.setQueryData(SELECTED_DATES_QUERY_KEY, data);
+    },
+  });
+};
+
+/**
+ * Hook to clear all global selected dates
+ * Uses TanStack Query mutation for reactive updates
+ */
+export const useClearGlobalSelectedDates = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (): Promise<string[]> => {
+      // Clear AsyncStorage
+      await AsyncStorage.removeItem(GLOBAL_SELECTED_DATES_KEY);
+      console.log('✅ Cleared all global selected dates (TanStack Query)');
+      
+      return [];
+    },
+    onSuccess: (data) => {
+      // Update cache immediately for reactive updates
+      queryClient.setQueryData(SELECTED_DATES_QUERY_KEY, data);
+    },
+  });
+};

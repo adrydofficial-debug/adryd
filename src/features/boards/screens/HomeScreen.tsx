@@ -21,6 +21,7 @@ import DrawerComponent from '../../../components/DrawerComponent';
 import { useAuthStore } from '../../../store/authStore';
 import BoardTabs, { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
+import { useBoardUnavailableTimes } from '../hooks/useBoardUnavailableTimes';
 import { useProfile } from '../../profile/hooks/useProfile';
 import NoInternet from '../../../components/NoInternet';
 import { useTranslation } from 'react-i18next';
@@ -32,7 +33,6 @@ type Props = {
 };
 
 const { width, height } = Dimensions.get('window');
-const RIGHT_ACTIONS_WIDTH = width * 0.38;
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { t } = useTranslation('boards');
@@ -44,36 +44,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Get user data from authStore and profile data
   const { user } = useAuthStore();
   const { data: profile } = useProfile();
-  
-  // Determine avatar URL
-  const avatarUrl = (profile?.avatar_url || user?.user_metadata?.avatar_url || '').toString().trim();
-  const looksLikeUrl = /^(https?:\/\/|file:\/\/|content:\/\/)/i.test(avatarUrl);
-  const hasBadToken = /null|undefined/i.test(avatarUrl);
-  const isValidAvatarUrl = avatarUrl.length > 0 && looksLikeUrl && !hasBadToken;
-  
-  // Get display name for initial
-  const displayName = (
-    profile?.full_name ||
-    user?.user_metadata?.full_name ||
-    user?.user_metadata?.name ||
-    user?.user_metadata?.username ||
-    user?.email?.split('@')[0] ||
-    'U'
-  ).toString().trim();
-  
-  const initial = displayName.charAt(0).toUpperCase() || 'U';
-  const [avatarError, setAvatarError] = useState(false);
-
-  useEffect(() => {
-    // Reset error whenever source URL changes
-    setAvatarError(false);
-  }, [avatarUrl]);
-
-  // Debug: verify avatar/initial state once per render (comment out if noisy)
-  try {
-    // Only log when values change significantly
-    // console.log('[Home] avatarUrl:', avatarUrl, 'valid:', isValidAvatarUrl, 'displayName:', displayName, 'initial:', initial);
-  } catch {}
 
   // Banner state
   const [currentBannerIndex, setCurrentBannerIndex] = useState<number>(0);
@@ -129,6 +99,23 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     error: boardFiltersError,
     refetch: refetchBoardFilters,
   } = useBoardFilters();
+
+  // Fetch unavailable times for board_id 1
+  const {
+    data: unavailableTimesData,
+    isLoading: isUnavailableTimesLoading,
+    error: unavailableTimesError,
+  } = useBoardUnavailableTimes(1);
+
+  // Log unavailable times data when fetched
+  useEffect(() => {
+    if (unavailableTimesData) {
+      console.log('📅 Board Unavailable Times:', unavailableTimesData);
+    }
+    if (unavailableTimesError) {
+      console.error('❌ Error fetching unavailable times:', unavailableTimesError);
+    }
+  }, [unavailableTimesData, unavailableTimesError]);
 
   // Removed auto-refetch on screen focus to avoid repeated API calls.
   // If you need manual refresh, call `refetchBoardFilters()` explicitly (e.g., pull-to-refresh or a Retry button).
@@ -195,23 +182,19 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         {/* Profile */}
         <View style={styles.profileRow}>
           <TouchableOpacity onPress={handleProfilePress}>
-            {isValidAvatarUrl && !avatarError ? (
-              <Image
-                source={{ uri: avatarUrl }}
-                style={styles.avatar}
-                onError={() => setAvatarError(true)}
-              />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarInitial} numberOfLines={1}>
-                  {initial}
-                </Text>
-              </View>
-            )}
+            <Image
+              source={{
+                uri:
+                  profile?.avatar_url ||
+                  user?.user_metadata?.avatar_url ||
+                  'https://randomuser.me/api/portraits/men/1.jpg',
+              }}
+              style={styles.avatar}
+            />
           </TouchableOpacity>
-          <View style={styles.nameWrap}>
-            <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail" allowFontScaling={false}>{t('greetingHi')}</Text>
-            <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail" allowFontScaling={false}>
+          <View style={{ marginRight: 25,marginLeft:6 }}>
+            <Text style={styles.greeting}>{t('greetingHi')}</Text>
+            <Text style={styles.name}>
               {profile?.full_name ||
                 user?.user_metadata?.full_name ||
                 user?.user_metadata?.name ||
@@ -222,14 +205,17 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </View>
           <View style={styles.locationRow}>
-            <View style={styles.locationBtnCustom}>
+            <TouchableOpacity
+              style={styles.locationBtnCustom}
+              onPress={() => navigation.navigate('SearchLocation' as never)}
+            >
               <PinkLocation
                 width={width * 0.03}
                 height={width * 0.03}
                 style={{ marginRight: width * 0.011 }}
               />
               <Text style={styles.locationBtnText}>Lahore Gulberg</Text>
-            </View>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.bellBtn}
               onPress={() =>
@@ -245,7 +231,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 style={styles.FilterIcon}
               />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
+            <TouchableOpacity style={styles.bellBtn}>
               <Image
                 style={styles.bellIcon}
                 source={require('../../../assets/images/PinkBell.png')}
@@ -408,18 +394,13 @@ const styles = StyleSheet.create({
     paddingTop: height * 0.04,
     paddingHorizontal: width * 0.05,
     // marginBottom: 2,
-    // Enforce LTR so header children order is preserved across RTL languages
-    ...({ writingDirection: 'ltr' } as any),
   },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 0,
-    // Always keep LTR order regardless of RTL language
-    ...({ writingDirection: 'ltr' } as any),
-    flexShrink: 0,
-    minHeight: width * 0.13,
+    
   },
   avatar: {
     width: width * 0.13,
@@ -427,33 +408,14 @@ const styles = StyleSheet.create({
     borderRadius: width * 0.065,
     borderWidth: 1,
     borderColor: '#fff',
+   
   },
-  avatarPlaceholder: {
-    backgroundColor: '#FDE7FB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  avatarInitial: {
-    color: '#C539A5',
-    fontSize: width * 0.06,
-    fontWeight: '700',
-    textAlign: 'center',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-  },
-  nameWrap: { flex: 1, paddingHorizontal: 6, minWidth: 0 },
   greeting: { fontSize: 12, color: '#fff', fontWeight: '400' },
   name: { fontSize: 15, color: '#fff', fontWeight: 'bold', marginTop: -5 },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: width * -0.001,
-    // Enforce LTR so right action buttons stay to the right
-    ...({ writingDirection: 'ltr' } as any),
-    justifyContent: 'flex-end',
-    flexShrink: 0,
-    width: RIGHT_ACTIONS_WIDTH,
   },
   locationBtnCustom: {
     flexDirection: 'row',

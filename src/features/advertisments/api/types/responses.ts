@@ -20,3 +20,16 @@ export interface CreateAdvertisementResponse {
 }
 
 export interface SingleAdvertisementResponse extends Advertisement {}
+
+// Temporary bookings response
+export interface TemporaryBooking {
+  id: number;
+  board_id: number;
+  date: string; // YYYY-MM-DD format
+  user_id: string;
+  created_at: string;
+}
+
+export interface TemporaryBookingsResponse {
+  data: TemporaryBooking[];
+}

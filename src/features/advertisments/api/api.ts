@@ -11,7 +11,11 @@ import {
   CreateAdvertisementResponse,
   PaginatedAdvertisementsResponse,
   SingleAdvertisementResponse,
+  TemporaryBookingsResponse,
 } from './types/responses';
+import {
+  CreateTemporaryBookingRequest,
+} from './types/requests';
 
 const BASE = '/api/advertisements';
 
@@ -79,5 +83,60 @@ export const addAdvertisementMedia = async (
   media: { url: string; filename: string; size: number; type: string }[],
 ): Promise<{ count: number }> => {
   const { data } = await apiClient.post(`${BASE}/${id}/media`, { media });
+  return data;
+};
+
+// ==================== TEMPORARY BOOKINGS API ====================
+// These endpoints handle selected dates before advertisement submission
+// They allow cross-user visibility of selected dates
+
+/**
+ * Get all temporary bookings for a specific board
+ * This returns dates that users have selected but not yet submitted
+ */
+export const getTemporaryBookings = async (
+  boardId: number,
+): Promise<TemporaryBookingsResponse> => {
+  const { data } = await apiClient.get(`${BASE}/temporary-bookings`, {
+    params: { board_id: boardId },
+  });
+  return data;
+};
+
+/**
+ * Create temporary bookings (mark dates as selected/booked)
+ * This is called when a user selects dates in the calendar
+ */
+export const createTemporaryBookings = async (
+  payload: CreateTemporaryBookingRequest,
+): Promise<TemporaryBookingsResponse> => {
+  const { data } = await apiClient.post(`${BASE}/temporary-bookings`, payload);
+  return data;
+};
+
+/**
+ * Delete a temporary booking (unmark a date as selected)
+ * This is called when a user deselects a date
+ */
+export const deleteTemporaryBooking = async (
+  boardId: number,
+  date: string,
+): Promise<{ message: string }> => {
+  const { data } = await apiClient.delete(`${BASE}/temporary-bookings`, {
+    params: { board_id: boardId, date },
+  });
+  return data;
+};
+
+/**
+ * Clear all temporary bookings for the current user
+ * This is called after successful advertisement creation
+ */
+export const clearTemporaryBookings = async (
+  boardId: number,
+): Promise<{ message: string }> => {
+  const { data } = await apiClient.delete(`${BASE}/temporary-bookings/clear`, {
+    params: { board_id: boardId },
+  });
   return data;
 };

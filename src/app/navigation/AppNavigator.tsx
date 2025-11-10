@@ -13,13 +13,13 @@ import BottomTab from './BottomTab';
 import CompaignStatus from '../../features/advertisments/screens/CompaignStatus';
 import UpdateProfile from '../../features/profile/screens/UpdateProfile';
 import ChatScreen from '../../features/chat/screens/ChatScreen';  
-// import CurrentLocationMinimalMap from '../../features/location/CurrentLocationMinimalMap';
   import ChangePassword from '../../features/profile/screens/ChangePassword';
   import PreviousCompanyScreen from '../../features/profile/screens/PreviousCompany';
 //  import UpdateProfile from '../../features/profile/screens/UpdateProfile';
 import AdvertismentConfirmationScreen from '../..//features/advertisments/screens/AdvertismentConfirmationScreen';
 import AdvertismentCongratulateScreen from '../../features/advertisments/screens/AdvertismentCongratulateScreen';
 import GetAllNotification from '../../features/notifications/screens/GetAllNotification';
+import SearchLocation from '../../features/locations/screens/SearchLocation';
 // 🔹 Define navigation param types
 export type AppStackParamList = {
   BottomTab: undefined;
@@ -27,7 +27,6 @@ export type AppStackParamList = {
   AdvertismentCreateScreen: undefined;
   CampaignUploadFiles: { uploadUrl: string };
   CurrentLocation: undefined;
-  CurrentLocationMinimalMap: undefined;
   HomeScreen: undefined;
   CompaniesScreen: undefined;
   CompanyListScreen: undefined;
@@ -42,6 +41,7 @@ export type AppStackParamList = {
   AdvertismentCongratulateScreen: { campaignId: string};
   ChatScreen: { chatId: string; userName: string };
   Notifications: undefined;
+  SearchLocation: undefined;
 };
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const AppNavigator = () => (
@@ -71,6 +71,7 @@ const AppNavigator = () => (
     /> */}
     <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
     <Stack.Screen name="Notifications" component={GetAllNotification} />
+    <Stack.Screen name="SearchLocation" component={SearchLocation} />
    
   </Stack.Navigator>
 );

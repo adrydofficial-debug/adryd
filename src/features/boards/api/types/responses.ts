@@ -108,3 +108,15 @@ export interface ToggleFavoriteResponse {
   message: string;
   is_favorite: boolean;
 }
+
+// 📅 /api/boards/:id/unavailable-times
+export interface UnavailableTime {
+  type: string;
+  start_at: string;
+  end_at: string;
+}
+
+export interface UnavailableTimesResponse {
+  board_id: number;
+  unavailable: UnavailableTime[];
+}

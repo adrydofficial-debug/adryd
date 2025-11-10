@@ -26,3 +26,14 @@ export interface GenerateUploadUrlRequest {
   filename: string;
   contentType: string;
 }
+
+// Temporary bookings (selected dates before submission)
+export interface CreateTemporaryBookingRequest {
+  board_id: number;
+  dates: string[]; // Array of dates in YYYY-MM-DD format
+}
+
+export interface DeleteTemporaryBookingRequest {
+  board_id: number;
+  date: string; // Date in YYYY-MM-DD format
+}

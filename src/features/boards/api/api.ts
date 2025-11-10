@@ -9,11 +9,16 @@ import {
   FiltersResponse,
   RateBoardResponse,
   RatingSummaryResponse,
+  UnavailableTimesResponse,
 } from './types/responses';
 
 // 🎯 Get all filters (groups, recommended, nearest, see all)
-export const fetchBoardFilters = () =>
-  apiClient.get<FiltersResponse>('/api/boards/filters').then(res => res.data);
+export const fetchBoardFilters = (cityId?: number) =>
+  apiClient
+    .get<FiltersResponse>('/api/boards/filters', {
+      params: cityId ? { city_id: cityId } : undefined,
+    })
+    .then(res => res.data);
 
 // 🔍 Get filtered boards (paginated)
 export const fetchFilteredBoards = (params: FilterBoardsParams) =>
@@ -57,4 +62,10 @@ export const fetchFavorites = (page = 1, limit = 10) =>
 export const isFavorite = (boardId: number) =>
   apiClient
     .get<{ is_favorite: boolean }>(`/api/boards/${boardId}/is-favorite`)
+    .then(res => res.data);
+
+// 📅 Get unavailable times for a board
+export const fetchBoardUnavailableTimes = (boardId: number) =>
+  apiClient
+    .get<UnavailableTimesResponse>(`/api/boards/${boardId}/unavailable-times`)
     .then(res => res.data);

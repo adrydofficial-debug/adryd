@@ -20,7 +20,12 @@ import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
 import { useTranslation } from 'react-i18next';
 import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
-import { useAdvertisements } from '../hooks/hooks';
+import { 
+  useAdvertisements,
+  useGlobalSelectedDates,
+  useAddGlobalSelectedDate,
+  useRemoveGlobalSelectedDate,
+} from '../hooks/hooks';
 import { CreateAdvertisementRequest } from '../types';
 import { useCampaignStore } from '../../../store/campaignStore';
 const { width, height } = Dimensions.get('window');
@@ -85,6 +90,12 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
   // This will fetch ALL advertisements from API, so all users see the same booked dates
   const { data: advertisementsData, refetch: refetchAdvertisements } = useAdvertisements(1, 1000);
   
+  // Get global selected dates using TanStack Query (reactive updates across components)
+  // This persists in AsyncStorage and marks dates as booked for all users
+  const { data: globalSelectedDates = [] } = useGlobalSelectedDates();
+  const addGlobalSelectedDateMutation = useAddGlobalSelectedDate();
+  const removeGlobalSelectedDateMutation = useRemoveGlobalSelectedDate();
+  
   // Refetch advertisements when screen is focused to get latest booked dates
   React.useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -93,12 +104,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
     });
     return unsubscribe;
   }, [navigation, refetchAdvertisements]);
-  
-  // Get global selected dates from store (dates selected by any user - marked as booked)
-  const globalSelectedDates = useCampaignStore((state) => state.globalSelectedDates);
-  const addGlobalSelectedDate = useCampaignStore((state) => state.addGlobalSelectedDate);
-  const addGlobalSelectedDates = useCampaignStore((state) => state.addGlobalSelectedDates);
-  const removeGlobalSelectedDate = useCampaignStore((state) => state.removeGlobalSelectedDate);
   
   // Extract all booked dates from existing advertisements (API) AND from global selected dates store
   // Global selected dates are dates that users have selected (even before submitting) - marked as booked for all users
@@ -138,27 +143,20 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
       });
     }
     
-    // Add dates from global selected dates store (dates selected by any user, even before submitting)
+    // Add dates from global selected dates (TanStack Query) - dates selected by any user, even before submitting
+    // These dates are persisted in AsyncStorage and marked as booked for all users
+    // TanStack Query ensures reactive updates across all components
     if (globalSelectedDates && globalSelectedDates.length > 0) {
-      globalSelectedDates.forEach(dateStr => {
-        try {
-          // Normalize the date string to YYYY-MM-DD format
-          const date = dateStr instanceof Date ? dateStr : new Date(dateStr);
-          if (!isNaN(date.getTime())) {
-            const dateKey = formatDateForCalendar(date);
-            dates.add(dateKey);
-          }
-        } catch (e) {
-          // If it's already in YYYY-MM-DD format, use it directly
-          if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-            dates.add(dateStr);
-          }
+      globalSelectedDates.forEach(dateKey => {
+        // Dates from TanStack Query are already normalized to YYYY-MM-DD format
+        if (typeof dateKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+          dates.add(dateKey);
         }
       });
-      console.log('📅 Added', globalSelectedDates.length, 'dates from global selected dates store');
+      console.log('📅 Added', globalSelectedDates.length, 'dates from global selected dates (TanStack Query)');
     }
     
-    console.log('✅ Total booked dates (API + Global Store):', Array.from(dates).sort());
+    console.log('✅ Total booked dates (API + TanStack Query):', Array.from(dates).sort());
     return dates;
   }, [advertisementsData, globalSelectedDates]);
 
@@ -180,7 +178,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
     return bookedDates.has(dateKey);
   };
 
-  const onDayPress = (date: Date) => {
+  const onDayPress = async (date: Date) => {
     // Prevent selection of booked dates
     if (isDateBooked(date)) {
       setErrorText('This date is already booked by another user');
@@ -190,20 +188,34 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
     // Clear error when successfully selecting a date
     setErrorText('');
     
+    const dateKey = formatDateForCalendar(date);
     let updatedDays: Date[];
+    
     if (isDateSelected(date)) {
       // Remove date if already selected
       updatedDays = selectedDays.filter(selectedDate => !isSameDay(selectedDate, date));
-      // Remove from global selected dates when user deselects
-      removeGlobalSelectedDate(date);
+      
+      // Remove from global selected dates using TanStack Query mutation
+      try {
+        await removeGlobalSelectedDateMutation.mutateAsync(dateKey);
+      } catch (error) {
+        console.error('❌ Failed to remove date from global selected dates:', error);
+        // Continue anyway - local state is updated
+      }
     } else {
       // Add date to selection
       updatedDays = [...selectedDays, date].sort((a, b) => a.getTime() - b.getTime());
-      // Add to global selected dates when user selects (marked as booked for all users)
-      addGlobalSelectedDate(date);
+      
+      // Add to global selected dates using TanStack Query mutation
+      try {
+        await addGlobalSelectedDateMutation.mutateAsync(dateKey);
+      } catch (error) {
+        console.error('❌ Failed to add date to global selected dates:', error);
+        // Continue anyway - local state is updated
+      }
     }
     
-    // Save to store immediately
+    // Save to local store immediately (for current user's selection)
     setSelectedDaysToStore(updatedDays);
   };
 
@@ -655,8 +667,15 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
               createAdMutation.mutate(advertisementData, {
                 onSuccess: async response => {
                   console.log('upload url is :', response.upload.uploadUrl);
-                  // Clear selected days from store since they're now in the API
+                  
+                  // Clear selected days from local store since they're now in the API
                   clearSelectedDays();
+                  
+                  // Note: We don't clear globalSelectedDates here because:
+                  // 1. The dates are now in permanent bookings (API) and will be picked up from there
+                  // 2. If we clear them, other users might briefly see them as available again
+                  // 3. The API bookings will take precedence in the bookedDates calculation
+                  
                   // Refetch advertisements to update booked dates immediately
                   await refetchAdvertisements();
                   

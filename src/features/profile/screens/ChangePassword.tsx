@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dimensions,
   StyleSheet,
@@ -10,12 +10,16 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  I18nManager,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import CustomInput from '../../../components/CustomInput';
 import NoInternet  from '../../../components/NoInternet';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n';
+
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -31,6 +35,7 @@ const scaleFont = (size: number) => (width / BASE_WIDTH) * size;
 
 const ChangePassword: React.FC = () => {
   const navigation = useNavigation();
+  const { t, i18n: i18nInstance } = useTranslation('profile');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -42,6 +47,45 @@ const ChangePassword: React.FC = () => {
   const [apiError, setApiError] = useState<string>('');
   const [isEmptyError, setIsEmptyError] = useState(false);
   const [apiErrorBorder, setApiErrorBorder] = useState(false);
+  // Track current language to force re-renders
+  const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
+  // Track RTL state to force layout re-render
+  const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
+  // Language change tracking for forced re-render
+  const [languageKey, setLanguageKey] = useState(0);
+
+  // Listen for language changes and force re-render
+  useEffect(() => {
+    const handleLanguageChange = (lang: string) => {
+      setCurrentLanguage(lang);
+      // Update RTL state based on language
+      const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+      const shouldBeRTL = rtlLangs.has(lang);
+      setIsRTL(shouldBeRTL);
+      setLanguageKey(prev => prev + 1);
+    };
+    i18n.on('languageChanged', handleLanguageChange);
+    // Set initial language and RTL state
+    const lang = i18nInstance.language;
+    setCurrentLanguage(lang);
+    const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+    setIsRTL(rtlLangs.has(lang));
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18nInstance.language]);
+  
+  // Update language key when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const lang = i18nInstance.language;
+      setCurrentLanguage(lang);
+      const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+      setIsRTL(rtlLangs.has(lang));
+      setLanguageKey(prev => prev + 1);
+      return () => {};
+    }, [i18nInstance.language])
+  );
 
   const handleBackPress = () => {
     navigation.goBack();
@@ -77,13 +121,13 @@ const ChangePassword: React.FC = () => {
     }
 
     if (newPassword !== confirmPassword) {
-      setApiError('New passwords do not match.');
+      setApiError(t('changePassword.errorMatch'));
       setApiErrorBorder(true);
       return;
     }
 
     if (newPassword.length < 6) {
-      setApiError('New password must be at least 6 characters.');
+      setApiError(t('changePassword.errorMin'));
       setApiErrorBorder(true);
       return;
     }
@@ -93,14 +137,14 @@ const ChangePassword: React.FC = () => {
     // TODO: Implement actual password change API call
     setTimeout(() => {
       setIsLoading(false);
-      Alert.alert('Success', 'Password changed successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
+      Alert.alert(t('changePassword.successTitle'), t('changePassword.successMessage'), [
+        { text: t('changePassword.ok'), onPress: () => navigation.goBack() }
       ]);
     }, 2000);
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} key={`container-${isRTL}-${languageKey}`}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
@@ -113,18 +157,18 @@ const ChangePassword: React.FC = () => {
         >
           <View style={styles.mainContainer}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <TouchableOpacity
-                style={styles.backButton}
+                style={[styles.backButton, isRTL && { marginRight: 0, marginLeft: wp(4) }]}
                 onPress={handleBackPress}
               >
-                <Ionicons name="arrow-back" size={wp(6)} color="#000" />
+                <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={wp(6)} color="#000" />
               </TouchableOpacity>
               
               <View style={styles.headerContent}>
-                <Text style={styles.title}>Change Password</Text>
-                <Text style={styles.subtitle}>
-                  Choose a new password enter and confirm your new password to regain access.
+                <Text style={[styles.title, { textAlign: 'center' }]} key={`title-${languageKey}-${currentLanguage}`}>{t('changePassword.title', { lng: currentLanguage })}</Text>
+                <Text style={[styles.subtitle, { textAlign: 'center' }]} key={`subtitle-${languageKey}-${currentLanguage}`}>
+                  {t('changePassword.subtitle', { lng: currentLanguage })}
                 </Text>
               </View>
               {/* right spacer to perfectly center the title */}
@@ -134,8 +178,8 @@ const ChangePassword: React.FC = () => {
             {/* Current Password Input */}
             <View style={styles.inputContainer}>
               <CustomInput
-                label="Current Password"
-                placeholder="Enter current password"
+                label={t('changePassword.current', { lng: currentLanguage })}
+                placeholder={t('changePassword.currentPlaceholder', { lng: currentLanguage })}
                 secureTextEntry={!showCurrentPassword}
                 value={currentPassword}
                 onChangeText={handleCurrentPasswordChange}
@@ -146,7 +190,10 @@ const ChangePassword: React.FC = () => {
                 showErrorText={false}
               />
               <TouchableOpacity
-                style={styles.eyeIcon}
+                style={[
+                  styles.eyeIcon,
+                  isRTL ? { right: undefined, left: wp(7) } : { left: undefined, right: wp(7) }
+                ]}
                 onPress={() => setShowCurrentPassword(!showCurrentPassword)}
               >
                 <Ionicons
@@ -160,8 +207,8 @@ const ChangePassword: React.FC = () => {
             {/* New Password Input */}
             <View style={styles.inputContainer}>
               <CustomInput
-                label="New Password"
-                placeholder="Enter new password"
+                label={t('changePassword.new', { lng: currentLanguage })}
+                placeholder={t('changePassword.newPlaceholder', { lng: currentLanguage })}
                 secureTextEntry={!showNewPassword}
                 value={newPassword}
                 onChangeText={handleNewPasswordChange}
@@ -172,7 +219,10 @@ const ChangePassword: React.FC = () => {
                 showErrorText={false}
               />
               <TouchableOpacity
-                style={styles.eyeIcon}
+                style={[
+                  styles.eyeIcon,
+                  isRTL ? { right: undefined, left: wp(7) } : { left: undefined, right: wp(7) }
+                ]}
                 onPress={() => setShowNewPassword(!showNewPassword)}
               >
                 <Ionicons
@@ -186,8 +236,8 @@ const ChangePassword: React.FC = () => {
             {/* Confirm Password Input */}
             <View style={styles.inputContainer}>
               <CustomInput
-                label="Confirm New Password"
-                placeholder="Confirm new password"
+                label={t('changePassword.confirm', { lng: currentLanguage })}
+                placeholder={t('changePassword.confirmPlaceholder', { lng: currentLanguage })}
                 secureTextEntry={!showConfirmPassword}
                 value={confirmPassword}
                 onChangeText={handleConfirmPasswordChange}
@@ -198,7 +248,10 @@ const ChangePassword: React.FC = () => {
                 showErrorText={false}
               />
               <TouchableOpacity
-                style={styles.eyeIcon}
+                style={[
+                  styles.eyeIcon,
+                  isRTL ? { right: undefined, left: wp(7) } : { left: undefined, right: wp(7) }
+                ]}
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
               >
                 <Ionicons
@@ -231,8 +284,8 @@ const ChangePassword: React.FC = () => {
                       style={styles.loader}
                     />
                   )}
-                  <Text style={styles.buttonText}>
-                    {isLoading ? 'Changing...' : 'Save'}
+                  <Text style={styles.buttonText} key={`button-${languageKey}-${currentLanguage}`}>
+                    {isLoading ? t('changePassword.changing', { lng: currentLanguage }) : t('changePassword.save', { lng: currentLanguage })}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -240,7 +293,6 @@ const ChangePassword: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-       <NoInternet />
     </View>
   );
 };
@@ -249,7 +301,6 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1,
     backgroundColor: '#FFFFFF',
-    paddingTop:20
   },
   keyboardAvoidingView: { flex: 1 },
   scrollView: { flex: 1 },
@@ -309,10 +360,10 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     position: 'absolute',
-    right: wp(7),
     top: scaleHeight(35),
     padding: scaleWidth(8),
     zIndex: 1,
+    // right/left will be set dynamically based on RTL/LTR
   },
   errorText: {
     color: '#E63946',

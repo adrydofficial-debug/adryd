@@ -452,7 +452,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
               />
 
               <CustomInput
-                label={t('create.companyName')}
+                label={t('Business Name')}
                 placeholder={t('create.enterCompanyName')}
                 value={businessName}
                 onChangeText={text => {
