@@ -9,7 +9,8 @@ import { supabase } from './supabase';
 
 // 🔹 Axios instance
 const apiClient: AxiosInstance = axios.create({
-  baseURL: 'http://192.168.18.78:3000',
+  // baseURL: 'http://192.168.18.78:3000',
+  baseURL: 'https://adryd-backend.onrender.com',
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -17,21 +18,44 @@ const apiClient: AxiosInstance = axios.create({
 // 🔹 Request interceptor: add Supabase token if present
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    const url = `${config.baseURL || ''}${config.url || ''}`;
+    console.log('🔵 [API Client] Request:', config.method?.toUpperCase(), url);
+    
     // Allow requests to opt-out of auth via custom flag
     const skipAuth = (config as any).skipAuth;
     if (skipAuth) {
+      console.log('⏭️ [API Client] Skipping auth for this request');
       return config;
     }
 
     try {
+      console.log('🔍 [API Client] Getting Supabase session...');
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (session?.access_token && config.headers) {
-        config.headers.Authorization = `Bearer ${session.access_token}`;
+      
+      if (session?.access_token) {
+        const tokenPreview = session.access_token.substring(0, 20) + '...';
+        console.log('✅ [API Client] Token found! Adding to request');
+        console.log('🔑 [API Client] Token preview:', tokenPreview);
+        console.log('👤 [API Client] User ID:', session.user?.id);
+        
+        if (config.headers) {
+          config.headers.Authorization = `Bearer ${session.access_token}`;
+          console.log('✅ [API Client] Authorization header added successfully');
+        } else {
+          console.warn('⚠️ [API Client] Config headers not available');
+        }
+      } else {
+        console.warn('⚠️ [API Client] No access token found in session');
+        console.log('📋 [API Client] Session data:', {
+          hasSession: !!session,
+          hasUser: !!session?.user,
+          hasToken: !!session?.access_token,
+        });
       }
     } catch (error) {
-      console.warn('Failed to get Supabase session:', error);
+      console.error('❌ [API Client] Failed to get Supabase session:', error);
     }
 
     return config;

@@ -46,17 +46,43 @@ export const useLogin = () => {
       phone: string;
       password: string;
     }) => {
+      console.log('🔐 [Login] Attempting to sign in with phone:', phone);
       const { data, error } = await supabase.auth.signInWithPassword({
         phone,
         password,
       });
-      if (error) throw error;
+      if (error) {
+        console.error('❌ [Login] Sign in error:', error.message);
+        throw error;
+      }
+
+      console.log('✅ [Login] Sign in successful!');
+      console.log('👤 [Login] User ID:', data.user?.id);
+      
+      // Get session to check token
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionData?.session?.access_token) {
+        const tokenPreview = sessionData.session.access_token.substring(0, 20) + '...';
+        console.log('🔑 [Login] Access token available:', tokenPreview);
+        console.log('✅ [Login] Token will be added to API requests automatically');
+      } else {
+        console.warn('⚠️ [Login] No access token in session after login');
+        if (sessionError) {
+          console.error('❌ [Login] Session error:', sessionError);
+        }
+      }
 
       qc.clear();
       return data.user;
     },
     onSuccess: user => {
-      if (user) setUser(user);
+      console.log('✅ [Login] onSuccess called, setting user in store');
+      if (user) {
+        setUser(user);
+        console.log('✅ [Login] User set in auth store');
+      } else {
+        console.warn('⚠️ [Login] No user to set in store');
+      }
     },
   });
 };

@@ -180,13 +180,34 @@ const BoardList: React.FC<BoardListProps> = ({
       );
     }
 
-    const imageSource =
-      item.image ||
-      (item.image_url
-        ? {
-            uri: `https://adryd-backend-production.up.railway.app${item.image_url}`,
+    const resolveImageSource = () => {
+      if (item.image) {
+        if (typeof item.image === 'string') {
+          if (item.image.startsWith('http')) {
+            return { uri: item.image };
           }
-        : require('../assets/images/bannerBg.png'));
+          return {
+            uri: `https://adryd-backend-production.up.railway.app${item.image}`,
+          };
+        }
+        return item.image;
+      }
+
+      if (item.image_url) {
+        if (typeof item.image_url === 'string') {
+          if (item.image_url.startsWith('http')) {
+            return { uri: item.image_url };
+          }
+          return {
+            uri: `https://adryd-backend-production.up.railway.app${item.image_url}`,
+          };
+        }
+      }
+
+      return require('../assets/images/bannerBg.png');
+    };
+
+    const imageSource = resolveImageSource();
     const title = item.title || 'Unknown';
     const location = item.location || 'Unknown Location';
     const distance = item.distance || '1.6 km';

@@ -19,7 +19,7 @@ import PinkLocation from '../../../assets/images/PinkkLocation.svg';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
 import { useAuthStore } from '../../../store/authStore';
-import { useBoardUnavailableTimes } from '../hooks/useBoardUnavailableTimes';
+// import { useBoardUnavailableTimes } from '../hooks/useBoardUnavailableTimes';
 import { useProfile } from '../../profile/hooks/useProfile';
 import NoInternet from '../../../components/NoInternet';
 import { useTranslation } from 'react-i18next';
@@ -141,22 +141,40 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     refetch: refetchBoardFilters,
   } = useBoardFilters();
 
+  useEffect(() => {
+    if (boardFiltersData) {
+      console.log('[HomeScreen] Filters count:', boardFiltersData.filters?.length ?? 0);
+      console.log('[HomeScreen] Groups count:', boardFiltersData.groups?.length ?? 0);
+      boardFiltersData.groups?.forEach(group => {
+        console.log(
+          `[HomeScreen] Group "${group.name}" categories:`,
+          group.categories?.map(cat => `${cat.name} (${cat.boards?.length ?? 0})`),
+        );
+      });
+    }
+    if (boardFiltersError) {
+      console.error('[HomeScreen] Failed to load board filters:', boardFiltersError);
+    }
+  }, [boardFiltersData, boardFiltersError]);
+
   // Fetch unavailable times for board_id 1
-  const {
-    data: unavailableTimesData,
-    isLoading: isUnavailableTimesLoading,
-    error: unavailableTimesError,
-  } = useBoardUnavailableTimes(1);
+  // COMMENTED OUT - Debugging boards data display issue
+  // const {
+  //   data: unavailableTimesData,
+  //   isLoading: isUnavailableTimesLoading,
+  //   error: unavailableTimesError,
+  // } = useBoardUnavailableTimes(1);
 
   // Log unavailable times data when fetched
-  useEffect(() => {
-    if (unavailableTimesData) {
-      console.log('📅 Board Unavailable Times:', unavailableTimesData);
-    }
-    if (unavailableTimesError) {
-      console.error('❌ Error fetching unavailable times:', unavailableTimesError);
-    }
-  }, [unavailableTimesData, unavailableTimesError]);
+  // COMMENTED OUT - Debugging boards data display issue
+  // useEffect(() => {
+  //   if (unavailableTimesData) {
+  //     console.log('📅 Board Unavailable Times:', unavailableTimesData);
+  //   }
+  //   if (unavailableTimesError) {
+  //     console.error('❌ Error fetching unavailable times:', unavailableTimesError);
+  //   }
+  // }, [unavailableTimesData, unavailableTimesError]);
 
   // Removed auto-refetch on screen focus to avoid repeated API calls.
   // If you need manual refresh, call `refetchBoardFilters()` explicitly (e.g., pull-to-refresh or a Retry button).
@@ -186,18 +204,46 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   // Convert Board to BoardItem format
   const convertBoardToBoardItem = (board: any) => {
+    const locationName =
+      typeof board.location === 'string'
+        ? board.location
+        : board.location?.name ||
+          [
+            board.location?.city?.name,
+            board.location?.province?.name,
+            board.location?.country?.name,
+          ]
+            .filter(Boolean)
+            .join(', ') ||
+          'Unknown Location';
+
+    const priceValue =
+      typeof board.price === 'number'
+        ? board.price
+        : board.price
+        ? parseFloat(board.price)
+        : 0;
+
+    const imageUrl =
+      board.image_url ||
+      board.image ||
+      (Array.isArray(board.media) && board.media.length > 0
+        ? board.media[0]?.url
+        : null);
+
     return {
       id: board.id?.toString() || 'unknown',
       title: board.title || 'Untitled Board',
       description: board.description || '',
-      location: board.location || 'Unknown Location',
-      distance: '1.6 km', // Default distance
+      location: locationName,
+      distance: '1.6 km',
       size:
         board.width && board.height ? `${board.width}x${board.height}` : '12x8',
-      price: parseFloat(board.price) || 0,
-      currency: board.currency || 'USD',
-      image_url: board.image_url || null,
-      rating: board.rating ?? 0,
+      price: priceValue || 0,
+      currency: board.currency || 'PKR',
+      image_url: imageUrl,
+      image: imageUrl,
+      rating: board.avg_rating ?? board.rating ?? 0,
     };
   };
 
