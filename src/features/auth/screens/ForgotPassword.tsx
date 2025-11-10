@@ -58,10 +58,13 @@ const ForgotPassword: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
+<<<<<<< HEAD
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+=======
+>>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
   const handleSubmit = async (
     values: {
       phoneNumber: string;
@@ -162,9 +165,15 @@ const ForgotPassword: React.FC = () => {
 
             <Formik
               initialValues={{
+<<<<<<< HEAD
                 phoneNumber: '+92',
                 newPassword: '',
                 confirmPassword: '',
+=======
+              phoneNumber: '+923236102030',
+                newPassword: '6AJ$kk3m9',
+                confirmPassword: '6AJ$kk3m9',
+>>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
               }}
               validationSchema={validationSchema}
               onSubmit={(values, formikHelpers) => {
@@ -179,6 +188,7 @@ const ForgotPassword: React.FC = () => {
                 errors,
                 touched,
                 isSubmitting,
+<<<<<<< HEAD
                 setFieldValue,
               }) => {
                 const shouldShowError = (fieldName: 'phoneNumber' | 'newPassword' | 'confirmPassword') => {
@@ -271,6 +281,57 @@ const ForgotPassword: React.FC = () => {
                         </TouchableOpacity>
                       </View>
                     </View>
+=======
+            }) => (
+                <>
+                  <CustomInput
+                    label={t('login.phoneNumber')}
+                    placeholder="+923XXXXXXXXX"
+                    keyboardType="phone-pad"
+                    value={values.phoneNumber}
+                    onChangeText={handleChange('phoneNumber')}
+                    onBlur={() => handleBlur('phoneNumber')}
+                    onFocus={() => setFocusedField('phoneNumber')}
+                    focused={focusedField === 'phoneNumber'}
+                    error={
+                      touched.phoneNumber && errors.phoneNumber
+                        ? errors.phoneNumber
+                        : undefined
+                    }
+                  />
+
+                  <CustomInput
+                    label={t('forgot.newPassword')}
+                    placeholder="Enter new password"
+                    secureTextEntry
+                    value={values.newPassword}
+                    onChangeText={handleChange('newPassword')}
+                    onBlur={() => handleBlur('newPassword')}
+                    onFocus={() => setFocusedField('newPassword')}
+                    focused={focusedField === 'newPassword'}
+                    error={
+                      touched.newPassword && errors.newPassword
+                        ? errors.newPassword
+                        : undefined
+                    }
+                  />
+
+                  <CustomInput
+                    label={t('forgot.confirmPassword')}
+                    placeholder="Re-enter new password"
+                    secureTextEntry
+                    value={values.confirmPassword}
+                    onChangeText={handleChange('confirmPassword')}
+                    onBlur={() => handleBlur('confirmPassword')}
+                    onFocus={() => setFocusedField('confirmPassword')}
+                    focused={focusedField === 'confirmPassword'}
+                    error={
+                      touched.confirmPassword && errors.confirmPassword
+                        ? errors.confirmPassword
+                        : undefined
+                    }
+                  />
+>>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
 
                   <TouchableOpacity
                     style={[
@@ -298,7 +359,7 @@ const ForgotPassword: React.FC = () => {
                     </View>
                   </TouchableOpacity>
                 </>
-                );
+                )
               }}
             </Formik>
 

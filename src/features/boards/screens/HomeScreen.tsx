@@ -19,12 +19,18 @@ import PinkLocation from '../../../assets/images/PinkkLocation.svg';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
 import { useAuthStore } from '../../../store/authStore';
+<<<<<<< HEAD
 import BoardTabs, { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
 import { useBoardUnavailableTimes } from '../hooks/useBoardUnavailableTimes';
 import { useProfile } from '../../profile/hooks/useProfile';
 import NoInternet from '../../../components/NoInternet';
 import { useTranslation } from 'react-i18next';
+=======
+import LocationButton from '../../locations/components/LocationButton';
+import BoardTabs, { Tab } from '../components/BoardTabs';
+import { useBoardFilters } from '../hooks/useBoardFilters';import { useProfile } from '../../profile/hooks/useProfile';
+>>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
 import i18n from '../../../i18n';
 // import { useFocusEffect } from '@react-navigation/native';
 
@@ -42,9 +48,53 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   // Get user data from authStore and profile data
+   
   const { user } = useAuthStore();
   const { data: profile } = useProfile();
 
+<<<<<<< HEAD
+=======
+  // Determine avatar URL
+  const avatarUrl = (
+    profile?.avatar_url ||
+    user?.user_metadata?.avatar_url ||
+    ''
+  )
+    .toString()
+    .trim();
+  const looksLikeUrl = /^(https?:\/\/|file:\/\/|content:\/\/)/i.test(avatarUrl);
+  const hasBadToken = /null|undefined/i.test(avatarUrl);
+  const isValidAvatarUrl = avatarUrl.length > 0 && looksLikeUrl && !hasBadToken;
+
+  // Get display name for initial
+  const displayName = (
+    profile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.user_metadata?.username ||
+    user?.email?.split('@')[0] ||
+    'U'
+  )
+    .toString()
+    .trim();
+
+  const initial = displayName.charAt(0).toUpperCase() || 'U';
+  const [avatarError, setAvatarError] = useState(false);
+
+  useEffect(() => {
+    // Reset error whenever source URL changes
+    setAvatarError(false);
+  }, [avatarUrl]);
+
+
+
+  // Debug: verify avatar/initial state once per render (comment out if noisy)
+  try {
+    // Only log when values change significantly
+    // console.log('[Home] avatarUrl:', avatarUrl, 'valid:', isValidAvatarUrl, 'displayName:', displayName, 'initial:', initial);
+  } catch {}
+
+>>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
   // Banner state
   const [currentBannerIndex, setCurrentBannerIndex] = useState<number>(0);
 
@@ -302,7 +352,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             )} */}
 
             {/* Show Recommended boards */}
-            {boardFiltersData?.recommended &&
+      {boardFiltersData?.recommended &&
               boardFiltersData.recommended.length > 0 && (
                 <BoardList
                   data={boardFiltersData.recommended.map(
@@ -313,6 +363,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   navigation={navigation}
                 />
               )}
+
 
             {/* Show Nearest boards */}
             {boardFiltersData?.nearest &&

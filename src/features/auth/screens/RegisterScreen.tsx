@@ -85,8 +85,12 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState('');
+<<<<<<< HEAD
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [, setPasswordValidation] = useState<PasswordValidation>({
+=======
+const [, setPasswordValidation] = useState<PasswordValidation>({
+>>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
     hasUppercase: false,
     hasLowercase: false,
     hasNumber: false,
@@ -224,6 +228,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 errors,
                 touched,
                 setFieldValue,
+<<<<<<< HEAD
                 validateForm,
                 setTouched,
               }) => {
@@ -234,43 +239,46 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                   const hasValidationError = touched[fieldName] && errors[fieldName];
                   return isEmpty || hasValidationError;
                 };
+=======
+            }) => (
+                <>
+                  <CustomInput
+                    label={t('register.username')}
+                    placeholder="Enter Username"
+                    value={values.username}
+                    onChangeText={handleChange('username')}
+                    onBlur={handleBlur('username')}
+                    focused={focusedField === 'username'}
+                    onFocus={() => setFocusedField('username')}
+                    error={apiError}
+                  />
 
-                return (
-                  <>
-                    <CustomInput
-                      label={t('register.username')}
-                      placeholder="Enter Username"
-                      value={values.username}
-                      onChangeText={handleChange('username')}
-                      onBlur={handleBlur('username')}
-                      focused={focusedField === 'username'}
-                      onFocus={() => setFocusedField('username')}
-                      error={shouldShowError('username') || apiError}
-                      showErrorText={false}
-                    />
-                    <CustomInput
-                      label={t('register.companyName')}
-                      placeholder="Enter Company Name"
-                      value={values.companyName}
-                      onChangeText={handleChange('companyName')}
-                      onBlur={handleBlur('companyName')}
-                      focused={focusedField === 'companyName'}
-                      onFocus={() => setFocusedField('companyName')}
-                      error={shouldShowError('companyName') || apiError}
-                      showErrorText={false}
-                    />
-                    <CustomInput
-                      label={t('login.phoneNumber')}
-                      placeholder="3XXXXXXXXX"
-                      keyboardType="phone-pad"
-                      value={values.phoneNumber}
-                      onChangeText={text => handlePhoneChange(text, setFieldValue)}
-                      onBlur={handleBlur('phoneNumber')}
-                      onFocus={() => setFocusedField('phoneNumber')}
-                      focused={focusedField === 'phoneNumber'}
-                      error={shouldShowError('phoneNumber') || apiError}
-                      showErrorText={false}
-                    />
+                  <CustomInput
+                    label={t('register.companyName')}
+                    placeholder="Enter Company Name"
+                    value={values.companyName}
+                    onChangeText={handleChange('companyName')}
+                    onBlur={handleBlur('companyName')}
+                    focused={focusedField === 'companyName'}
+                    onFocus={() => setFocusedField('companyName')}
+                    error={apiError}
+                  />
+
+                  <CustomInput
+                    label={t('login.phoneNumber')}
+                    placeholder="3XXXXXXXXX"
+                    keyboardType="phone-pad"
+                    value={values.phoneNumber}
+                    onChangeText={text =>
+                      handlePhoneChange(text, setFieldValue)
+                    }
+                    onBlur={handleBlur('phoneNumber')}
+                    onFocus={() => setFocusedField('phoneNumber')}
+                    focused={focusedField === 'phoneNumber'}
+                    error={!!errors.phoneNumber || apiError}
+                  />
+>>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
+
                   {/* Password */}
                   <View style={styles.passwordContainer}>
                     <Text style={styles.inputLabel}>{t('register.password')}</Text>
@@ -329,7 +337,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     </View>
                   </TouchableOpacity>
                 </>
-                );
+                )
               }}
             </Formik>
 
