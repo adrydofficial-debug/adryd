@@ -95,12 +95,33 @@ export const mapFavorites = (res: FavoritesResponse): Board[] =>
   }));
 
 // 🧭 Helper: map board object
-export const mapBoard = (b: any): Board => ({
+export const mapBoard = (b: any): any => ({
   id: b.id,
-  title: b.name ?? b.title ?? 'Untitled',
-  image: b.image_url ?? b.image ?? '',
-  rating: b.avg_rating ?? b.rating ?? 0,
-  totalRatings: b.total_ratings ?? 0,
-  price: b.price ?? 0,
-  location: b.location ?? '',
+  title: b.title ?? b.name ?? 'Untitled Board',
+  description: b.description ?? '',
+  price:
+    typeof b.price === 'string'
+      ? parseFloat(b.price)
+      : typeof b.price === 'number'
+      ? b.price
+      : 0,
+  currency: b.currency ?? 'PKR',
+  width: typeof b.width === 'number' ? b.width : null,
+  height: typeof b.height === 'number' ? b.height : null,
+  latitude: typeof b.latitude === 'number' ? b.latitude : null,
+  longitude: typeof b.longitude === 'number' ? b.longitude : null,
+  status: b.status ?? 'available',
+  slug: b.slug ?? String(b.id ?? ''),
+  category: b.category ?? null,
+  owner: b.owner ?? null,
+  location: b.location ?? null,
+  media: Array.isArray(b.media) ? b.media : [],
+  avg_rating: b.avg_rating ?? b.avgRating ?? 0,
+  total_ratings: b.total_ratings ?? b.totalRatings ?? 0,
+  metadata: b.metadata ?? null,
+  created_at: b.created_at ?? b.createdAt ?? null,
+  updated_at: b.updated_at ?? b.updatedAt ?? null,
+  image_url:
+    b.image_url ??
+    (Array.isArray(b.media) && b.media.length > 0 ? b.media[0].url : null),
 });

@@ -6,7 +6,9 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
+  I18nManager,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AdvertisementStatus } from '../domain/entities';
 
 const { width } = Dimensions.get('window');
@@ -29,12 +31,26 @@ const CampaignTabs: React.FC<CampaignTabsProps> = ({
   activeTab,
   onTabPress,
 }) => {
+  const { i18n } = useTranslation();
+  const language = i18n.language || 'en';
+  const isEnglish = language.startsWith('en');
+  const isRTL = I18nManager.isRTL;
+
+  const contentStyles = [
+    styles.scrollContent,
+    isRTL
+      ? styles.scrollContentRTL
+      : isEnglish
+        ? styles.scrollContentEnglish
+        : styles.scrollContentDefault,
+  ];
+
   return (
     <View style={styles.container}>
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={contentStyles}
         style={styles.scrollView}
       >
         {tabs.map((tab, index) => (
@@ -91,6 +107,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
   },
+  scrollContentDefault: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+  scrollContentEnglish: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'flex-start',
+  },
+  scrollContentRTL: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -100,13 +128,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     minWidth: 80,
     justifyContent: 'center',
-    marginRight: 12,
+    marginEnd: 12,
   },
   firstTab: {
-    marginLeft: 0,
+    marginStart: 0,
   },
   lastTab: {
-    marginRight: 20, // Extra margin for the last tab
+    marginEnd: 20, // Extra margin for the last tab
   },
   activeTab: {
     backgroundColor: '#C539A5',
