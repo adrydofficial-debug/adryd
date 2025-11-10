@@ -1,5 +1,5 @@
 import { Formik } from 'formik';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -11,17 +11,20 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  I18nManager,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Yup from 'yup';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from '@react-navigation/native';
 import CustomInput from '../../../components/CustomInput';
 import OTPModal from '../../../components/OTPModal';
 import { supabase } from '../../../services/supabase';
 import { useRegister, useVerifyOtp } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
+import i18n from '../../../i18n';
 
 // ----------------------
 // Helpers
@@ -75,7 +78,7 @@ const validationSchema = Yup.object().shape({
 // Component
 // ----------------------
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
-  const { t } = useTranslation('auth');
+  const { t, i18n: i18nInstance } = useTranslation('auth');
   const registerMutation = useRegister();
   const verifyOtpMutation = useVerifyOtp();
 
@@ -85,17 +88,53 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState('');
-<<<<<<< HEAD
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [, setPasswordValidation] = useState<PasswordValidation>({
-=======
-const [, setPasswordValidation] = useState<PasswordValidation>({
->>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
     hasUppercase: false,
     hasLowercase: false,
     hasNumber: false,
     hasSpecial: false,
   });
+  
+  // Track current language to force re-renders
+  const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
+  // Track RTL state to force layout re-render
+  const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
+  // Language change tracking for forced re-render
+  const [languageKey, setLanguageKey] = useState(0);
+
+  // Listen for language changes and force re-render
+  useEffect(() => {
+    const handleLanguageChange = (lang: string) => {
+      setCurrentLanguage(lang);
+      // Update RTL state based on language
+      const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+      const shouldBeRTL = rtlLangs.has(lang);
+      setIsRTL(shouldBeRTL);
+      setLanguageKey(prev => prev + 1);
+    };
+    i18n.on('languageChanged', handleLanguageChange);
+    // Set initial language and RTL state
+    const lang = i18nInstance.language;
+    setCurrentLanguage(lang);
+    const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+    setIsRTL(rtlLangs.has(lang));
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18nInstance.language]);
+  
+  // Update language key when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const lang = i18nInstance.language;
+      setCurrentLanguage(lang);
+      const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+      setIsRTL(rtlLangs.has(lang));
+      setLanguageKey(prev => prev + 1);
+      return () => {};
+    }, [i18nInstance.language])
+  );
 
   // ----------------------
   // Handlers
@@ -198,14 +237,14 @@ const [, setPasswordValidation] = useState<PasswordValidation>({
           keyboardShouldPersistTaps="handled"
         >
           <BackButton/>
-          <View style={styles.mainContainer}>
-            <Text style={styles.title}>{t('register.title')}</Text>
-            <Text style={styles.subtitle}>
-              {t('register.subtitle.start')}{' '}
-              <Text style={styles.highlight}>{t('register.subtitle.highlight1')}</Text>{' '}
-              {t('register.subtitle.middle')}{' '}
-              <Text style={styles.highlight}>{t('register.subtitle.highlight2')}</Text>
-              {t('register.subtitle.end')}
+          <View style={styles.mainContainer} key={`main-${isRTL}-${languageKey}`}>
+            <Text style={styles.title} key={`title-${languageKey}-${currentLanguage}`}>{t('register.title', { lng: currentLanguage })}</Text>
+            <Text style={styles.subtitle} key={`subtitle-${languageKey}-${currentLanguage}`}>
+              {t('register.subtitle.start', { lng: currentLanguage })}{' '}
+              <Text style={styles.highlight}>{t('register.subtitle.highlight1', { lng: currentLanguage })}</Text>{' '}
+              {t('register.subtitle.middle', { lng: currentLanguage })}{' '}
+              <Text style={styles.highlight}>{t('register.subtitle.highlight2', { lng: currentLanguage })}</Text>
+              {t('register.subtitle.end', { lng: currentLanguage })}
             </Text>
 
             <Formik
@@ -228,9 +267,6 @@ const [, setPasswordValidation] = useState<PasswordValidation>({
                 errors,
                 touched,
                 setFieldValue,
-<<<<<<< HEAD
-                validateForm,
-                setTouched,
               }) => {
                 // Helper to determine if field should show pink border
                 const shouldShowError = (fieldName: keyof RegisterFormValues) => {
@@ -239,115 +275,120 @@ const [, setPasswordValidation] = useState<PasswordValidation>({
                   const hasValidationError = touched[fieldName] && errors[fieldName];
                   return isEmpty || hasValidationError;
                 };
-=======
-            }) => (
-                <>
-                  <CustomInput
-                    label={t('register.username')}
-                    placeholder="Enter Username"
-                    value={values.username}
-                    onChangeText={handleChange('username')}
-                    onBlur={handleBlur('username')}
-                    focused={focusedField === 'username'}
-                    onFocus={() => setFocusedField('username')}
-                    error={apiError}
-                  />
 
-                  <CustomInput
-                    label={t('register.companyName')}
-                    placeholder="Enter Company Name"
-                    value={values.companyName}
-                    onChangeText={handleChange('companyName')}
-                    onBlur={handleBlur('companyName')}
-                    focused={focusedField === 'companyName'}
-                    onFocus={() => setFocusedField('companyName')}
-                    error={apiError}
-                  />
+                return (
+                  <>
+                    <CustomInput
+                      label={t('register.username', { lng: currentLanguage })}
+                      placeholder={t('register.username', { lng: currentLanguage })}
+                      value={values.username}
+                      onChangeText={handleChange('username')}
+                      onBlur={handleBlur('username')}
+                      focused={focusedField === 'username'}
+                      onFocus={() => setFocusedField('username')}
+                      error={shouldShowError('username') || apiError}
+                      showErrorText={false}
+                    />
 
-                  <CustomInput
-                    label={t('login.phoneNumber')}
-                    placeholder="3XXXXXXXXX"
-                    keyboardType="phone-pad"
-                    value={values.phoneNumber}
-                    onChangeText={text =>
-                      handlePhoneChange(text, setFieldValue)
-                    }
-                    onBlur={handleBlur('phoneNumber')}
-                    onFocus={() => setFocusedField('phoneNumber')}
-                    focused={focusedField === 'phoneNumber'}
-                    error={!!errors.phoneNumber || apiError}
-                  />
->>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
+                    <CustomInput
+                      label={t('register.companyName', { lng: currentLanguage })}
+                      placeholder={t('register.companyName', { lng: currentLanguage })}
+                      value={values.companyName}
+                      onChangeText={handleChange('companyName')}
+                      onBlur={handleBlur('companyName')}
+                      focused={focusedField === 'companyName'}
+                      onFocus={() => setFocusedField('companyName')}
+                      error={shouldShowError('companyName') || apiError}
+                      showErrorText={false}
+                    />
 
-                  {/* Password */}
-                  <View style={styles.passwordContainer}>
-                    <Text style={styles.inputLabel}>{t('register.password')}</Text>
-                    <View style={styles.passwordInputContainer}>
-                      <TextInput
-                        style={[
-                          styles.passwordInput,
-                          (shouldShowError('password') || (errors.password && touched.password)) &&
-                            styles.inputError,
-                        ]}
-                        placeholder="Enter Password"
-                        secureTextEntry={!showPassword}
-                        value={values.password}
-                        onChangeText={text => {
-                          handleChange('password')(text);
-                          validatePassword(text);
-                        }}
-                        onBlur={handleBlur('password')}
-                        onFocus={() => setFocusedField('password')}
-                        placeholderTextColor="#999"
-                      />
-                      <TouchableOpacity
-                        style={styles.eyeIconContainer}
-                        onPress={() => setShowPassword(!showPassword)}
-                      >
-                        <Ionicons
-                          name={showPassword ? 'eye' : 'eye-off'}
-                          size={wp(5)}
-                          color="#666"
+                    <CustomInput
+                      label={t('login.phoneNumber', { lng: currentLanguage })}
+                      placeholder="+923XXXXXXXXX"
+                      keyboardType="phone-pad"
+                      value={values.phoneNumber}
+                      onChangeText={text => handlePhoneChange(text, setFieldValue)}
+                      onBlur={handleBlur('phoneNumber')}
+                      onFocus={() => setFocusedField('phoneNumber')}
+                      focused={focusedField === 'phoneNumber'}
+                      error={shouldShowError('phoneNumber') || apiError}
+                      showErrorText={false}
+                    />
+
+                    {/* Password */}
+                    <View style={styles.passwordContainer}>
+                      <Text style={styles.inputLabel} key={`password-label-${currentLanguage}`}>{t('register.password', { lng: currentLanguage })}</Text>
+                      <View style={styles.passwordInputContainer}>
+                        <TextInput
+                          style={[
+                            styles.passwordInput,
+                            (shouldShowError('password') || (errors.password && touched.password)) &&
+                              styles.inputError,
+                            isRTL && { textAlign: 'right', paddingRight: wp(4), paddingLeft: wp(12) },
+                            !isRTL && { paddingLeft: wp(4), paddingRight: wp(12) },
+                          ]}
+                          placeholder={t('register.password', { lng: currentLanguage })}
+                          secureTextEntry={!showPassword}
+                          value={values.password}
+                          onChangeText={text => {
+                            handleChange('password')(text);
+                            validatePassword(text);
+                          }}
+                          onBlur={handleBlur('password')}
+                          onFocus={() => setFocusedField('password')}
+                          placeholderTextColor="#999"
                         />
-                      </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.eyeIconContainer,
+                            isRTL ? { right: undefined, left: wp(4) } : { left: undefined, right: wp(4) }
+                          ]}
+                          onPress={() => setShowPassword(!showPassword)}
+                        >
+                          <Ionicons
+                            name={showPassword ? 'eye' : 'eye-off'}
+                            size={wp(5)}
+                            color="#666"
+                          />
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
 
-                  <TouchableOpacity
-                    style={[
-                      styles.registerButton,
-                      isLoading && styles.disabledButton,
-                    ]}
-                    onPress={() => {
-                      handleSubmit();
-                    }}
-                    disabled={isLoading}
-                  >
-                    <View style={styles.buttonContent}>
-                      {isLoading && (
-                        <ActivityIndicator
-                          size="small"
-                          color="#fff"
-                          style={styles.loader}
-                        />
-                      )}
-                      <Text style={styles.buttonText}>
-                        {isLoading ? t('register.registering') : t('register.cta')}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </>
+                    <TouchableOpacity
+                      style={[
+                        styles.registerButton,
+                        isLoading && styles.disabledButton,
+                      ]}
+                      onPress={() => {
+                        handleSubmit();
+                      }}
+                      disabled={isLoading}
+                    >
+                      <View style={styles.buttonContent}>
+                        {isLoading && (
+                          <ActivityIndicator
+                            size="small"
+                            color="#fff"
+                            style={styles.loader}
+                          />
+                        )}
+                        <Text style={styles.buttonText} key={`button-${languageKey}-${currentLanguage}`}>
+                          {isLoading ? t('register.registering', { lng: currentLanguage }) : t('register.cta', { lng: currentLanguage })}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </>
                 )
               }}
             </Formik>
 
             <View style={styles.grayLine} />
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>{t('register.already')}</Text>
+            <View style={[styles.footer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <Text style={styles.footerText} key={`footer-${languageKey}-${currentLanguage}`}>{t('register.already', { lng: currentLanguage })} </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('LoginScreen')}
               >
-                <Text style={styles.loginLink}> {t('login.title')}</Text>
+                <Text style={styles.loginLink} key={`login-link-${languageKey}-${currentLanguage}`}> {t('login.title', { lng: currentLanguage })}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -426,20 +467,25 @@ const styles = StyleSheet.create({
   },
   passwordContainer: { marginBottom: hp(2) },
   inputLabel: { fontSize: 14, color: '#595959', marginBottom: 8 },
-  passwordInputContainer: { flexDirection: 'row', alignItems: 'center' },
+  passwordInputContainer: { flexDirection: 'row', alignItems: 'center', position: 'relative' },
   passwordInput: {
     borderWidth: 1,
     borderColor: '#e2d1d1',
     borderRadius: wp(3),
-    paddingHorizontal: wp(4),
     height: hp(6),
     flex: 1,
     fontSize: 12,
     backgroundColor: '#fff',
     color: '#000',
+    // padding will be set dynamically based on RTL/LTR
   },
   inputError: { borderColor: '#C539A5', borderWidth: 0.6 },
-  eyeIconContainer: { position: 'absolute', right: wp(4) },
+  eyeIconContainer: { 
+    position: 'absolute',
+    padding: wp(2),
+    zIndex: 1,
+    // right/left will be set dynamically based on RTL/LTR
+  },
   errorText: { color: '#ff4444', fontSize: wp(3.5), marginTop: hp(0.5) },
 });
 

@@ -1,7 +1,7 @@
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Formik, FormikHelpers } from 'formik';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  I18nManager,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -29,6 +30,7 @@ import {
 } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
+import i18n from '../../../i18n';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -48,7 +50,7 @@ const validationSchema = Yup.object().shape({
 const ForgotPassword: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
-  const { t } = useTranslation('auth');
+  const { t, i18n: i18nInstance } = useTranslation('auth');
 
   const forgotPassword = useForgotPassword();
   const resetPassword = useResetPassword();
@@ -58,13 +60,49 @@ const ForgotPassword: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
-<<<<<<< HEAD
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Track current language to force re-renders
+  const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
+  // Track RTL state to force layout re-render
+  const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
+  // Language change tracking for forced re-render
+  const [languageKey, setLanguageKey] = useState(0);
 
-=======
->>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
+  // Listen for language changes and force re-render
+  useEffect(() => {
+    const handleLanguageChange = (lang: string) => {
+      setCurrentLanguage(lang);
+      // Update RTL state based on language
+      const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+      const shouldBeRTL = rtlLangs.has(lang);
+      setIsRTL(shouldBeRTL);
+      setLanguageKey(prev => prev + 1);
+    };
+    i18n.on('languageChanged', handleLanguageChange);
+    // Set initial language and RTL state
+    const lang = i18nInstance.language;
+    setCurrentLanguage(lang);
+    const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+    setIsRTL(rtlLangs.has(lang));
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18nInstance.language]);
+  
+  // Update language key when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const lang = i18nInstance.language;
+      setCurrentLanguage(lang);
+      const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+      setIsRTL(rtlLangs.has(lang));
+      setLanguageKey(prev => prev + 1);
+      return () => {};
+    }, [i18nInstance.language])
+  );
   const handleSubmit = async (
     values: {
       phoneNumber: string;
@@ -118,7 +156,12 @@ const ForgotPassword: React.FC = () => {
       setShowOTPModal(false);
     } catch (error) {
       console.warn('Reset Password error:', error);
-   
+      let message = 'Something went wrong while verifying the OTP. Please try again.';
+      if (error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string') {
+        message = (error as any).message;
+      }
+      Alert.alert('OTP Verification Failed', message);
+      throw error;
     }
   };
 
@@ -155,25 +198,24 @@ const ForgotPassword: React.FC = () => {
         >
           <BackButton/>
 
-          <View style={styles.mainContainer}>
+          <View style={styles.mainContainer} key={`main-${isRTL}-${languageKey}`}>
             <View style={styles.header}>
-              <Text style={styles.title}>{t('forgot.title')}</Text>
-              <Text style={styles.subtitle}>
-                {t('forgot.subtitle')}
+              <Text style={styles.title} key={`title-${languageKey}-${currentLanguage}`}>{t('forgot.title', { lng: currentLanguage })}</Text>
+              <Text style={styles.subtitle} key={`subtitle-${languageKey}-${currentLanguage}`}>
+                {t('forgot.subtitle', { lng: currentLanguage })}
               </Text>
             </View>
 
             <Formik
               initialValues={{
-<<<<<<< HEAD
+
                 phoneNumber: '+92',
                 newPassword: '',
                 confirmPassword: '',
-=======
+
               phoneNumber: '+923236102030',
                 newPassword: '6AJ$kk3m9',
                 confirmPassword: '6AJ$kk3m9',
->>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
               }}
               validationSchema={validationSchema}
               onSubmit={(values, formikHelpers) => {
@@ -188,7 +230,6 @@ const ForgotPassword: React.FC = () => {
                 errors,
                 touched,
                 isSubmitting,
-<<<<<<< HEAD
                 setFieldValue,
               }) => {
                 const shouldShowError = (fieldName: 'phoneNumber' | 'newPassword' | 'confirmPassword') => {
@@ -201,7 +242,7 @@ const ForgotPassword: React.FC = () => {
                 return (
                   <>
                     <CustomInput
-                      label={t('login.phoneNumber')}
+                      label={t('login.phoneNumber', { lng: currentLanguage })}
                       placeholder="+923XXXXXXXXX"
                       keyboardType="phone-pad"
                       value={values.phoneNumber}
@@ -224,14 +265,16 @@ const ForgotPassword: React.FC = () => {
 
                     {/* New Password */}
                     <View style={styles.passwordContainer}>
-                      <Text style={styles.inputLabel}>{t('forgot.newPassword')}</Text>
+                      <Text style={styles.inputLabel} key={`new-password-label-${currentLanguage}`}>{t('forgot.newPassword', { lng: currentLanguage })}</Text>
                       <View style={styles.passwordInputContainer}>
                         <TextInput
                           style={[
                             styles.passwordInput,
                             shouldShowError('newPassword') && styles.inputError,
+                            isRTL && { textAlign: 'right', paddingRight: wp(4), paddingLeft: wp(12) },
+                            !isRTL && { paddingLeft: wp(4), paddingRight: wp(12) },
                           ]}
-                          placeholder="Enter new password"
+                          placeholder={t('forgot.newPassword', { lng: currentLanguage })}
                           secureTextEntry={!showNewPassword}
                           value={values.newPassword}
                           onChangeText={handleChange('newPassword')}
@@ -240,7 +283,10 @@ const ForgotPassword: React.FC = () => {
                           placeholderTextColor="#999"
                         />
                         <TouchableOpacity
-                          style={styles.eyeIconContainer}
+                          style={[
+                            styles.eyeIconContainer,
+                            isRTL ? { right: undefined, left: wp(4) } : { left: undefined, right: wp(4) }
+                          ]}
                           onPress={() => setShowNewPassword(!showNewPassword)}
                         >
                           <Ionicons
@@ -254,14 +300,16 @@ const ForgotPassword: React.FC = () => {
 
                     {/* Confirm Password */}
                     <View style={styles.passwordContainer}>
-                      <Text style={styles.inputLabel}>{t('forgot.confirmPassword')}</Text>
+                      <Text style={styles.inputLabel} key={`confirm-password-label-${currentLanguage}`}>{t('forgot.confirmPassword', { lng: currentLanguage })}</Text>
                       <View style={styles.passwordInputContainer}>
                         <TextInput
                           style={[
                             styles.passwordInput,
                             shouldShowError('confirmPassword') && styles.inputError,
+                            isRTL && { textAlign: 'right', paddingRight: wp(4), paddingLeft: wp(12) },
+                            !isRTL && { paddingLeft: wp(4), paddingRight: wp(12) },
                           ]}
-                          placeholder="Re-enter new password"
+                          placeholder={t('forgot.confirmPassword', { lng: currentLanguage })}
                           secureTextEntry={!showConfirmPassword}
                           value={values.confirmPassword}
                           onChangeText={handleChange('confirmPassword')}
@@ -270,7 +318,10 @@ const ForgotPassword: React.FC = () => {
                           placeholderTextColor="#999"
                         />
                         <TouchableOpacity
-                          style={styles.eyeIconContainer}
+                          style={[
+                            styles.eyeIconContainer,
+                            isRTL ? { right: undefined, left: wp(4) } : { left: undefined, right: wp(4) }
+                          ]}
                           onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                         >
                           <Ionicons
@@ -281,94 +332,43 @@ const ForgotPassword: React.FC = () => {
                         </TouchableOpacity>
                       </View>
                     </View>
-=======
-            }) => (
-                <>
-                  <CustomInput
-                    label={t('login.phoneNumber')}
-                    placeholder="+923XXXXXXXXX"
-                    keyboardType="phone-pad"
-                    value={values.phoneNumber}
-                    onChangeText={handleChange('phoneNumber')}
-                    onBlur={() => handleBlur('phoneNumber')}
-                    onFocus={() => setFocusedField('phoneNumber')}
-                    focused={focusedField === 'phoneNumber'}
-                    error={
-                      touched.phoneNumber && errors.phoneNumber
-                        ? errors.phoneNumber
-                        : undefined
-                    }
-                  />
 
-                  <CustomInput
-                    label={t('forgot.newPassword')}
-                    placeholder="Enter new password"
-                    secureTextEntry
-                    value={values.newPassword}
-                    onChangeText={handleChange('newPassword')}
-                    onBlur={() => handleBlur('newPassword')}
-                    onFocus={() => setFocusedField('newPassword')}
-                    focused={focusedField === 'newPassword'}
-                    error={
-                      touched.newPassword && errors.newPassword
-                        ? errors.newPassword
-                        : undefined
-                    }
-                  />
-
-                  <CustomInput
-                    label={t('forgot.confirmPassword')}
-                    placeholder="Re-enter new password"
-                    secureTextEntry
-                    value={values.confirmPassword}
-                    onChangeText={handleChange('confirmPassword')}
-                    onBlur={() => handleBlur('confirmPassword')}
-                    onFocus={() => setFocusedField('confirmPassword')}
-                    focused={focusedField === 'confirmPassword'}
-                    error={
-                      touched.confirmPassword && errors.confirmPassword
-                        ? errors.confirmPassword
-                        : undefined
-                    }
-                  />
->>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
-
-                  <TouchableOpacity
-                    style={[
-                      styles.submitButton,
-                      (isSubmitting || forgotPassword.isPending) &&
-                        styles.disabledButton,
-                    ]}
-                    onPress={formikSubmit as any}
-                    disabled={isSubmitting || forgotPassword.isPending}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.buttonContent}>
-                      {(isSubmitting || forgotPassword.isPending) && (
-                        <ActivityIndicator
-                          size="small"
-                          color="#fff"
-                          style={styles.loader}
-                        />
-                      )}
-                      <Text style={styles.buttonText}>
-                        {isSubmitting || forgotPassword.isPending
-                          ? t('forgot.sending')
-                          : t('forgot.cta')}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                </>
+                    <TouchableOpacity
+                      style={[
+                        styles.submitButton,
+                        (isSubmitting || forgotPassword.isPending) &&
+                          styles.disabledButton,
+                      ]}
+                      onPress={formikSubmit as any}
+                      disabled={isSubmitting || forgotPassword.isPending}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.buttonContent}>
+                        {(isSubmitting || forgotPassword.isPending) && (
+                          <ActivityIndicator
+                            size="small"
+                            color="#fff"
+                            style={styles.loader}
+                          />
+                        )}
+                        <Text style={styles.buttonText} key={`button-${languageKey}-${currentLanguage}`}>
+                          {isSubmitting || forgotPassword.isPending
+                            ? t('forgot.sending', { lng: currentLanguage })
+                            : t('forgot.cta', { lng: currentLanguage })}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  </>
                 )
               }}
             </Formik>
 
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>{t('forgot.remember')} </Text>
+            <View style={[styles.footer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+              <Text style={styles.footerText} key={`footer-${languageKey}-${currentLanguage}`}>{t('forgot.remember', { lng: currentLanguage })} </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('LoginScreen')}
               >
-                <Text style={styles.loginLink}>{t('login.title')}</Text>
+                <Text style={styles.loginLink} key={`login-link-${languageKey}-${currentLanguage}`}>{t('login.title', { lng: currentLanguage })}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -451,20 +451,25 @@ const styles = StyleSheet.create({
   },
   passwordContainer: { marginBottom: hp(2) },
   inputLabel: { fontSize: 14, color: '#595959', marginBottom: 8 },
-  passwordInputContainer: { flexDirection: 'row', alignItems: 'center' },
+  passwordInputContainer: { flexDirection: 'row', alignItems: 'center', position: 'relative' },
   passwordInput: {
     borderWidth: 1,
     borderColor: '#e2d1d1',
     borderRadius: wp(3),
-    paddingHorizontal: wp(4),
     height: hp(6),
     flex: 1,
     fontSize: 12,
     backgroundColor: '#fff',
     color: '#000',
+    // padding will be set dynamically based on RTL/LTR
   },
   inputError: { borderColor: '#C539A5', borderWidth: 0.6 },
-  eyeIconContainer: { position: 'absolute', right: wp(4) },
+  eyeIconContainer: { 
+    position: 'absolute',
+    padding: wp(2),
+    zIndex: 1,
+    // right/left will be set dynamically based on RTL/LTR
+  },
 });
 
 export default ForgotPassword;

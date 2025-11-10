@@ -19,18 +19,14 @@ import PinkLocation from '../../../assets/images/PinkkLocation.svg';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
 import { useAuthStore } from '../../../store/authStore';
-<<<<<<< HEAD
-import BoardTabs, { Tab } from '../components/BoardTabs';
-import { useBoardFilters } from '../hooks/useBoardFilters';
 import { useBoardUnavailableTimes } from '../hooks/useBoardUnavailableTimes';
 import { useProfile } from '../../profile/hooks/useProfile';
 import NoInternet from '../../../components/NoInternet';
 import { useTranslation } from 'react-i18next';
-=======
 import LocationButton from '../../locations/components/LocationButton';
 import BoardTabs, { Tab } from '../components/BoardTabs';
-import { useBoardFilters } from '../hooks/useBoardFilters';import { useProfile } from '../../profile/hooks/useProfile';
->>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
+import { useBoardFilters } from '../hooks/useBoardFilters';
+
 import i18n from '../../../i18n';
 // import { useFocusEffect } from '@react-navigation/native';
 
@@ -51,9 +47,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
    
   const { user } = useAuthStore();
   const { data: profile } = useProfile();
-
-<<<<<<< HEAD
-=======
   // Determine avatar URL
   const avatarUrl = (
     profile?.avatar_url ||
@@ -93,8 +86,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     // Only log when values change significantly
     // console.log('[Home] avatarUrl:', avatarUrl, 'valid:', isValidAvatarUrl, 'displayName:', displayName, 'initial:', initial);
   } catch {}
-
->>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
   // Banner state
   const [currentBannerIndex, setCurrentBannerIndex] = useState<number>(0);
 

@@ -93,6 +93,11 @@ const OTPModal: React.FC<OTPModalProps> = ({
       await onVerify(otpToVerify);
     } catch (error) {
       console.error('OTP verification error:', error);
+      let message = 'Invalid or expired code. Please try again.';
+      if (error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string') {
+        message = (error as any).message;
+      }
+      setErrorMessage(message);
       setIsLoading(false);
     }
   };

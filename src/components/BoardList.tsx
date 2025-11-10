@@ -1,5 +1,5 @@
 // src/components/BoardList.tsx
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -8,8 +8,12 @@ import {
   Text,
   TouchableOpacity,
   View,
+  I18nManager,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 
 const {width, height} = Dimensions.get('window');
 const BASE_WIDTH = 375;
@@ -80,6 +84,50 @@ const BoardList: React.FC<BoardListProps> = ({
   onPressDetail,
   numColumns = 1, // Default to 1 column (horizontal layout)
 }) => {
+  const { i18n: i18nInstance } = useTranslation();
+  
+  // Track current language to force re-renders
+  const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
+  // Track RTL state to force layout re-render
+  const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
+  // Language change tracking for forced re-render
+  const [languageKey, setLanguageKey] = useState(0);
+
+  // Listen for language changes and force re-render
+  useEffect(() => {
+    const handleLanguageChange = (lang: string) => {
+      setCurrentLanguage(lang);
+      // Update RTL state based on language
+      const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+      const shouldBeRTL = rtlLangs.has(lang);
+      setIsRTL(shouldBeRTL);
+      setLanguageKey(prev => prev + 1);
+    };
+    i18n.on('languageChanged', handleLanguageChange);
+    // Set initial language and RTL state
+    const lang = i18nInstance.language;
+    setCurrentLanguage(lang);
+    const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+    setIsRTL(rtlLangs.has(lang));
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18nInstance.language]);
+  
+  // Update language key when screen comes into focus (if navigation is available)
+  useFocusEffect(
+    useCallback(() => {
+      if (navigation) {
+        const lang = i18nInstance.language;
+        setCurrentLanguage(lang);
+        const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+        setIsRTL(rtlLangs.has(lang));
+        setLanguageKey(prev => prev + 1);
+      }
+      return () => {};
+    }, [i18nInstance.language, navigation])
+  );
+
   const handleCardPress = (item: BoardItem) => {
     if (onPressDetail) {
       onPressDetail(item);
@@ -128,15 +176,15 @@ const BoardList: React.FC<BoardListProps> = ({
           style={styles.image}
           imageStyle={styles.imageBg}>
           <Text style={styles.sizeStyle}>{size}</Text>
-          <View style={styles.infoOverlay}>
-            <View style={styles.detailTextWrapper}>
+          <View style={[styles.infoOverlay, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.detailTextWrapper, isRTL && { paddingRight: 0, paddingLeft: 8 }]}>
               <Text style={styles.title} numberOfLines={1}>
                 {title.split(' ').slice(0, 12).join(' ')}
                 {title.split(' ').length > 12 ? '...' : ''}
               </Text>
               <View
                 style={{
-                  flexDirection: 'row',
+                  flexDirection: isRTL ? 'row-reverse' : 'row',
                   alignItems: 'center',
                   paddingHorizontal: 8,
                 }}>
@@ -146,17 +194,10 @@ const BoardList: React.FC<BoardListProps> = ({
                   color="#888"
                   style={{paddingHorizontal: -6}}
                 />
-<<<<<<< HEAD
-                {/* <Text style={styles.subtitle} numberOfLines={1}> */}
-                  {/* {location.split(' ').slice(0, 10).join(' ')} */}
-                  {/* {location.split(' ').length > 12 ? '...' : ''} */}
-                {/* </Text> */}
-=======
-              <Text style={styles.subtitle} numberOfLines={1}>
+                <Text style={styles.subtitle} numberOfLines={1}>
                   {location.split(' ').slice(0, 10).join(' ')}
                   {location.split(' ').length > 12 ? '...' : ''}
                 </Text>
->>>>>>> 2983cf21b0260d7744ef3fccffd2bdfed49ab495
               </View>
               <Text style={[styles.subtitle, {paddingHorizontal: 8}]}>
                 {distance}
@@ -169,10 +210,10 @@ const BoardList: React.FC<BoardListProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} key={`boardlist-${isRTL}-${languageKey}`}>
       {/* {subHeading && <Text style={styles.subHeading}>{subHeading}</Text>} */}
-      <View style={styles.header}>
-        <Text style={styles.heading}>{heading}</Text>
+      <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+        <Text style={styles.heading} key={`heading-${languageKey}-${currentLanguage}`}>{heading}</Text>
         <TouchableOpacity onPress={handleSeeAllPress}>
           {/* <Text style={styles.seeAll}>See All</Text> */}
         </TouchableOpacity>
@@ -280,6 +321,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.94)',
     borderRadius: 11,
     marginHorizontal: 4,
+    // flexDirection will be set dynamically based on RTL/LTR
   },
   detailTextWrapper: {
     flex: 1,
