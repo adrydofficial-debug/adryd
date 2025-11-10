@@ -259,13 +259,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.bellBtn}
-              onPress={() =>
-                navigation.navigate('CategoryScreen', {
-                  categoryId: 'all',
-                  categoryName: 'All Categories',
-                  showAllCategories: true,
-                })
-              }
+              onPress={() => navigation.navigate('SearchLocation' as never)}
             >
               <Image
                 source={require('../../../assets/images/Search.png')}

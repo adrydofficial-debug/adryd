@@ -102,5 +102,8 @@ export const mapBoard = (b: any): Board => ({
   rating: b.avg_rating ?? b.rating ?? 0,
   totalRatings: b.total_ratings ?? 0,
   price: b.price ?? 0,
-  location: b.location ?? '',
+  location:
+    typeof b.location === 'string'
+      ? b.location
+      : b.location?.name ?? '',
 });
