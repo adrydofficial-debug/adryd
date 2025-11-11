@@ -3,29 +3,14 @@ import { supabase } from '../../../services/supabase';
 import { uploadToSignedUrl } from '../../../services/uploadFile';
 import { useAuthStore } from '../../../store/authStore';
 import { profileApi } from '../api/api';
-
-// -----------------------------
-// Types
-// -----------------------------
-export interface UserProfile {
-  id: string;
-  username?: string;
-  full_name?: string;
-  first_name?: string;
-  last_name?: string;
-  avatar_url?: string;
-  phone?: string;
-  email?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { UserProfile } from '../domain/entities';
 
 export interface UpdateProfileData {
   username?: string;
   full_name?: string;
   first_name?: string;
   last_name?: string;
-  avatar_url?: string;
+  avatarFile?: { uri: string; type: string; name: string };
 }
 
 // -----------------------------
@@ -68,156 +53,216 @@ export const useProfile = (enabled: boolean = true) => {
   });
 };
 
-// -----------------------------
-// 2️⃣ Update User Profile
-// -----------------------------
-export const useUpdateProfile = () => {
+export const useUpdateUserProfile = () => {
   const qc = useQueryClient();
   const user = useAuthStore(s => s.user);
 
   return useMutation({
-    mutationFn: async (data: UpdateProfileData): Promise<UserProfile> => {
-      // Get current user from Supabase (regardless of store state)
+    mutationFn: async (data: UpdateProfileData) => {
+      if (!user?.id) throw new Error('User not authenticated.');
+
+      // Step 1 — Upload avatar if present
+      let avatarUrl: string | undefined;
+      if (data.avatarFile) {
+        console.log('📸 Uploading new avatar...');
+        const { name, type } = data.avatarFile;
+        const { uploadUrl, publicUrl } = await profileApi.getAvatarUploadUrl({
+          filename: name,
+          contentType: type,
+        });
+        await uploadToSignedUrl(uploadUrl, data.avatarFile);
+        avatarUrl = publicUrl;
+        console.log('✅ Avatar uploaded:', avatarUrl);
+      }
+
+      // Step 2 — Merge with existing metadata
       const { data: currentUser, error: getUserError } =
         await supabase.auth.getUser();
-      if (getUserError || !currentUser.user) {
-        throw new Error('User not authenticated. Please log in first.');
-      }
+      if (getUserError || !currentUser.user)
+        throw new Error('Failed to fetch current user.');
 
-      const currentMetaData = currentUser.user.user_metadata || {};
-      const updatedMetaData = {
-        ...currentMetaData,
+      const currentMeta = currentUser.user.user_metadata || {};
+      const updatedMeta = {
+        ...currentMeta,
         ...data,
+        ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
       };
+      delete updatedMeta.avatarFile; // in case it sneaks in
 
-      // Update user metadata
-      console.log('🔄 Updating user metadata:', updatedMetaData);
-      console.log('🔄 Current user before update:', currentUser.user.id);
-
-      const { data: updateData, error: updateError } =
+      // Step 3 — Update Supabase user metadata
+      const { data: updated, error: updateError } =
         await supabase.auth.updateUser({
-          data: updatedMetaData,
+          data: updatedMeta,
         });
+      if (updateError) throw updateError;
 
-      if (updateError) {
-        console.error('❌ Error updating user metadata:', updateError);
-        console.error(
-          '❌ Error details:',
-          JSON.stringify(updateError, null, 2),
-        );
-        throw updateError;
-      }
+      const updatedUser = updated.user!;
+      console.log('✅ Supabase metadata updated:', updatedUser.user_metadata);
 
-      console.log(
-        '✅ Successfully updated user metadata:',
-        updateData.user?.user_metadata,
-      );
-      console.log(
-        '✅ Updated raw_user_meta_data:',
-        updateData.user?.user_metadata,
-      );
+      // Step 4 — Update local store and query cache
+      const { setUser } = useAuthStore.getState();
+      setUser(updatedUser);
+      qc.invalidateQueries({ queryKey: ['profile', user.id] });
 
-      const updatedUser = updateData.user!;
-      const newMetaData = updatedUser.user_metadata || {};
-
-      return {
-        id: updatedUser.id,
-        username: newMetaData.username,
-        full_name: newMetaData.full_name,
-        first_name: newMetaData.first_name,
-        last_name: newMetaData.last_name,
-        avatar_url: newMetaData.avatar_url,
-        phone: updatedUser.phone || '',
-        email: updatedUser.email || '',
-        created_at: updatedUser.created_at,
-        updated_at: updatedUser.updated_at || updatedUser.created_at,
-      };
+      return updatedUser.user_metadata;
     },
-    onSuccess: data => {
-      // Update the authStore with the new user data first
-      if (user) {
-        const updatedUser = {
-          ...user,
-          user_metadata: {
-            ...user.user_metadata,
-            username: data.username,
-            full_name: data.full_name,
-            first_name: data.first_name,
-            last_name: data.last_name,
-            avatar_url: data.avatar_url,
-          },
-        };
 
-        // Update the authStore
-        const { setUser } = useAuthStore.getState();
-        setUser(updatedUser);
-
-        console.log(
-          '✅ Updated authStore with new user data:',
-          updatedUser.user_metadata,
-        );
-        console.log('✅ Updated full_name:', data.full_name);
-        console.log('✅ Updated avatar_url:', data.avatar_url);
-      } else {
-        console.warn('⚠️ No user in authStore to update');
-      }
-
-      // Invalidate and refetch all profile queries
-      qc.invalidateQueries({ queryKey: ['profile'] });
-      qc.setQueryData(['profile', user?.id], data);
-
-      // Force refetch by removing from cache and refetching
-      qc.removeQueries({ queryKey: ['profile', user?.id] });
+    onError: err => {
+      console.error('💀 Profile update failed:', err);
     },
   });
 };
+
+// -----------------------------
+// 2️⃣ Update User Profile
+// -----------------------------
+// export const useUpdateProfile = () => {
+//   const qc = useQueryClient();
+//   const user = useAuthStore(s => s.user);
+
+//   return useMutation({
+//     mutationFn: async (data: UpdateProfileData): Promise<UserProfile> => {
+//       // Get current user from Supabase (regardless of store state)
+//       const { data: currentUser, error: getUserError } =
+//         await supabase.auth.getUser();
+//       if (getUserError || !currentUser.user) {
+//         throw new Error('User not authenticated. Please log in first.');
+//       }
+
+//       const currentMetaData = currentUser.user.user_metadata || {};
+//       const updatedMetaData = {
+//         ...currentMetaData,
+//         ...data,
+//       };
+
+//       // Update user metadata
+//       console.log('🔄 Updating user metadata:', updatedMetaData);
+//       console.log('🔄 Current user before update:', currentUser.user.id);
+
+//       const { data: updateData, error: updateError } =
+//         await supabase.auth.updateUser({
+//           data: updatedMetaData,
+//         });
+
+//       if (updateError) {
+//         console.error('❌ Error updating user metadata:', updateError);
+//         console.error(
+//           '❌ Error details:',
+//           JSON.stringify(updateError, null, 2),
+//         );
+//         throw updateError;
+//       }
+
+//       console.log(
+//         '✅ Successfully updated user metadata:',
+//         updateData.user?.user_metadata,
+//       );
+//       console.log(
+//         '✅ Updated raw_user_meta_data:',
+//         updateData.user?.user_metadata,
+//       );
+
+//       const updatedUser = updateData.user!;
+//       const newMetaData = updatedUser.user_metadata || {};
+
+//       return {
+//         id: updatedUser.id,
+//         username: newMetaData.username,
+//         full_name: newMetaData.full_name,
+//         first_name: newMetaData.first_name,
+//         last_name: newMetaData.last_name,
+//         avatar_url: newMetaData.avatar_url,
+//         phone: updatedUser.phone || '',
+//         email: updatedUser.email || '',
+//         created_at: updatedUser.created_at,
+//         updated_at: updatedUser.updated_at || updatedUser.created_at,
+//       };
+//     },
+//     onSuccess: data => {
+//       // Update the authStore with the new user data first
+//       if (user) {
+//         const updatedUser = {
+//           ...user,
+//           user_metadata: {
+//             ...user.user_metadata,
+//             username: data.username,
+//             full_name: data.full_name,
+//             first_name: data.first_name,
+//             last_name: data.last_name,
+//             avatar_url: data.avatar_url,
+//           },
+//         };
+
+//         // Update the authStore
+//         const { setUser } = useAuthStore.getState();
+//         setUser(updatedUser);
+
+//         console.log(
+//           '✅ Updated authStore with new user data:',
+//           updatedUser.user_metadata,
+//         );
+//         console.log('✅ Updated full_name:', data.full_name);
+//         console.log('✅ Updated avatar_url:', data.avatar_url);
+//       } else {
+//         console.warn('⚠️ No user in authStore to update');
+//       }
+
+//       // Invalidate and refetch all profile queries
+//       qc.invalidateQueries({ queryKey: ['profile'] });
+//       qc.setQueryData(['profile', user?.id], data);
+
+//       // Force refetch by removing from cache and refetching
+//       qc.removeQueries({ queryKey: ['profile', user?.id] });
+//     },
+//   });
+// };
 
 // -----------------------------
 // 3️⃣ Update Username Only
 // -----------------------------
-export const useUpdateUsername = () => {
-  const updateProfile = useUpdateProfile();
+// export const useUpdateUsername = () => {
+//   const updateProfile = useUpdateProfile();
 
-  return useMutation({
-    mutationFn: async (username: string): Promise<UserProfile> => {
-      // Validate username
-      if (!username.trim()) {
-        throw new Error('Username cannot be empty');
-      }
+//   return useMutation({
+//     mutationFn: async (username: string): Promise<UserProfile> => {
+//       // Validate username
+//       if (!username.trim()) {
+//         throw new Error('Username cannot be empty');
+//       }
 
-      if (username.length < 3) {
-        throw new Error('Username must be at least 3 characters long');
-      }
+//       if (username.length < 3) {
+//         throw new Error('Username must be at least 3 characters long');
+//       }
 
-      if (username.length > 20) {
-        throw new Error('Username must be less than 20 characters');
-      }
+//       if (username.length > 20) {
+//         throw new Error('Username must be less than 20 characters');
+//       }
 
-      // Get current user to check against
-      const { data: currentUser } = await supabase.auth.getUser();
-      const currentUserId = currentUser?.user?.id;
+//       // Get current user to check against
+//       const { data: currentUser } = await supabase.auth.getUser();
+//       const currentUserId = currentUser?.user?.id;
 
-      // Check if username is already taken by querying all users
-      const { data: allUsers, error } = await supabase.auth.admin.listUsers();
+//       // Check if username is already taken by querying all users
+//       const { data: allUsers, error } = await supabase.auth.admin.listUsers();
 
-      if (error) {
-        // If we can't check (no admin access), we'll skip the check
-        console.warn('Could not check username uniqueness:', error.message);
-      } else {
-        // Check if username is already taken by another user
-        const existingUser = allUsers.users.find(
-          u => u.id !== currentUserId && u.user_metadata?.username === username,
-        );
+//       if (error) {
+//         // If we can't check (no admin access), we'll skip the check
+//         console.warn('Could not check username uniqueness:', error.message);
+//       } else {
+//         // Check if username is already taken by another user
+//         const existingUser = allUsers.users.find(
+//           u => u.id !== currentUserId && u.user_metadata?.username === username,
+//         );
 
-        if (existingUser) {
-          throw new Error('Username is already taken');
-        }
-      }
+//         if (existingUser) {
+//           throw new Error('Username is already taken');
+//         }
+//       }
 
-      return updateProfile.mutateAsync({ username });
-    },
-  });
-};
+//       return updateProfile.mutateAsync({ username });
+//     },
+//   });
+// };
 
 // -----------------------------
 // 4️⃣ Profile Validation
@@ -246,87 +291,87 @@ export const validateUsername = (username: string): string | null => {
   return null;
 };
 
-export const useUploadProfileAvatar = () => {
-  const qc = useQueryClient();
-  const user = useAuthStore(s => s.user);
+// export const useUploadProfileAvatar = () => {
+//   const qc = useQueryClient();
+//   const user = useAuthStore(s => s.user);
 
-  return useMutation({
-    mutationFn: async (file: { uri: string; type: string; name: string }) => {
-      console.log('🟡 [AvatarUpload] Starting upload for file:', file);
+//   return useMutation({
+//     mutationFn: async (file: { uri: string; type: string; name: string }) => {
+//       console.log('🟡 [AvatarUpload] Starting upload for file:', file);
 
-      if (!user?.id) {
-        console.error('❌ [AvatarUpload] No authenticated user found.');
-        throw new Error('User not authenticated');
-      }
+//       if (!user?.id) {
+//         console.error('❌ [AvatarUpload] No authenticated user found.');
+//         throw new Error('User not authenticated');
+//       }
 
-      console.log('👤 [AvatarUpload] Authenticated user:', user.id);
+//       console.log('👤 [AvatarUpload] Authenticated user:', user.id);
 
-      // Step 1 → Get signed upload URL from backend
-      console.log('🌐 [AvatarUpload] Requesting signed upload URL...');
-      console.log('🧾 [AvatarUpload] File details:', {
-        uri: file.uri,
-        name: file.name,
-        type: file.type,
-      });
-      const filename = file.name || file.fileName || 'avatar.jpg';
-      const contentType = file.type || 'image/jpeg';
-      console.log('🧾 [AvatarUpload] Normalized file details:', {
-        filename,
-        contentType,
-      });
+//       // Step 1 → Get signed upload URL from backend
+//       console.log('🌐 [AvatarUpload] Requesting signed upload URL...');
+//       console.log('🧾 [AvatarUpload] File details:', {
+//         uri: file.uri,
+//         name: file.name,
+//         type: file.type,
+//       });
+//       const filename = file.name || file.fileName || 'avatar.jpg';
+//       const contentType = file.type || 'image/jpeg';
+//       console.log('🧾 [AvatarUpload] Normalized file details:', {
+//         filename,
+//         contentType,
+//       });
 
-      const { uploadUrl, publicUrl } = await profileApi.getAvatarUploadUrl({
-        filename: file.name,
-        contentType: file.type,
-      });
-      console.log('✅ [AvatarUpload] Received signed URL:', uploadUrl);
-      console.log('🌍 [AvatarUpload] Public URL will be:', publicUrl);
+//       const { uploadUrl, publicUrl } = await profileApi.getAvatarUploadUrl({
+//         filename: file.name,
+//         contentType: file.type,
+//       });
+//       console.log('✅ [AvatarUpload] Received signed URL:', uploadUrl);
+//       console.log('🌍 [AvatarUpload] Public URL will be:', publicUrl);
 
-      // Step 2 → Upload file directly to storage
-      console.log('📤 [AvatarUpload] Uploading file to signed URL...');
-      await uploadToSignedUrl(uploadUrl, file);
-      console.log('✅ [AvatarUpload] Upload complete.');
+//       // Step 2 → Upload file directly to storage
+//       console.log('📤 [AvatarUpload] Uploading file to signed URL...');
+//       await uploadToSignedUrl(uploadUrl, file);
+//       console.log('✅ [AvatarUpload] Upload complete.');
 
-      // DB trigger will handle updating Supabase; return public URL for optimistic update
-      return publicUrl;
-    },
+//       // DB trigger will handle updating Supabase; return public URL for optimistic update
+//       return publicUrl;
+//     },
 
-    onSuccess: async publicUrl => {
-      console.log('🟢 [AvatarUpload] Upload success! Public URL:', publicUrl);
+//     onSuccess: async publicUrl => {
+//       console.log('🟢 [AvatarUpload] Upload success! Public URL:', publicUrl);
 
-      // Update user metadata immediately
-      console.log('🔄 [AvatarUpload] Updating Supabase user metadata...');
-      const { data, error } = await supabase.auth.updateUser({
-        data: { avatar_url: publicUrl },
-      });
+//       // Update user metadata immediately
+//       console.log('🔄 [AvatarUpload] Updating Supabase user metadata...');
+//       const { data, error } = await supabase.auth.updateUser({
+//         data: { avatar_url: publicUrl },
+//       });
 
-      if (error) {
-        console.error(
-          '❌ [AvatarUpload] Failed to update user metadata:',
-          error,
-        );
-        throw error;
-      }
+//       if (error) {
+//         console.error(
+//           '❌ [AvatarUpload] Failed to update user metadata:',
+//           error,
+//         );
+//         throw error;
+//       }
 
-      console.log('✅ [AvatarUpload] Supabase metadata updated.');
+//       console.log('✅ [AvatarUpload] Supabase metadata updated.');
 
-      // Update cache and store
-      const updatedUser = data.user!;
-      console.log('🧠 [AvatarUpload] Updating local auth store...');
-      const { setUser } = useAuthStore.getState();
-      setUser(updatedUser);
+//       // Update cache and store
+//       const updatedUser = data.user!;
+//       console.log('🧠 [AvatarUpload] Updating local auth store...');
+//       const { setUser } = useAuthStore.getState();
+//       setUser(updatedUser);
 
-      console.log(
-        '🧩 [AvatarUpload] Invalidating profile cache for user:',
-        user?.id,
-      );
-      qc.invalidateQueries({ queryKey: ['profile', user?.id] });
+//       console.log(
+//         '🧩 [AvatarUpload] Invalidating profile cache for user:',
+//         user?.id,
+//       );
+//       qc.invalidateQueries({ queryKey: ['profile', user?.id] });
 
-      console.log('🎉 [AvatarUpload] Avatar upload and sync complete.');
-    },
+//       console.log('🎉 [AvatarUpload] Avatar upload and sync complete.');
+//     },
 
-    onError: err => {
-      console.error('💀 [AvatarUpload] Avatar upload failed:', err);
-    },
-  });
-};
+//     onError: err => {
+//       console.error('💀 [AvatarUpload] Avatar upload failed:', err);
+//     },
+//   });
+// };

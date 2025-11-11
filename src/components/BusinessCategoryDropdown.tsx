@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   dropdownError: {
     borderColor: '#ff4444',
-    borderWidth: 1,
+    borderWidth: 1.5,
     backgroundColor: '#fff5f5',
   },
   placeholderStyle: {

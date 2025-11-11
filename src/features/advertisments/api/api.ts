@@ -82,8 +82,23 @@ export const addAdvertisementMedia = async (
   id: number,
   media: { url: string; filename: string; size: number; type: string }[],
 ): Promise<{ count: number }> => {
-  const { data } = await apiClient.post(`${BASE}/${id}/media`, { media });
-  return data;
+  console.log('🔵 [addAdvertisementMedia] API call started');
+  console.log('🔵 [addAdvertisementMedia] Advertisement ID:', id);
+  console.log('🔵 [addAdvertisementMedia] Media array:', JSON.stringify(media, null, 2));
+  console.log('🔵 [addAdvertisementMedia] Endpoint:', `${BASE}/${id}/media`);
+  
+  try {
+    const { data } = await apiClient.post(`${BASE}/${id}/media`, { media });
+    console.log('✅ [addAdvertisementMedia] API call successful');
+    console.log('✅ [addAdvertisementMedia] Response:', JSON.stringify(data, null, 2));
+    return data;
+  } catch (error: any) {
+    console.error('❌ [addAdvertisementMedia] API call failed');
+    console.error('❌ [addAdvertisementMedia] Error:', error);
+    console.error('❌ [addAdvertisementMedia] Error message:', error?.message);
+    console.error('❌ [addAdvertisementMedia] Error response:', error?.response?.data);
+    throw error;
+  }
 };
 
 // ==================== TEMPORARY BOOKINGS API ====================

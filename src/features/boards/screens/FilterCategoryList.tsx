@@ -94,19 +94,39 @@ const FilterCategoryList: React.FC<any> = ({ route, navigation }) => {
     return filteredBoardsData.boards.map(convertBoardToBoardItem);
   };
 
-  const convertBoardToBoardItem = (board: any): BoardItem => ({
-    id: board.id?.toString() || 'unknown',
-    title: board.title || 'Untitled Board',
-    description: board.description || '',
-    location: board.location?.name || 'Unknown Location',
-    distance: '1.6 km',
-    size:
-      board.width && board.height ? `${board.width}x${board.height}` : '12x8',
-    price: parseFloat(board.price) || 0,
-    currency: board.currency || 'USD',
-    image_url: board.image_url || null,
-    rating: board.rating ?? 0,
-  });
+  const convertBoardToBoardItem = (board: any): BoardItem => {
+    const primaryMediaUrl =
+      Array.isArray(board.media) && board.media.length > 0
+        ? board.media[0]?.url
+        : null;
+    const imageUrl = board.image_url || board.image || primaryMediaUrl;
+
+    const priceValue =
+      typeof board.price === 'number'
+        ? board.price
+        : board.price
+        ? parseFloat(board.price)
+        : 0;
+
+    return {
+      id: board.id?.toString() || 'unknown',
+      title: board.title || 'Untitled Board',
+      description: board.description || '',
+      location:
+        typeof board.location === 'string'
+          ? board.location
+          : board.location?.name || 'Unknown Location',
+      distance: '1.6 km',
+      size:
+        board.width && board.height ? `${board.width}x${board.height}` : '12x8',
+      price: priceValue || 0,
+      currency: board.currency || 'USD',
+      image_url: imageUrl || null,
+      image: imageUrl || undefined,
+      rating: board.avg_rating ?? board.rating ?? 0,
+      media: Array.isArray(board.media) ? board.media : [],
+    };
+  };
 
   const data = getFilteredData();
   const isLoading = isFilteredLoading || isFiltersLoading;

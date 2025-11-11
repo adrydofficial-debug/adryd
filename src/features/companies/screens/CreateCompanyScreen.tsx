@@ -38,6 +38,7 @@ interface CompanyDetailScreenProps {
     goBack: () => void;
     navigate: (screen: string, params?: any) => void;
   };
+  route?: { params?: { flow?: 'individual' | 'business' } };
   company?: Company;
   onSave?: (companyData: Partial<Company>) => void;
 }
@@ -51,10 +52,12 @@ interface SelectedImage {
 }
 const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   navigation,
+  route,
   company,
 }) => {
   const { t } = useTranslation('companies');
   const setCompanyData = useCampaignStore((state) => state.setCompanyData);
+  const flow = route?.params?.flow ?? 'business';
   const [companyName, setCompanyName] = useState(
     company?.company_name || 'Adryd',
   );
@@ -62,11 +65,13 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   const [companyNTN, setCompanyNTN] = useState(company?.company_ntn || '');
   const [companyAddress, setCompanyAddress] = useState(company?.address || '');
   const [companyEmail, setCompanyEmail] = useState(company?.email || '');
+  const [companyNumber, setCompanyNumber] = useState(company?.contact_number || '+92');
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(
     null,
   );
   const [selectedBusinessCategory, setSelectedBusinessCategory] =
     useState<string>('');
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   // Validation states
   const [validationErrors, setValidationErrors] = useState<{
@@ -76,6 +81,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     companyEmail: boolean;
     companyAddress: boolean;
     companyNTN: boolean;
+    companyNumber: boolean;
   }>({
     companyName: false,
     businessName: false,
@@ -83,6 +89,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     companyEmail: false,
     companyAddress: false,
     companyNTN: false,
+    companyNumber: false,
   });
 
   // Debug validation errors state changes
@@ -171,10 +178,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         if (response.didCancel) {
           return;
         } else if (response.errorMessage) {
-          Alert.alert(
-            'Error',
-            'Failed to access image library. Please check your permissions and try again.',
-          );
+         ''
         } else if (response.assets && response.assets[0]) {
           const asset = response.assets[0];
           const maxSize = 25 * 1024 * 1024; // 25MB
@@ -226,20 +230,14 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     </View>
   );
 
+  // Phone number validation helper
+  const isValidPhoneNumber = (phone: string): boolean => {
+    if (!phone || !phone.trim()) return false;
+    const phoneRegex = /^\+92[0-9]{10}$/;
+    return phoneRegex.test(phone.trim());
+  };
+
   const handleNext = async (): Promise<void> => {
-    console.log('=== VALIDATION DEBUG ===');
-    console.log('companyName:', companyName);
-    console.log('businessName:', businessName);
-    console.log('selectedBusinessCategory:', selectedBusinessCategory);
-    console.log('companyEmail:', companyEmail);
-    setValidationErrors({
-      companyName: false,
-      businessName: false,
-      businessCategory: false,
-      companyEmail: false,
-      companyAddress: false,
-      companyNTN: false,
-    });
     const errors = {
       companyName: !companyName.trim(),
       businessName: !businessName.trim(),
@@ -247,17 +245,37 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       companyNTN: !companyNTN.trim(),
       businessCategory: !selectedBusinessCategory,
       companyEmail: !companyEmail.trim() || !isValidEmail(companyEmail),
+      companyNumber: !companyNumber || companyNumber.trim() === '+92' || !isValidPhoneNumber(companyNumber),
     };
 
     console.log('Validation errors:', errors);
     const hasErrors = Object.values(errors).some(error => error);
     console.log('Has errors:', hasErrors);
 
+    // Set all validation errors immediately (will show red borders)
+    setValidationErrors(errors);
+
     if (hasErrors) {
-      setValidationErrors(errors);
-      console.log('Missing fields:', errors);
       return;
     }
+
+    const parsedCategoryId = Number(selectedBusinessCategory);
+    if (!Number.isFinite(parsedCategoryId)) {
+      console.warn(
+        'Invalid company category selection:',
+        selectedBusinessCategory,
+      );
+      setValidationErrors(prev => ({
+        ...prev,
+        businessCategory: true,
+      }));
+      Alert.alert(
+        'Invalid Category',
+        'Please select a valid business category from the list.',
+      );
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const {
@@ -296,11 +314,11 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       // Prepare company data for API
       const companyData = {
         company_name: companyName.trim(),
-        company_category_id: parseInt(selectedBusinessCategory) || 1,
+        company_category_id: parsedCategoryId,
         company_ntn: companyNTN.trim() || '0000000-0', // Default if empty
         address: companyAddress.trim() || 'Not provided',
         email: companyEmail.trim(),
-        contact_number: '+923000000000', // Default contact number
+        contact_number: companyNumber.trim() || '+923000000000',
         logo_url: selectedImage?.uri || 'https://via.placeholder.com/150',
         logo_filename: selectedImage?.fileName || 'logo.png',
         logo_size: selectedImage?.fileSize || 0,
@@ -328,18 +346,25 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         companyEmail: companyEmail.trim(),
         companyAddress: companyAddress.trim(),
         companyNTN: companyNTN.trim() || '0000000-0',
-        companyNumber: '+923000000000',
-        logoUri: selectedImage?.uri,
+        companyNumber: companyNumber.trim() || '+923000000000',
+        logoUri: selectedImage?.uri || 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=400&q=80',
         logoType: selectedImage?.type,
         logoName: selectedImage?.name,
       });
 
       // Navigate to AdvertismentCreateScreen on success
-      navigation.navigate('AdvertismentCreateScreen');
+      navigation.navigate('AdvertismentCreateScreen', { flow });
     } catch (error: any) {
       console.error('Create company error:', error);
 
       let errorMessage = 'Failed to create company. Please try again.';
+
+      if (error?.response?.data) {
+        console.error(
+          'Create company error response:',
+          JSON.stringify(error.response.data, null, 2),
+        );
+      }
 
       if (error?.response?.status === 401) {
         errorMessage = 'Authentication failed. Please log in again.';
@@ -353,6 +378,17 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         errorMessage = error.message;
       }
 
+      // On API error, set all fields to show red borders
+      setValidationErrors({
+        companyName: true,
+        businessName: true,
+        businessCategory: true,
+        companyEmail: true,
+        companyAddress: true,
+        companyNTN: true,
+        companyNumber: true,
+      });
+
       Alert.alert('Error', errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -363,6 +399,25 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   const isValidEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+
+  // Phone number change handler (same as login screen)
+  const handlePhoneNumberChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9+]/g, '');
+    if (!cleaned.startsWith('+92')) {
+      setCompanyNumber('+92');
+      return;
+    }
+    if (cleaned.length <= 13) {
+      setCompanyNumber(cleaned);
+      // Clear validation error when user starts typing
+      if (validationErrors.companyNumber) {
+        setValidationErrors(prev => ({
+          ...prev,
+          companyNumber: false,
+        }));
+      }
+    }
   };
 
   return (
@@ -493,6 +548,21 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                   error={validationErrors.businessCategory}
                 />
               </View>
+
+              {/* Company Number Input - Same as Login Screen */}
+              <CustomInput
+                label={t('create.companyNumber') || 'Company Number'}
+                placeholder="3XXXXXXXXX"
+                keyboardType="phone-pad"
+                value={companyNumber}
+                onChangeText={handlePhoneNumberChange}
+                onBlur={() => setFocusedField(null)}
+                onFocus={() => setFocusedField('companyNumber')}
+                focused={focusedField === 'companyNumber'}
+                error={!!validationErrors.companyNumber}
+                showErrorText={false}
+                containerStyle={styles.customInputContainer}
+              />
 
               <CustomInput
                 label={t('create.ntn')}
@@ -765,7 +835,7 @@ const styles = StyleSheet.create({
   loadingContainer: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderWidth: 1,
+    borderWidth: 0.6,
     borderColor: '#e0e0e0',
     borderRadius: 12,
     backgroundColor: '#f9f9f9',

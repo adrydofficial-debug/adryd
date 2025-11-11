@@ -26,6 +26,13 @@ export interface AdvertisementData {
   startDate: Date | string; // Can be Date or ISO string after persistence
   endDate: Date | string; // Can be Date or ISO string after persistence
   category?: string;
+  type?: string;
+  size?: string;
+  area?: string;
+  previewImage?: string;
+  mediaUri?: string;
+  mediaType?: string;
+  isVideo?: boolean;
   totalPayment?: number;
   tax?: number;
 }

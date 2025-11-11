@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
-  Dimensions,
   Image,
   PermissionsAndroid,
   Platform,
   StyleSheet,
   Text,
-  TouchableOpacity,View
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import {
   Asset,
@@ -16,16 +15,13 @@ import {
   launchImageLibrary,
 } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { isLocalFileUri, uploadProfileImage } from '../services/imageUpload';
-import { uploadProfileImageFallback } from '../services/imageUploadFallback';
+import { isLocalFileUri } from '../services/imageUpload';
 import { useAuthStore } from '../store/authStore';
-
-const { width } = Dimensions.get('window');
 
 interface ProfileUserProps {
   username?: string;
   avatarUri?: string;
-  onImageSelected?: (imageUri: string) => void;
+  onImageSelected?: (image: { uri: string; name: string; type: string }) => void;
   onImageUploaded?: (uploadedImage: {
     url: string;
     path: string;
@@ -38,23 +34,20 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
   username = '',
   avatarUri,
   onImageSelected,
-  onImageUploaded,
   containerStyle,
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(
     avatarUri || null,
   );
-  const [isUploading, setIsUploading] = useState(false);
   const { user } = useAuthStore();
 
-  // Update selectedImage when avatarUri changes
+  // Update local state when avatarUri changes
   useEffect(() => {
     setSelectedImage(avatarUri || null);
   }, [avatarUri]);
 
   const getInitials = (username: string): string => {
-    const firstInitial = username.charAt(0).toUpperCase();
-    return firstInitial;
+    return username.charAt(0).toUpperCase() || 'U';
   };
 
   const requestGalleryPermission = async (): Promise<boolean> => {
@@ -62,7 +55,7 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
 
     try {
       const androidVersion = Number(Platform.Version);
-      if (androidVersion >= 33) return true; // Android 13+ doesn’t need this anymore
+      if (androidVersion >= 33) return true; // Android 13+ no need
 
       const permission = PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE;
       const hasPermission = await PermissionsAndroid.check(permission);
@@ -70,8 +63,7 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
 
       const status = await PermissionsAndroid.request(permission, {
         title: 'Photo Library Access',
-        message:
-          'We need access to your photos to update your profile picture.',
+        message: 'We need access to your photos to update your profile picture.',
         buttonPositive: 'Allow',
         buttonNegative: 'Deny',
         buttonNeutral: 'Ask Me Later',
@@ -103,24 +95,27 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
 
     launchImageLibrary(options, async response => {
       if (response.didCancel || response.errorMessage) {
-        console.warn(
-          'Image picker cancelled or failed:',
-          response.errorMessage,
-        );
+        console.warn('Image picker cancelled or failed:', response.errorMessage);
         return;
       }
 
       if (response.assets && response.assets.length > 0) {
         const asset: Asset = response.assets[0];
-
         if (asset.uri) {
-          // Update local state immediately
-          setSelectedImage(asset.uri);
-          onImageSelected?.(asset.uri);
+          const file = {
+            uri: asset.uri,
+            name: asset.fileName || 'avatar.jpg',
+            type: asset.type || 'image/jpeg',
+          };
 
-          // Upload to Supabase Storage if we have a user
+          // Update local preview
+          setSelectedImage(file.uri);
+
+          // Notify parent (UpdateProfile) with file object
+          onImageSelected?.(file);
+
+          // Skip upload here; parent handles upload on Save
           if (user?.id && isLocalFileUri(asset.uri)) {
-            // Do NOT upload automatically; parent will upload on save button
             return;
           }
         }

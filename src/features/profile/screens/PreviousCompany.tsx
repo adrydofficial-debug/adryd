@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
+  Alert,
   Dimensions,
   StatusBar,
   StyleSheet,
@@ -11,12 +12,17 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, CommonActions } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AddIcon from '../../../assets/images/add.svg';
+import AdrydLogo from '../../../assets/images/AdrydLogo.png';
 import AxoVoltLogo from '../../../assets/images/AxoVolt.png';
 import { useCompanies } from '../../companies/hooks/useCompanies';
 import { Company as ApiCompany } from '../../companies/domain/entities';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n';
 import NoInternet from '../../../components/NoInternet';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -46,14 +52,32 @@ interface Company {
 interface PreviousCompanyScreenProps {
   onCompanySelect?: (company: Company) => void;
   onAddNewCompany?: () => void;
+  isSelectable?: boolean;
 }
+
+type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
   onCompanySelect,
   onAddNewCompany,
+  isSelectable = false,
 }) => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<any>();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const { t, i18n } = useTranslation('profile');
+  const [languageKey, setLanguageKey] = useState(0);
+  const selectableFromRoute =
+    typeof route?.params?.isSelectable === 'boolean' ? route.params.isSelectable : undefined;
+  const effectiveIsSelectable = selectableFromRoute ?? isSelectable ?? false;
+
+  useEffect(() => {
+    const onLang = () => setLanguageKey(prev => prev + 1);
+    i18n.on('languageChanged', onLang);
+    return () => {
+      i18n.off('languageChanged', onLang);
+    };
+  }, [i18n]);
 
   // Use the companies API hook
   const { data: apiCompanies, isLoading, error, refetch } = useCompanies();
@@ -67,7 +91,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
     return apiCompanies.map((apiCompany: ApiCompany) => ({
       id: apiCompany.id.toString(),
       name: apiCompany.company_name,
-      logo: apiCompany.logo_url ?{ uri: apiCompany.logo_url }:'' , // Fallback to default logo
+      logo: apiCompany.logo_url ? { uri: apiCompany.logo_url } : AdrydLogo, // Fallback to default logo
       color: '#C539A5', // Default color, could be dynamic based on category
       business: apiCompany.category?.name || 'Business',
       ntn: apiCompany.company_ntn || 'N/A',
@@ -92,17 +116,29 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
   };
 
   const handleAddNewCompany = () => {
+    console.log('✅ handleAddNewCompany called');
+    
+    // Navigate FIRST, before calling onAddNewCompany (in case it interferes)
+    console.log('🚀 Attempting to navigate to ChooseOptionScreen...');
+    try {
+      (navigation as any).navigate('ChooseOptionScreen' as never);
+      console.log('✅ Navigation call completed successfully');
+    } catch (error: any) {
+      console.error('❌ Navigation error:', error);
+      Alert.alert('Navigation Error', error?.message || 'Failed to navigate');
+    }
+    
+    // Call onAddNewCompany after navigation
     onAddNewCompany?.();
-    navigation.navigate('CreateCompanyScreen' as never);
-    // Navigate to add company screen or show modal
-    console.log('Add new company pressed');
   };
 
   const handleCompanySelect = (company: Company) => {
     onCompanySelect?.(company);
-     navigation.navigate('AdvertismentCreateScreen' as never);
-    // Navigate to company details or dashboard
-    console.log('Company selected:', company.name);
+    if (effectiveIsSelectable) {
+      navigation.navigate('AdvertismentCreateScreen' as never, { flow: 'business' } as never);
+    } else {
+      console.log('Company selected:', company.name);
+    }
   };
 
   const toggleExpanded = (companyId: string) => {
@@ -128,7 +164,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
         <AddIcon
           width={scaleFont(32)}
           height={scaleFont(32)}
-           color="#9E9E9E"
+          // color="#9E9E9E"
         />
       </View>
     </TouchableOpacity>
@@ -176,23 +212,23 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
               <View style={styles.pinkLine} />
               <View style={styles.detailsContent}>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Business</Text>
+                  <Text style={styles.detailLabel}>{t('previousCompany.business')}</Text>
                   <Text style={styles.detailValue}>{company.business}</Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>NTN</Text>
+                  <Text style={styles.detailLabel}>{t('previousCompany.ntn')}</Text>
                   <Text style={styles.detailValue}>{company.ntn}</Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Address</Text>
+                  <Text style={styles.detailLabel}>{t('previousCompany.address')}</Text>
                   <Text style={styles.detailValue}>{company.address}</Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Email</Text>
+                  <Text style={styles.detailLabel}>{t('previousCompany.email')}</Text>
                   <Text style={styles.detailValue}>{company.email}</Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Number</Text>
+                  <Text style={styles.detailLabel}>{t('previousCompany.number')}</Text>
                   <Text style={styles.detailValue}>{company.number}</Text>
                 </View>
               </View>
@@ -203,7 +239,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
               style={styles.continueButton}
               onPress={() => handleCompanySelect(company)}
               activeOpacity={0.8}>
-              <Text style={styles.continueButtonText}>Continue this business</Text>
+              <Text style={styles.continueButtonText}>{t('previousCompany.continueBusiness')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -212,7 +248,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} key={languageKey}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
       {/* Header */}
@@ -227,9 +263,10 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
             color="#000000"
           />
         </TouchableOpacity>
+        
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Select</Text>
-          <Text style={styles.headerSubtitle}>Select previous company</Text>
+          <Text style={styles.headerTitle} key={`title-${languageKey}`}>{t('previousCompany.select')}</Text>
+          <Text style={styles.headerSubtitle} key={`subtitle-${languageKey}`}>{t('previousCompany.selectPrevious')}</Text>
         </View>
         
      
@@ -243,21 +280,19 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
         {isLoading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#C539A5" />
-            <Text style={styles.loadingText}>Loading companies...</Text>
+            <Text style={styles.loadingText}>{t('previousCompany.loading')}</Text>
           </View>
         )}
 
         {/* Error State */}
         {error && (
           <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>
-              Failed to load companies. Please try again.
-            </Text>
+            <Text style={styles.errorText}>{t('previousCompany.error')}</Text>
             <TouchableOpacity
               style={styles.retryButton}
               onPress={() => refetch()}
             >
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text style={styles.retryButtonText}>{t('previousCompany.retry')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -271,9 +306,9 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
           >
             {companies.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No companies found</Text>
+                <Text style={styles.emptyText}>{t('previousCompany.empty')}</Text>
                 <Text style={styles.emptySubtext}>
-                  Add your first company to get started
+                  {t('previousCompany.emptyHint')}
                 </Text>
               </View>
             ) : (
@@ -286,7 +321,6 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
           </ScrollView>
         )}
       </View>
-       <NoInternet />
     </SafeAreaView>
   );
 };
@@ -339,8 +373,8 @@ const styles = StyleSheet.create({
   addCompanyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: scaleWidth(12),
-    height: scaleHeight(70),
-    width: '100%',
+    height: scaleHeight(67),
+    width: '93%',
     marginBottom: hp(2),
     shadowColor: '#000',
     shadowOffset: {
@@ -352,18 +386,18 @@ const styles = StyleSheet.create({
     elevation: 3,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
   },
   addCompanyIconContainer: {
     width: scaleWidth(40),
     height: scaleWidth(48),
     borderRadius: scaleWidth(24),
-    //  backgroundColor: '#c71212ff',
+    // backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
   },
   companyList: {
     flex: 1,
-  
   },
   scrollContent: {
     paddingHorizontal: wp(4),

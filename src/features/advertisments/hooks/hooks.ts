@@ -38,13 +38,44 @@ interface UploadArgs {
 export function useUploadAdvertisementFiles() {
   return useMutation<void, Error, UploadArgs>({
     mutationFn: async ({ uploadUrl, files }) => {
-      if (!uploadUrl) throw new Error('No upload URL provided');
-      if (!files || files.length === 0)
-        throw new Error('No files provided for upload');
-
-      for (const file of files) {
-        await uploadToSignedUrl(uploadUrl, file);
+      console.log('🔵 [useUploadAdvertisementFiles] Mutation function called');
+      console.log('🔵 [useUploadAdvertisementFiles] Upload URL:', uploadUrl);
+      console.log('🔵 [useUploadAdvertisementFiles] Files count:', files?.length || 0);
+      console.log('🔵 [useUploadAdvertisementFiles] Files:', JSON.stringify(files, null, 2));
+      
+      if (!uploadUrl) {
+        console.error('❌ [useUploadAdvertisementFiles] No upload URL provided');
+        throw new Error('No upload URL provided');
       }
+      if (!files || files.length === 0) {
+        console.error('❌ [useUploadAdvertisementFiles] No files provided for upload');
+        throw new Error('No files provided for upload');
+      }
+
+      console.log('🔄 [useUploadAdvertisementFiles] Starting file upload loop...');
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        console.log(`📤 [useUploadAdvertisementFiles] Uploading file ${i + 1}/${files.length}:`, {
+          name: file.name,
+          type: file.type,
+          uri: file.uri.substring(0, 50) + '...',
+        });
+        
+        try {
+          await uploadToSignedUrl(uploadUrl, file);
+          console.log(`✅ [useUploadAdvertisementFiles] File ${i + 1}/${files.length} uploaded successfully`);
+        } catch (error: any) {
+          console.error(`❌ [useUploadAdvertisementFiles] Failed to upload file ${i + 1}/${files.length}:`, error);
+          console.error(`❌ [useUploadAdvertisementFiles] Error details:`, {
+            name: error?.name,
+            message: error?.message,
+            stack: error?.stack,
+          });
+          throw error;
+        }
+      }
+      
+      console.log('✅ [useUploadAdvertisementFiles] All files uploaded successfully');
     },
   });
 }

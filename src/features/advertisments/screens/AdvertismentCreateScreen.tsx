@@ -38,15 +38,24 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 interface Props {
   navigation: NavigationProp | any;
 }
-const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
+const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation('advertisments');
   const setAdvertisementData = useCampaignStore((state) => state.setAdvertisementData);
   const selectedDaysFromStore = useCampaignStore((state) => state.selectedDays);
   const setSelectedDaysToStore = useCampaignStore((state) => state.setSelectedDays);
   const clearSelectedDays = useCampaignStore((state) => state.clearSelectedDays);
+  const flow = route?.params?.flow ?? 'business';
   const COMPANY_ID = 1;
   const BOARD_ID = 1;
   const [campaignName] = useState<string>('Test Ad');
+  const [size, setSize] = useState<string>('12x8 ft');
+  const [type, setType] = useState<string>('Digital');
+  const [category, setCategory] = useState<string>('Banner Board');
+  const [location, setLocation] = useState<string>('Lahore');
+  const [area, setArea] = useState<string>('Gulberg Main Boulevard');
+  const [campaignImage] = useState<string>(
+    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80',
+  );
   const [campaignCategory] = useState<string>('Static Category');
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(
@@ -61,7 +70,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
   }, [selectedDaysFromStore]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [description] = useState<string>('My great test advertisement.');
-  const [location] = useState<string>('Lahore');
+  const [locationName] = useState<string>('Lahore');
   const [errorText, setErrorText] = useState<string>('');
 
   // Use the hook for API calls
@@ -381,11 +390,49 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                 onChangeText={() => {}}
                 containerStyle={styles.customInputContainer}
               />
+              
+              {/* Size Field */}
               <CustomInput
-                label={t('createScreen.category')}
-                placeholder={t('createScreen.selectCategory')}
-                value={campaignCategory}
-                onChangeText={() => {}}
+                label="Size"
+                placeholder="Enter size"
+                value={size}
+                onChangeText={setSize}
+                containerStyle={styles.customInputContainer}
+              />
+
+              {/* Type Field */}
+              <CustomInput
+                label="Type"
+                placeholder="Enter type"
+                value={type}
+                onChangeText={setType}
+                containerStyle={styles.customInputContainer}
+              />
+
+              {/* Category Field */}
+              <CustomInput
+                label="Category"
+                placeholder="Enter category"
+                value={category}
+                onChangeText={setCategory}
+                containerStyle={styles.customInputContainer}
+              />
+
+              {/* Location Field */}
+              <CustomInput
+                label="Location"
+                placeholder="Enter location"
+                value={location}
+                onChangeText={setLocation}
+                containerStyle={styles.customInputContainer}
+              />
+
+              {/* Area Field */}
+              <CustomInput
+                label="Area"
+                placeholder="Enter area"
+                value={area}
+                onChangeText={setArea}
                 containerStyle={styles.customInputContainer}
               />
               <View style={styles.dateTimeContainer}>
@@ -424,9 +471,9 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                   textAlignVertical="top"
                 />
               </View>
-              <View style={styles.locationContainer}>
-                <Text style={styles.locationLabel}>{t('createScreen.location')}</Text>
-                <View style={styles.mapContainer}>
+              {/* <View style={styles.locationContainer}> */}
+                {/* <Text style={styles.locationLabel}>{t('createScreen.location')}</Text> */}
+                {/* <View style={styles.mapContainer}>
                   <View style={styles.mapPlaceholder}>
                     <Ionicons
                       name="location"
@@ -435,8 +482,8 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                     />
                     <Text style={styles.mapText}>{location}</Text>
                   </View>
-                </View>
-              </View>
+                </View> */}
+              {/* </View> */}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -654,13 +701,20 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
               setAdvertisementData({
                 campaignName: campaignName,
                 description: description,
-                location: location,
+                location: location || locationName,
                 selectedDays: selectedDays.length > 0 ? selectedDays : [firstDate, lastDate],
                 startDate: firstDate,
                 endDate: lastDate,
-                category: campaignCategory,
+                category: category || campaignCategory,
                 totalPayment: 5000,
-                tax: 1000, // Default tax value
+                tax: 1000,
+                size,
+                type,
+                area,
+                previewImage: campaignImage,
+                mediaUri: campaignImage,
+                mediaType: 'image/jpeg',
+                isVideo: false,
               });
 
               // Call the API using the hook with callbacks
@@ -679,9 +733,13 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                   // Refetch advertisements to update booked dates immediately
                   await refetchAdvertisements();
                   
-                  // Navigate to AdvertismentConfirmationScreen instead of CampaignUploadFiles
+                  // Navigate to CampaignUploadFiles with upload info
                   navigation.navigate('CampaignUploadFiles', {
                     campaignId: response.advertisement?.id?.toString() || '',
+                    uploadUrl: response.upload?.uploadUrl || '',
+                    publicUrl: response.upload?.publicUrl || '',
+                    key: response.upload?.key || '',
+                    flow,
                   });
                 },
                 onError: error => {
