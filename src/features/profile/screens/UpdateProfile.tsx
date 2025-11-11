@@ -1,5 +1,6 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dimensions,
   KeyboardAvoidingView,
@@ -13,11 +14,11 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
-import ProfileUser from '../../../components/ProfileUser';
-import { useProfile, useUpdateProfile, useUploadProfileAvatar } from '../hooks';
 import NoInternet from '../../../components/NoInternet';
-import { useTranslation } from 'react-i18next';
+import ProfileUser from '../../../components/ProfileUser';
 import i18n from '../../../i18n';
+import { useProfile, useUpdateUserProfile } from '../hooks';
+
 const { width, height } = Dimensions.get('window');
 const wp = (p: number) => (width * p) / 100;
 const hp = (p: number) => (height * p) / 100;
@@ -28,16 +29,18 @@ const UpdateProfile: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [languageKey, setLanguageKey] = useState(0);
 
-  // Profile data from Supabase
-  const { data: profile, isLoading: profileLoading, refetch } = useProfile();
-  const updateProfile = useUpdateProfile();
-  const uploadAvatar = useUploadProfileAvatar();
+  // Profile hooks
+  const { data: profile, refetch } = useProfile();
+  const updateProfile = useUpdateUserProfile();
 
-  // State for the editable fields
+  // Local state
   const [fullName, setFullName] = useState('');
+  const [avatarFile, setAvatarFile] = useState<
+    { uri: string; name: string; type: string } | undefined
+  >(undefined);
   const [avatarUri, setAvatarUri] = useState<string | undefined>(undefined);
 
-  // Listen for language changes and force re-render
+  // Language change listener
   useEffect(() => {
     const handleLanguageChange = () => {
       setLanguageKey(prev => prev + 1);
@@ -48,7 +51,7 @@ const UpdateProfile: React.FC = () => {
     };
   }, []);
 
-  // Initialize fields from profile data
+  // Initialize from profile data
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || '');
@@ -56,7 +59,7 @@ const UpdateProfile: React.FC = () => {
     }
   }, [profile]);
 
-  // Refetch profile data when screen comes into focus
+  // Refetch when focused
   useFocusEffect(
     useCallback(() => {
       setRefreshKey(prev => prev + 1);
@@ -65,26 +68,18 @@ const UpdateProfile: React.FC = () => {
     }, [refetch]),
   );
 
-  const initials = useMemo(() => {
-    const u = fullName?.[0] ?? '';
-    return u.toUpperCase() || 'U';
-  }, [fullName]);
-
   const handleSave = async () => {
     try {
       await updateProfile.mutateAsync({
         full_name: fullName.trim(),
-        avatar_url: avatarUri, // include current selected avatar in save
+        avatarFile, // if user picked a new image
       });
 
-      // Force refresh by updating key and refetching
       setRefreshKey(prev => prev + 1);
       await refetch();
-
       navigation.goBack();
     } catch (error: any) {
-      // Silent error handling - no alerts
-      console.error('Profile update error:', error);
+      console.error('💀 Profile update error:', error);
     }
   };
 
@@ -106,22 +101,21 @@ const UpdateProfile: React.FC = () => {
           >
             <Ionicons name="chevron-back" size={22} color="#111" />
           </TouchableOpacity>
-          <Text style={styles.title} key={`title-${languageKey}`}>{t('updateProfile.screenTitle')}</Text>
+          <Text style={styles.title} key={`title-${languageKey}`}>
+            {t('updateProfile.screenTitle')}
+          </Text>
           <View style={{ width: 32 }} />
         </View>
 
-        {/* Avatar / Header card */}
+        {/* Avatar Section */}
         <ProfileUser
           key={refreshKey}
           username={fullName}
           avatarUri={avatarUri}
-          onImageSelected={async imageUri => {
-            // Update local state immediately for better UX
-            setAvatarUri(imageUri);
-          }}
-          onImageUploaded={async uploadedImage => {
-            // Only stage the selected avatar; actual update will occur on button press
-            setAvatarUri(uploadedImage.publicUrl);
+          onImageSelected={async image => {
+            // image = { uri, name, type }
+            setAvatarFile(image);
+            setAvatarUri(image.uri);
           }}
           containerStyle={styles.headerCard}
         />
@@ -136,19 +130,19 @@ const UpdateProfile: React.FC = () => {
             containerStyle={styles.inputContainerFix}
           />
 
-          <Text style={styles.smallLabel}>{t('updateProfile.phoneNumber')}</Text>
+          <Text style={styles.smallLabel}>
+            {t('updateProfile.phoneNumber')}
+          </Text>
           <CustomInput
             value={profile?.phone || ''}
             onChangeText={() => {}} // Read-only
             placeholder={t('updateProfile.phonePlaceholder')}
             containerStyle={styles.inputContainerFix}
           />
-          <Text style={styles.noteText}>
-            {t('updateProfile.phoneNote')}
-          </Text>
+          <Text style={styles.noteText}>{t('updateProfile.phoneNote')}</Text>
         </View>
 
-        {/* Buttons */}
+        {/* Save Button */}
         <View style={styles.buttonWrap}>
           <CustomButton
             title={t('updateProfile.cta')}
@@ -158,7 +152,8 @@ const UpdateProfile: React.FC = () => {
           />
         </View>
       </ScrollView>
-       <NoInternet />
+
+      <NoInternet />
     </KeyboardAvoidingView>
   );
 };

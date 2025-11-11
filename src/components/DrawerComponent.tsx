@@ -203,7 +203,15 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
     { id: 7, title: t('drawer.terms'), onPress: () => {},
     //  color: '#795548',
       icon: 'terms' },
-    { id: 8, title: t('drawer.contact'), onPress: () => {},
+      { id: 8, title: t('drawer.contact'), onPress: () => {
+        onClose();
+        try {
+          navigation.navigate('ContactSupportScreen' as never);
+          console.log('✅ Navigation to ContactSupportScreen successful');
+        } catch (error) {
+          console.error('❌ Navigation error:', error);
+        }
+      },
     //  color: '#009688',
       icon: 'contact' },
   ];
