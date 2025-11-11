@@ -166,12 +166,19 @@ const ForgotPassword: React.FC = () => {
   };
 
   const handleResendOTP = async (): Promise<void> => {
+    console.log('🔄 [ForgotPassword] Resending OTP to:', phoneNumber);
     await new Promise<void>((resolve, reject) => {
       forgotPassword.mutate(
         { phone: phoneNumber },
         {
-          onSuccess: () => resolve(),
-          onError: err => reject(err),
+          onSuccess: () => {
+            console.log('✅ [ForgotPassword] OTP resent successfully');
+            resolve();
+          },
+          onError: (err: any) => {
+            console.error('❌ [ForgotPassword] Failed to resend OTP:', err);
+            reject(err);
+          },
         },
       );
     });

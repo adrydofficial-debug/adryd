@@ -16,7 +16,7 @@ import ChatScreen from '../../features/chat/screens/ChatScreen';
   import ChangePassword from '../../features/profile/screens/ChangePassword';
   import PreviousCompanyScreen from '../../features/profile/screens/PreviousCompany';
 //  import UpdateProfile from '../../features/profile/screens/UpdateProfile';
-import AdvertismentConfirmationScreen from '../..//features/advertisments/screens/AdvertismentConfirmationScreen';
+import CompanyWithInfoScreen from '../../features/advertisments/screens/CompanyWithInfoScreen';
 import AdvertismentCongratulateScreen from '../../features/advertisments/screens/AdvertismentCongratulateScreen';
 import GetAllNotification from '../../features/notifications/screens/GetAllNotification';
 import SearchLocation from '../../features/locations/screens/SearchLocation';
@@ -38,7 +38,7 @@ export type AppStackParamList = {
   FavouritesScreen: undefined;
   FilterCategoryList: { slug?: string };
   SingleBoardDetail: { item: any };
-  AdvertismentConfirmationScreen: { campaignId: string };
+  CompanyWithInfoScreen: { campaignId: string };
   AdvertismentCongratulateScreen: { campaignId: string};
   ChatScreen: { chatId: string; userName: string };
   Notifications: undefined;
@@ -59,7 +59,7 @@ const AppNavigator = () => (
     <Stack.Screen name="FilterCategoryList" component={FilterCategoryList} />
     <Stack.Screen  name="AdvertismentCreateScreen"  component={AdvertismentCreateScreen}/> 
     <Stack.Screen name="AdvertismentCongratulateScreen" component={AdvertismentCongratulateScreen}/>
-    <Stack.Screen name="AdvertismentConfirmationScreen" component={AdvertismentConfirmationScreen}/>
+    <Stack.Screen name="CompanyWithInfoScreen" component={CompanyWithInfoScreen}/>
     <Stack.Screen name="ChangePassword" component={ChangePassword} />
     <Stack.Screen
       name="PreviousCompanyScreen"

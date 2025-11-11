@@ -93,8 +93,13 @@ export const useLogin = () => {
 export const useForgotPassword = () => {
   return useMutation({
     mutationFn: async ({ phone }: { phone: string }) => {
+      console.log('📱 [useForgotPassword] Sending OTP to phone:', phone);
       const { error } = await supabase.auth.signInWithOtp({ phone });
-      if (error) throw error;
+      if (error) {
+        console.error('❌ [useForgotPassword] Error sending OTP:', error.message);
+        throw error;
+      }
+      console.log('✅ [useForgotPassword] OTP sent successfully');
       return { message: 'OTP sent for password reset' };
     },
   });

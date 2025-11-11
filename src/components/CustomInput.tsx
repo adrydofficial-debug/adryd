@@ -85,7 +85,7 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
           style={[
             styles.phoneInputWrapper,
             error ? styles.phoneInputWrapperError : undefined,
-            focused ? styles.phoneInputWrapperFocused : undefined,
+            focused && !error ? styles.phoneInputWrapperFocused : undefined,
           ]}
         >
           <Text
@@ -194,16 +194,16 @@ const styles = StyleSheet.create({
     paddingVertical: hp(1.5),
   },
   inputError: {
-    borderColor: '#C539A5',
-    borderWidth: 0.6,
+    borderColor: '#ff4444',
+    borderWidth: 1.5,
   },
   inputFocused: {
     borderColor: '#c539a5ff',
     borderWidth: 0.5,
   },
   phoneInputWrapperError: {
-    borderColor: '#C539A5',
-    borderWidth: 0.6,
+    borderColor: '#ff4444',
+    borderWidth: 1.5,
   },
   phoneInputWrapperFocused: {
     borderColor: '#C539A5',

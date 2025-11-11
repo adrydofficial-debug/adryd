@@ -27,19 +27,35 @@ const OTPModal: React.FC<OTPModalProps> = ({
   visible,
   onClose,
   onVerify,
+  onResend,
+  phoneNumber,
 }) => {
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
   const inputRefs = useRef<TextInput[]>([]);
 
   useEffect(() => {
     if (visible) {
       setOtp(['', '', '', '', '', '']);
       setIsLoading(false);
+      setIsResending(false);
       setErrorMessage('');
+      setResendCooldown(60); // 60 seconds cooldown
     }
   }, [visible]);
+
+  // Countdown timer for resend cooldown
+  useEffect(() => {
+    if (resendCooldown > 0 && visible) {
+      const timer = setTimeout(() => {
+        setResendCooldown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown, visible]);
 
   const handleOtpChange = (value: string, index: number) => {
     if (errorMessage) setErrorMessage('');
@@ -102,14 +118,31 @@ const OTPModal: React.FC<OTPModalProps> = ({
     }
   };
 
-  //   const handleResend = async () => {
-  //     try {
-  //       await onResend();
-  //       Alert.alert('Success', 'New OTP sent successfully');
-  //     } catch (error) {
-  //       Alert.alert('Error', 'Failed to resend OTP. Please try again.');
-  //     }
-  //   };
+  const handleResend = async () => {
+    if (resendCooldown > 0 || isResending) {
+      return;
+    }
+
+    setIsResending(true);
+    setErrorMessage('');
+    
+    try {
+      await onResend();
+      setResendCooldown(60); // Reset cooldown after successful resend
+      setOtp(['', '', '', '', '', '']); // Clear OTP fields
+      // Focus first input after resend
+      inputRefs.current[0]?.focus();
+    } catch (error: any) {
+      console.error('Resend OTP error:', error);
+      let message = 'Failed to resend OTP. Please try again.';
+      if (error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string') {
+        message = (error as any).message;
+      }
+      setErrorMessage(message);
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   return (
     <Modal
@@ -159,6 +192,25 @@ const OTPModal: React.FC<OTPModalProps> = ({
           {errorMessage ? (
             <Text style={styles.errorText}>{errorMessage}</Text>
           ) : null}
+
+          {/* Resend OTP Button */}
+          <TouchableOpacity
+            style={[
+              styles.resendButton,
+              (resendCooldown > 0 || isResending) && styles.resendButtonDisabled,
+            ]}
+            onPress={handleResend}
+            disabled={resendCooldown > 0 || isResending}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.resendButtonText}>
+              {isResending
+                ? 'Sending...'
+                : resendCooldown > 0
+                ? `Resend OTP (${resendCooldown}s)`
+                : 'Resend OTP'}
+            </Text>
+          </TouchableOpacity>
 
           {/* Verify Button */}
           <TouchableOpacity
@@ -294,6 +346,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: height * 0.01,
     marginBottom: height * 0.01,
+  },
+  resendButton: {
+    marginTop: height * 0.02,
+    marginBottom: height * 0.02,
+    paddingVertical: height * 0.015,
+    paddingHorizontal: width * 0.1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resendButtonDisabled: {
+    opacity: 0.5,
+  },
+  resendButtonText: {
+    color: '#C539A5',
+    fontSize: width * 0.04,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
 
