@@ -51,12 +51,12 @@ const ChooseOptionScreen: React.FC = () => {
 
   const handleIndividualPress = () => {
     // Navigate to individual flow
-    navigation.navigate('CreateCompanyScreen' as never);
+  navigation.navigate('AdvertismentCreateScreen', { flow: 'individual' } as never);
   };
 
   const handleBusinessPress = () => {
     // Navigate to business flow
-    navigation.navigate('CreateCompanyScreen' as never);
+  navigation.navigate('CreateCompanyScreen', { flow: 'business' } as never);
   };
 
   return (

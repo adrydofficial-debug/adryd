@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   ScrollView,
 } from 'react-native';
-import { useFocusEffect, useNavigation, CommonActions } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, CommonActions } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -52,6 +52,7 @@ interface Company {
 interface PreviousCompanyScreenProps {
   onCompanySelect?: (company: Company) => void;
   onAddNewCompany?: () => void;
+  isSelectable?: boolean;
 }
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
@@ -59,11 +60,16 @@ type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
   onCompanySelect,
   onAddNewCompany,
+  isSelectable = false,
 }) => {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<any>();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const { t, i18n } = useTranslation('profile');
   const [languageKey, setLanguageKey] = useState(0);
+  const selectableFromRoute =
+    typeof route?.params?.isSelectable === 'boolean' ? route.params.isSelectable : undefined;
+  const effectiveIsSelectable = selectableFromRoute ?? isSelectable ?? false;
 
   useEffect(() => {
     const onLang = () => setLanguageKey(prev => prev + 1);
@@ -128,8 +134,11 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
 
   const handleCompanySelect = (company: Company) => {
     onCompanySelect?.(company);
-    // Navigate to company details or dashboard
-    console.log('Company selected:', company.name);
+    if (effectiveIsSelectable) {
+      navigation.navigate('AdvertismentCreateScreen' as never, { flow: 'business' } as never);
+    } else {
+      console.log('Company selected:', company.name);
+    }
   };
 
   const toggleExpanded = (companyId: string) => {
@@ -364,7 +373,8 @@ const styles = StyleSheet.create({
   addCompanyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: scaleWidth(12),
-    height: scaleHeight(80),
+    height: scaleHeight(67),
+    width: '93%',
     marginBottom: hp(2),
     shadowColor: '#000',
     shadowOffset: {
@@ -376,6 +386,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
   },
   addCompanyIconContainer: {
     width: scaleWidth(40),

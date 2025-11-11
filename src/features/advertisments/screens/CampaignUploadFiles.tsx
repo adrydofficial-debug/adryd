@@ -109,6 +109,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
   const uploadUrl = params.uploadUrl;
   const campaignId = params.campaignId ? parseInt(params.campaignId, 10) : null;
   const publicUrl = params.publicUrl;
+  const flow = params.flow || 'business';
 
   const { mutateAsync: uploadFiles, isPending } = useUploadAdvertisementFiles();
   const { mutateAsync: addMedia, isPending: isAddingMedia } = useAddAdvertisementMedia(campaignId || 0);
@@ -330,7 +331,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <LinearGradient
+    <LinearGradient
         colors={['#FFF4FD', '#fef3f9']}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
@@ -584,7 +585,13 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
                 }
                 
                 console.log('✅ [CampaignUploadFiles] Upload process completed successfully!');
-                navigation.navigate('CompanyWithInfoScreen');
+                if (flow === 'individual') {
+                  navigation.navigate('CompanywithoutInfoScreen');
+                } else {
+                  navigation.navigate('CompanyWithInfoScreen', {
+                    campaignId: campaignId?.toString() || '',
+                  });
+                }
               } catch (error: any) {
                 console.error('❌ [CampaignUploadFiles] Upload failed with error:', error);
                 console.error('❌ [CampaignUploadFiles] Error name:', error?.name);

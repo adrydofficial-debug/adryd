@@ -22,19 +22,21 @@ import GetAllNotification from '../../features/notifications/screens/GetAllNotif
 import SearchLocation from '../../features/locations/screens/SearchLocation';
 import ContactSupportScreen from '../../components/ContactSupportScreen';
 import ChooseOptionScreen from '../../features/advertisments/screens/ChooseOptionScreen';
+import CompanywithoutInfoScreen from '../../features/advertisments/screens/CompanywithoutInfoScreen';
+
 // 🔹 Define navigation param types
 export type AppStackParamList = {
   BottomTab: undefined;
   CompaignStatus: undefined;
-  AdvertismentCreateScreen: undefined;
-  CampaignUploadFiles: { uploadUrl: string };
+  AdvertismentCreateScreen: { flow?: 'individual' | 'business' };
+  CampaignUploadFiles: { uploadUrl: string; flow?: 'individual' | 'business' };
   CurrentLocation: undefined;
   HomeScreen: undefined;
   CompaniesScreen: undefined;
   CompanyListScreen: undefined;
-  CreateCompanyScreen: undefined;
+  CreateCompanyScreen: { flow?: 'individual' | 'business' };
   UpdateProfile: undefined;
-  PreviousCompanyScreen: undefined;
+  PreviousCompanyScreen: { isSelectable?: boolean } | undefined;
   ChangePassword: undefined;
   FavouritesScreen: undefined;
   FilterCategoryList: { slug?: string };
@@ -46,6 +48,7 @@ export type AppStackParamList = {
   SearchLocation: undefined;
   ChooseOptionScreen: undefined;
   ContactSupportScreen: undefined;
+  CompanywithoutInfoScreen: { campaignId: string };
 };
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const AppNavigator = () => (
@@ -70,6 +73,7 @@ const AppNavigator = () => (
     <Stack.Screen name="ContactSupportScreen" component={ContactSupportScreen} />
        <Stack.Screen name="ChatScreen" component={ChatScreen} />
        <Stack.Screen name="ChooseOptionScreen" component={ChooseOptionScreen} />
+       <Stack.Screen name="CompanywithoutInfoScreen" component={CompanywithoutInfoScreen} />
 
 
     {/* <Stack.Screen

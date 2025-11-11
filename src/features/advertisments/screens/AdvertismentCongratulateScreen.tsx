@@ -59,9 +59,9 @@ const AdvertismentCongratulateScreen: React.FC = () => {
               </Text>
             </View>
             {/* Reward Section */}
-            <View style={styles.rewardContainer}>
+            {/* <View style={styles.rewardContainer}>
               <Text style={styles.rewardAmount}>Pkr 30,000</Text>
-            </View>
+            </View> */}
             {/* Campaign Details Section */}
             <View style={styles.detailsSection}>
               <View style={styles.detailRow}>
@@ -144,19 +144,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFF4FD',
+
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: wp(5),
-    paddingTop: hp(2),
+    paddingTop: hp(10),
     // paddingBottom: hp(20),
     flexGrow: 1,
   },
   imgStyle:{
-    height:60,
-    width:60
+    height:80,
+    width:80
   },
   contentCard: {
     backgroundColor: '#fff',
@@ -285,7 +286,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: width * 0.09,
-    paddingBottom: height * 0.03,
+    position: 'absolute',
+    bottom: hp(10),
+    left: 0,
+    right: 0, 
   },
   downloadButton: {
     width: '100%',

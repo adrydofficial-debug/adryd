@@ -160,7 +160,9 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
       onPress: () => {
         onClose(); // Close the drawer first
         try {
-          navigation.navigate('CompanyListScreen' as never);
+          (navigation as any).navigate('PreviousCompanyScreen', {
+            isSelectable: true,
+          });
           console.log('✅ Navigation to CompanyListScreen successful');
         } catch (error) {
           console.error('❌ Navigation error:', error);

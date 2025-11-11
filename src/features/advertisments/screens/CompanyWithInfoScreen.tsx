@@ -181,7 +181,7 @@ const CompanyWithInfoScreen: React.FC<any> = ({ navigation }) => {
         </View>
 
         {/* Payment Summary */}
-        <View style={styles.paymentCard}>
+        {/* <View style={styles.paymentCard}>
           <View style={styles.paymentRow}>
             <View style={styles.paymentAvatar}>
               <Ionicons name="card-outline" size={wp(7)} color="#FF5BA5" />
@@ -213,7 +213,7 @@ const CompanyWithInfoScreen: React.FC<any> = ({ navigation }) => {
               {formatCurrency(advertisementData?.totalPayment || 30000)}
             </Text>
           </View>
-        </View>
+        </View> */}
       </ScrollView>
 
       <View style={styles.bottomBar}>
@@ -238,7 +238,11 @@ type DetailRowProps = {
 const DetailRow: React.FC<DetailRowProps> = ({ label, value, compact }) => (
   <View style={[styles.detailRow, compact && styles.detailRowCompact]}>
     <Text style={[styles.detailKey, compact && styles.detailKeyCompact]}>{label}</Text>
-    <Text style={[styles.detailValueText, compact && styles.detailValueCompact]}>
+    <Text
+      style={[styles.detailValueText, compact && styles.detailValueCompact]}
+      numberOfLines={2}
+      ellipsizeMode="clip"
+    >
       {value}
     </Text>
   </View>
@@ -342,8 +346,9 @@ const styles = StyleSheet.create({
     marginBottom: hp(2.5),
   },
   summaryCard: {
-    width: '45%',
+    width: '48%',
     minHeight: hp(18),
+    maxHeight: hp(18),
     backgroundColor: '#FFFFFF',
     borderRadius: wp(4),
     paddingVertical: hp(3),
@@ -393,7 +398,7 @@ const styles = StyleSheet.create({
     color: '#C539A5',
   },
   summarySubtitle: {
-    fontSize: wp(3.1),
+    fontSize: wp(3),
     color: '#A1A1A1',
     marginTop: hp(0.3),
   },
@@ -416,7 +421,7 @@ const styles = StyleSheet.create({
   },
   linkBadge: {
     position: 'absolute',
-    left: '50%',
+    left: '54%',
     top: '50%',
     transform: [{ translateX: -wp(3) }, { translateY: -wp(3) }],
     width: wp(6),
@@ -429,11 +434,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
-    elevation: 5,
+    elevation: 15,
     zIndex: 10,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#E5E7EB',
     borderRadius: wp(4),
     paddingVertical: hp(2.5),
     paddingHorizontal: wp(5),
@@ -451,12 +456,16 @@ const styles = StyleSheet.create({
   },
   detailGrid: {
     gap: hp(1.2),
+    backgroundColor:"#FFFFFF",
+    borderRadius:wp(3),
+    padding:wp(4),
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: wp(4),
+    paddingHorizontal: hp(0.8),
   },
   detailRowCompact: {
     marginTop: hp(0.5),
@@ -475,7 +484,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: wp(3.4),
     color: '#2D2D2D',
-    textAlign: 'right',
+    textAlign: 'left',
   },
   detailValueCompact: {
     fontSize: wp(3.2),

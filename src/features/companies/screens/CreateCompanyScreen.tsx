@@ -38,6 +38,7 @@ interface CompanyDetailScreenProps {
     goBack: () => void;
     navigate: (screen: string, params?: any) => void;
   };
+  route?: { params?: { flow?: 'individual' | 'business' } };
   company?: Company;
   onSave?: (companyData: Partial<Company>) => void;
 }
@@ -51,10 +52,12 @@ interface SelectedImage {
 }
 const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   navigation,
+  route,
   company,
 }) => {
   const { t } = useTranslation('companies');
   const setCompanyData = useCampaignStore((state) => state.setCompanyData);
+  const flow = route?.params?.flow ?? 'business';
   const [companyName, setCompanyName] = useState(
     company?.company_name || 'Adryd',
   );
@@ -350,7 +353,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       });
 
       // Navigate to AdvertismentCreateScreen on success
-      navigation.navigate('AdvertismentCreateScreen');
+      navigation.navigate('AdvertismentCreateScreen', { flow });
     } catch (error: any) {
       console.error('Create company error:', error);
 

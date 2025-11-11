@@ -38,12 +38,13 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 interface Props {
   navigation: NavigationProp | any;
 }
-const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
+const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation('advertisments');
   const setAdvertisementData = useCampaignStore((state) => state.setAdvertisementData);
   const selectedDaysFromStore = useCampaignStore((state) => state.selectedDays);
   const setSelectedDaysToStore = useCampaignStore((state) => state.setSelectedDays);
   const clearSelectedDays = useCampaignStore((state) => state.clearSelectedDays);
+  const flow = route?.params?.flow ?? 'business';
   const COMPANY_ID = 1;
   const BOARD_ID = 1;
   const [campaignName] = useState<string>('Test Ad');
@@ -738,6 +739,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation }) => {
                     uploadUrl: response.upload?.uploadUrl || '',
                     publicUrl: response.upload?.publicUrl || '',
                     key: response.upload?.key || '',
+                    flow,
                   });
                 },
                 onError: error => {
