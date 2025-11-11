@@ -224,12 +224,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         ? parseFloat(board.price)
         : 0;
 
-    const imageUrl =
-      board.image_url ||
-      board.image ||
-      (Array.isArray(board.media) && board.media.length > 0
+    const primaryMediaUrl =
+      Array.isArray(board.media) && board.media.length > 0
         ? board.media[0]?.url
-        : null);
+        : null;
+    const imageUrl = board.image_url || board.image || primaryMediaUrl;
 
     return {
       id: board.id?.toString() || 'unknown',
@@ -244,6 +243,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       image_url: imageUrl,
       image: imageUrl,
       rating: board.avg_rating ?? board.rating ?? 0,
+      media: Array.isArray(board.media) ? board.media : [],
     };
   };
 

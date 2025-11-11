@@ -18,7 +18,13 @@ const {width, height} = Dimensions.get('window');
 const CARD_WIDTH = 165;
 const CARD_HEIGHT = 237;
 
+const FALLBACK_IMAGE = require('../assets/images/bannerBg.png');
 
+
+
+interface BoardMediaItem {
+  url?: string | null;
+}
 
 export interface BoardItem {
   id: string;
@@ -38,6 +44,7 @@ export interface BoardItem {
   labels?: string[]; // Array of labels like "Special", "20% Less", "Recommended", "Near"
   discount?: string; // Discount label like "20% Less"
   isMore?: boolean; // Special flag for "More" card
+  media?: Array<BoardMediaItem | string>;
 }
 
 interface BoardListProps {
@@ -180,31 +187,69 @@ const BoardList: React.FC<BoardListProps> = ({
       );
     }
 
+    const sanitizeUrl = (input?: string | null) => {
+      if (!input) {
+        return null;
+      }
+      const trimmed = input.trim();
+      if (!trimmed) {
+        return null;
+      }
+      const isAbsolute = /^https?:\/\//i.test(trimmed);
+      if (isAbsolute) {
+        try {
+          return encodeURI(trimmed);
+        } catch {
+          return trimmed;
+        }
+      }
+      const normalizedPath = trimmed.startsWith('/')
+        ? trimmed
+        : `/${trimmed}`;
+      return `https://adryd-backend-production.up.railway.app${normalizedPath}`;
+    };
+
+    const asRemoteSource = (maybeUrl?: string | null) => {
+      const sanitized = sanitizeUrl(maybeUrl);
+      return sanitized ? { uri: sanitized } : null;
+    };
+
     const resolveImageSource = () => {
       if (item.image) {
         if (typeof item.image === 'string') {
-          if (item.image.startsWith('http')) {
-            return { uri: item.image };
+          const remote = asRemoteSource(item.image);
+          if (remote) {
+            return remote;
           }
-          return {
-            uri: `https://adryd-backend-production.up.railway.app${item.image}`,
-          };
-        }
-        return item.image;
-      }
-
-      if (item.image_url) {
-        if (typeof item.image_url === 'string') {
-          if (item.image_url.startsWith('http')) {
-            return { uri: item.image_url };
-          }
-          return {
-            uri: `https://adryd-backend-production.up.railway.app${item.image_url}`,
-          };
+        } else {
+          return item.image;
         }
       }
 
-      return require('../assets/images/bannerBg.png');
+      if (typeof item.image_url === 'string') {
+        const remote = asRemoteSource(item.image_url);
+        if (remote) {
+          return remote;
+        }
+      }
+
+      if (Array.isArray(item.media) && item.media.length > 0) {
+        for (const mediaItem of item.media) {
+          if (typeof mediaItem === 'string') {
+            const remote = asRemoteSource(mediaItem);
+            if (remote) {
+              return remote;
+            }
+          } else if (mediaItem && typeof mediaItem === 'object') {
+            const remote = asRemoteSource(mediaItem.url ?? null);
+            if (remote) {
+              return remote;
+            }
+          }
+        }
+      }
+
+      return FALLBACK_IMAGE;
     };
 
     const imageSource = resolveImageSource();

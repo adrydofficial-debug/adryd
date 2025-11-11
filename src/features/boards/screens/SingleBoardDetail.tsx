@@ -5,9 +5,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
+  ScrollView,
   Dimensions,
   Image,
   ImageBackground,
+  ImageSourcePropType,
   Modal,
   Alert,
   TextInput,
@@ -42,6 +44,26 @@ interface BillboardData {
   imagesList: any[]; // five images (main + 4 thumbs)
 }
 
+interface RatingBreakdownItem {
+  label: string;
+  count: number;
+}
+
+interface Review {
+  id: string;
+  name: string;
+  comment: string;
+  rating: number;
+  date: string;
+}
+
+interface InfoItem {
+  key: string;
+  label: string;
+  value: string;
+  multiline?: boolean;
+}
+
 const { width, height } = Dimensions.get('window');
 
 // Default billboard data fallback
@@ -56,20 +78,54 @@ const billboardData: BillboardData = {
   imagesList: [placeholder], // Only use placeholder as fallback
 };
 
+const defaultRatingBreakdown: RatingBreakdownItem[] = [
+  { label: '5', count: 1234 },
+  { label: '4', count: 642 },
+  { label: '3', count: 302 },
+  { label: '2', count: 88 },
+  { label: '1', count: 41 },
+];
+
+const defaultReviews: Review[] = [
+  {
+    id: '1',
+    name: 'Muhammad Umair',
+    comment: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus vehicula orci ut lorem molestie.',
+    rating: 5,
+    date: '2 days ago',
+  },
+  {
+    id: '2',
+    name: 'Ayesha Khan',
+    comment: 'Great visibility and footfall. Consectetur adipiscing elit sed do eiusmod tempor.',
+    rating: 4,
+    date: '1 week ago',
+  },
+  {
+    id: '3',
+    name: 'Hamza Tariq',
+    comment: 'Solid placement though traffic can be dense at peak hours.',
+    rating: 4,
+    date: '3 weeks ago',
+  },
+];
+
 // Function to render star icons based on rating
-const renderStars = (rating: string) => {
+const renderStars = (rating: string | number, size = 11, color = '#FBBC05') => {
   const stars = [];
-  const fullStars = Math.floor(parseFloat(rating));
-  const halfStar = parseFloat(rating) % 1 >= 0.5 ? 1 : 0;
+  const parsed = typeof rating === 'string' ? parseFloat(rating) : rating;
+  const safeRating = Number.isFinite(parsed) ? parsed : 0;
+  const fullStars = Math.floor(safeRating);
+  const halfStar = safeRating % 1 >= 0.5 ? 1 : 0;
   const emptyStars = 5 - fullStars - halfStar;
   for (let i = 0; i < fullStars; i++) {
-    stars.push(<Ionicons key={`full-${i}`} name="star" size={11} color="#FBBC05" />);
+    stars.push(<Ionicons key={`full-${i}`} name="star" size={size} color={color} />);
   }
   if (halfStar) {
-    stars.push(<Ionicons key="half" name="star-half" size={11} color="#FBBC05" />);
+    stars.push(<Ionicons key="half" name="star-half" size={size} color={color} />);
   }
   for (let i = 0; i < emptyStars; i++) {
-    stars.push(<Ionicons key={`empty-${i}`} name="star-outline" size={11} color="#FBBC05" />);
+    stars.push(<Ionicons key={`empty-${i}`} name="star-outline" size={size} color={color} />);
   }
 
   return stars;
@@ -87,9 +143,53 @@ const SingleBoardDetail: React.FC = () => {
   console.log('SingleBoardDetail - route.params:', route.params);
   console.log('SingleBoardDetail - item:', item);
   
+  const extractMediaSources = (board: any) => {
+    if (Array.isArray(board?.media) && board.media.length > 0) {
+      const sortedMedia = [...board.media].sort((a, b) => {
+        const orderA = typeof a?.sort_order === 'number' ? a.sort_order : 0;
+        const orderB = typeof b?.sort_order === 'number' ? b.sort_order : 0;
+        return orderA - orderB;
+      });
+      return sortedMedia
+        .map(entry => {
+          if (typeof entry?.url === 'string' && entry.url.trim().length > 0) {
+            return { uri: entry.url };
+          }
+          return null;
+        })
+        .filter(Boolean);
+    }
+    if (Array.isArray(board?.images) && board.images.length > 0) {
+      return board.images
+        .filter((src: string | undefined) => typeof src === 'string' && src.trim().length > 0)
+        .map((src: string) => ({ uri: src.startsWith('http') ? src : `https://adryd-backend-production.up.railway.app${src}` }));
+    }
+    if (board?.image_url) {
+      const url = board.image_url.toString();
+      return [
+        url.startsWith('http')
+          ? { uri: url }
+          : { uri: `https://adryd-backend-production.up.railway.app${url}` },
+      ];
+    }
+    if (board?.image) {
+      const source = board.image;
+      if (typeof source === 'string') {
+        return [
+          source.startsWith('http')
+            ? { uri: source }
+            : { uri: `https://adryd-backend-production.up.railway.app${source}` },
+        ];
+      }
+      return [source];
+    }
+    return [];
+  };
+
   // Initialize billboard data with item from navigation or fallback to default
   const [billboard, setBillboard] = useState<BillboardData>(() => {
     if (item && typeof item === 'object') {
+      const mediaSources = extractMediaSources(item);
       return {
         title: item.title || 'Billboard Campaign Ad',
         location: item.location || 'Lahore Gulberg',
@@ -97,7 +197,7 @@ const SingleBoardDetail: React.FC = () => {
         size: item.size || '2ft x 4ft',
         about: item.description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         rating: (item.rating ?? 0).toString(),
-        imagesList: item.image_url ? [{ uri: `https://adryd-backend-production.up.railway.app${item.image_url}` }] : [placeholder],
+        imagesList: mediaSources.length > 0 ? mediaSources : [placeholder],
       };
     }
     return billboardData;
@@ -127,11 +227,11 @@ const SingleBoardDetail: React.FC = () => {
   }, [item?.rating]);
 
   // Normalize to exactly 5 images (use first five, or pad with placeholders)
-  const images = useMemo(() => {
+  const images = useMemo<ImageSourcePropType[]>(() => {
     // If we have images from the API data, use those
-    if (item?.image_url) {
-      const apiImage = { uri: `https://adryd-backend-production.up.railway.app${item.image_url}` };
-      const list = [apiImage];
+    const mediaSources = extractMediaSources(item);
+    if (mediaSources.length > 0) {
+      const list = mediaSources.slice(0, 5);
       while (list.length < 5) list.push(placeholder);
       return list;
     }
@@ -149,6 +249,136 @@ const SingleBoardDetail: React.FC = () => {
       setSelectedIndex(idx);
     }
   };
+
+  const highlightTags = useMemo<string[]>(() => {
+    if (Array.isArray(item?.categories) && item.categories.length > 0) {
+      return item.categories.slice(0, 5);
+    }
+    return ['Recommended', 'Near', 'Special', '20% Less', 'New'];
+  }, [item?.categories]);
+
+  const formatDateLabel = (value?: string) => {
+    if (!value) return 'Recently';
+    try {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        });
+      }
+      return value;
+    } catch {
+      return value;
+    }
+  };
+
+  const ratingBreakdown = useMemo<RatingBreakdownItem[]>(() => {
+    if (Array.isArray((item as any)?.rating_breakdown)) {
+      return (item as any).rating_breakdown
+        .slice(0, 5)
+        .map((entry: any, index: number) => ({
+          label: `${5 - index}`,
+          count: Number(entry?.count) || 0,
+        }));
+    }
+    return defaultRatingBreakdown;
+  }, [item]);
+
+  const totalReviews = useMemo(
+    () => ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0),
+    [ratingBreakdown]
+  );
+
+  const averageRating = useMemo(() => {
+    const parsedRating = parseFloat(billboard.rating);
+    return Number.isFinite(parsedRating) ? parsedRating : 0;
+  }, [billboard.rating]);
+
+  const reviews = useMemo<Review[]>(() => {
+    if (Array.isArray((item as any)?.reviews) && (item as any).reviews.length > 0) {
+      return (item as any).reviews.map((review: any, index: number) => ({
+        id: review?.id?.toString() ?? `review-${index}`,
+        name: review?.user_name || review?.user?.name || 'Anonymous',
+        comment: review?.comment || '',
+        rating: Number(review?.rating) || 0,
+        date: formatDateLabel(review?.created_at),
+      }));
+    }
+    return defaultReviews;
+  }, [item]);
+
+  const infoItems = useMemo<InfoItem[]>(() => {
+    const resolve = (value: string | number | null | undefined, fallback: string) =>
+      value !== undefined && value !== null && String(value).trim().length > 0
+        ? String(value).trim()
+        : fallback;
+
+    const resolvedCategory = resolve(
+      (item as any)?.category_name ?? (item as any)?.category ?? (item as any)?.board_category,
+      t('defaultCategory', { defaultValue: 'Static' })
+    );
+
+    const resolvedType = resolve(
+      (item as any)?.type ?? (item as any)?.board_type,
+      t('defaultType', { defaultValue: 'Billboard' })
+    );
+
+    const resolvedArea = resolve(
+      (item as any)?.area,
+      billboard.subLocation || t('defaultArea', { defaultValue: 'City Center' })
+    );
+
+    const resolvedNearby = resolve(
+      (item as any)?.distance ?? billboard.subLocation,
+      t('defaultNearby', { defaultValue: 'Within city' })
+    );
+
+    return [
+      {
+        key: 'name',
+        label: t('nameLabel', { defaultValue: 'Name' }),
+        value: resolve(billboard.title, t('defaultName', { defaultValue: 'Billboard' })),
+      },
+      {
+        key: 'size',
+        label: t('size'),
+        value: resolve(billboard.size, '—'),
+      },
+      {
+        key: 'category',
+        label: t('categoryLabel', { defaultValue: 'Category' }),
+        value: resolvedCategory,
+      },
+      {
+        key: 'type',
+        label: t('typeLabel', { defaultValue: 'Type' }),
+        value: resolvedType,
+      },
+      {
+        key: 'location',
+        label: t('location'),
+        value: resolve(billboard.location, '—'),
+      },
+      {
+        key: 'area',
+        label: t('areaLabel', { defaultValue: 'Area' }),
+        value: resolvedArea,
+      },
+      // {
+      //   key: 'nearby',
+      //   label: t('nearbyLabel', { defaultValue: 'Nearby' }),
+      //   value: resolvedNearby,
+      // },
+      {
+        key: 'about',
+        label: t('about'),
+        value: resolve(billboard.about, t('defaultAbout', { defaultValue: 'No description available.' })),
+        multiline: true,
+      },
+    ];
+  }, [billboard.about, billboard.location, billboard.size, billboard.subLocation, billboard.title, item, t]);
 
   // Rating modal functions
   const openRatingModal = () => {
@@ -216,102 +446,175 @@ const SingleBoardDetail: React.FC = () => {
 
   // Main image is controlled via thumbnail taps only to avoid accidental cycling
 
+  const renderRatingCard = (variant: 'page' | 'modal' = 'page') => (
+    <View style={[styles.ratingCard, variant === 'modal' && styles.ratingCardModal]}>
+      <Text style={styles.ratingCardTitle}>Rate this Board</Text>
+      <Text style={styles.ratingCardSubtitle}>
+        Share your experience and help advertisers choose with confidence.
+      </Text>
+
+      <View style={styles.ratingStarRow}>
+        {[1, 2, 3, 4, 5].map(star => (
+          <TouchableOpacity
+            key={star}
+            onPress={() => handleStarPress(star)}
+            style={styles.ratingStarButton}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={star <= userRating ? 'star' : 'star-outline'}
+              size={32}
+              color={star <= userRating ? '#FFC107' : '#E5E7EB'}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Text style={styles.ratingHint}>Tap the stars and leave a short comment about your experience.</Text>
+
+      <View style={styles.commentRow}>
+        <TextInput
+          style={styles.commentInput}
+          placeholder="Write a comment"
+          placeholderTextColor="#9CA3AF"
+          value={ratingComment}
+          onChangeText={setRatingComment}
+          multiline
+        />
+        <TouchableOpacity
+          style={[
+            styles.sendButton,
+            (userRating === 0 || rateBoardMutation.isPending) && styles.sendButtonDisabled,
+          ]}
+          onPress={handleSubmitRating}
+          disabled={userRating === 0 || rateBoardMutation.isPending}
+          activeOpacity={0.9}
+        >
+          {rateBoardMutation.isPending ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.ratingSummaryRow}>
+        <View style={styles.ratingSummaryLeft}>
+          <Text style={styles.ratingSummaryNumber}>{averageRating.toFixed(1)}</Text>
+          <View style={styles.ratingSummaryStars}>{renderStars(averageRating, 16)}</View>
+          <Text style={styles.ratingSummaryCaption}>{totalReviews.toLocaleString()} reviews</Text>
+        </View>
+
+        <View style={styles.ratingProgressList}>
+          {ratingBreakdown.map(entry => {
+            const percentage = totalReviews ? (entry.count / totalReviews) * 100 : 0;
+            return (
+              <View key={`rating-${entry.label}`} style={styles.ratingProgressRow}>
+                <Text style={styles.ratingProgressLabel}>{entry.label}</Text>
+                <View style={styles.ratingProgressBar}>
+                  <View style={[styles.ratingProgressFill, { width: `${percentage}%` }]} />
+                </View>
+                <Text style={styles.ratingProgressCount}>{entry.count}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      {/* Billboard Section */}
-      <View style={styles.first}>
-        <View style={styles.mainBoard}>
-          <ImageBackground
-            source={images[selectedIndex]}
-            style={styles.mainBoardBg}
-            imageStyle={styles.mainBoardBgImage}
-          >
-            <View style={styles.boardTypes}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                {images.map((src, idx) => {
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.heroSection}>
+          <View style={styles.heroImageWrapper}>
+            <ImageBackground
+              source={images[selectedIndex]}
+              style={styles.heroImage}
+              imageStyle={styles.heroImageStyle}
+            >
+              <View style={styles.heroTopBar}>
+                <BackButton style={styles.heroBackButton} iconColor="#1F2937" />
+                <View style={styles.heroActions}>
+                  <TouchableOpacity style={styles.actionIcon}>
+                    <Upload width={20} height={20} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionIcon}>
+                    <Heart width={28} height={20} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+            <View style={styles.thumbnailTray}>
+              <View style={styles.thumbnailStrip}>
+                {images.map((src: ImageSourcePropType, idx: number) => {
                   const isSelected = idx === selectedIndex;
                   return (
                     <TouchableOpacity
                       key={`thumb-${idx}`}
                       onPress={() => selectImageIndex(idx)}
-                      style={[styles.subBoard, isSelected && styles.selectedSubBoard]}
-                      activeOpacity={0.8}
+                      style={[styles.thumbnailButton, isSelected && styles.thumbnailButtonActive]}
+                      activeOpacity={0.85}
                     >
-                      <Image source={src} style={styles.thumbImage} resizeMode="cover" />
+                      <Image source={src} style={styles.thumbnailImage} resizeMode="cover" />
                     </TouchableOpacity>
                   );
                 })}
               </View>
             </View>
-            <View style={styles.backbutton}>
-              <BackButton />
-            </View>
-          </ImageBackground>
+            </ImageBackground>
+          </View>
         </View>
 
-        {/* Top-right icons */}
-        <View style={styles.head}>
-          <TouchableOpacity style={styles.uploadCircle}>
-            <Upload width={width * 0.05} height={height * 0.03} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.heartBorder}>
-            <Heart width={width * 0.09} height={height * 0.03} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Details Section */}
-      <View style={styles.second}>
-        <View style={styles.contentSection}>
-          <View style={styles.paddingHorizontal}>
-            <View style={styles.titleRow}>
-              <View>
-                <Text style={styles.title}>{billboard.title}</Text>
-                <View style={styles.icon}>
-                  <Location width={9} height={8} style={styles.locationIcon} />
-                  <Text style={styles.location}>{billboard.location}</Text>
-                </View>
-                <View style={styles.icon2}>
-                  {/* <Line /> */}
-                  <Text style={styles.subLocation}>{billboard.subLocation}</Text>
-                </View>
-              </View>
-
-              <TouchableOpacity style={styles.ratingContainer} onPress={openRatingModal}>
-                <Text style={styles.rating}>{billboard.rating}</Text>
-                <View style={styles.starRow}>{renderStars(billboard.rating)}</View>
-                {/* Debug: Show current rating value */}
-              
-              </TouchableOpacity>
+        <View style={styles.bodyWrapper}>
+          <View style={styles.detailHeader}>
+            <View style={styles.detailTitleBlock}>
+              <Text style={styles.title}>{billboard.title}</Text>
             </View>
 
-            <View style={styles.line} />
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('size')}</Text>
-              <Text style={styles.sectionText}>{billboard.size}</Text>
-            </View>
-
-            <View style={styles.line} />
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('about')}</Text>
-              <Text style={styles.sectionText}>{billboard.about}</Text>
-            </View>
-
-            <View style={styles.line} />
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('location')}</Text>
-            </View>
+            <TouchableOpacity style={styles.ratingLabel}  activeOpacity={0.85}>
+              <Ionicons name="star" size={16} color="#FBBF24" style={styles.ratingIcon} />
+              <Text style={styles.ratingLabelValue}>{averageRating.toFixed(1)}</Text>
+              <Text style={styles.ratingLabelMeta}>({totalReviews.toLocaleString()})</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Map Section */}
-          <View style={styles.mapContainer}>
+          <View style={styles.tagRow}>
+            {highlightTags.map((tag, index) => {
+              const isPrimary = index === 3; // highlight "20% Less"
+              return (
+                <View
+                  key={tag}
+                  style={[styles.tagChip, isPrimary && styles.tagChipHighlighted]}
+                >
+                  <Text style={[styles.tagText, isPrimary && styles.tagTextLight]}>{tag}</Text>
+                </View>
+              );
+            })}
+          </View>
+
+          <View style={styles.detailCard}>
+            {infoItems.map((info, index) => (
+              <React.Fragment key={info.key}>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>{info.label}</Text>
+                  <Text style={info.multiline ? styles.infoValueMultiline : styles.infoValue}>
+                    {info.value}
+                  </Text>
+                </View>
+                {index !== infoItems.length - 1 && <View style={styles.infoDivider} />}
+              </React.Fragment>
+            ))}
+          </View>
+
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionHeading}>{t('location')}</Text>
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => (navigation as any).navigate('CurrentLocation')}
-              style={styles.touchableMap}
+              style={styles.mapCard}
             >
               <MapView
                 style={styles.map}
@@ -327,77 +630,63 @@ const SingleBoardDetail: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Button */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>{t('letsConnect')}</Text>
-            </TouchableOpacity>
+          <TouchableOpacity style={styles.connectButton}>
+            <Text style={styles.connectButtonText}>{t('letsConnect')}</Text>
+          </TouchableOpacity>
+
+          {renderRatingCard()}
+
+          <View style={styles.reviewSection}>
+            <Text style={styles.sectionHeading}>Recent Reviews</Text>
+            {reviews.length === 0 ? (
+              <Text style={styles.emptyReviewText}>There are no reviews yet. Be the first to share your feedback.</Text>
+            ) : (
+              reviews.map(review => (
+                <View key={review.id} style={styles.reviewCard}>
+                  <View style={styles.reviewHeader}>
+                    <View style={styles.reviewAvatar}>
+                      <Text style={styles.reviewAvatarText}>
+                        {review.name ? review.name.charAt(0).toUpperCase() : 'A'}
+                      </Text>
+                    </View>
+                    <View style={styles.reviewMeta}>
+                      <Text style={styles.reviewName}>{review.name}</Text>
+                      <View style={styles.reviewMetaRow}>
+                        <View style={styles.reviewStars}>{renderStars(review.rating, 14)}</View>
+                        <Text style={styles.reviewDate}>{review.date}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <Text style={styles.reviewComment}>{review.comment}</Text>
+                </View>
+              ))
+            )}
           </View>
         </View>
-      </View>
+      </ScrollView>
 
-      {/* Rating Modal */}
       <Modal
         visible={isRatingModalVisible}
-        transparent={true}
+        transparent
         animationType="fade"
         onRequestClose={closeRatingModal}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Rate this Board</Text>
-            <Text style={styles.modalSubtitle}>How would you rate this billboard?</Text>
-            
-            <View style={styles.starRatingContainer}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <TouchableOpacity
-                  key={star}
-                  onPress={() => handleStarPress(star)}
-                  style={styles.starButton}
-                >
-                  <Ionicons
-                    name={star <= userRating ? "star" : "star-outline"}
-                    size={40}
-                    color={star <= userRating ? "#FFD700" : "#E0E0E0"}
-                  />
-                </TouchableOpacity>
-              ))}
-            </View>
-            
-           
-            <View style={styles.modalButtonContainer}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={closeRatingModal}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  styles.submitButton,
-                  (userRating === 0 || rateBoardMutation.isPending) && styles.disabledButton
-                ]}
-                onPress={handleSubmitRating}
-                disabled={userRating === 0 || rateBoardMutation.isPending}
-              >
-                {rateBoardMutation.isPending ? (
-                  <ActivityIndicator color="white" size="small" />
-                ) : (
-                  <Text style={[
-                    styles.submitButtonText,
-                    (userRating === 0 || rateBoardMutation.isPending) && styles.disabledButtonText
-                  ]}>
-                    Submit
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity style={styles.modalCloseButton} onPress={closeRatingModal}>
+              <Ionicons name="close" size={22} color="#1F2937" />
+            </TouchableOpacity>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              {renderRatingCard('modal')}
+            </ScrollView>
           </View>
         </View>
       </Modal>
-       <NoInternet />
+
+      <NoInternet />
     </View>
   );
 };
@@ -405,288 +694,498 @@ const SingleBoardDetail: React.FC = () => {
 export default SingleBoardDetail;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white' },
-  first: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    backgroundColor: 'white',
-    borderRadius: 30,
+    backgroundColor: '#F8F7FB',
   },
-  second: { flex: 2, backgroundColor: 'white' },
-  mainBoard: {
-    width,
-    height: height * 0.395,
-    borderRadius: width * 0.077,
+  scrollContent: {
+    paddingBottom: 36,
+  },
+  heroSection: {
+    width: '100%',
+    height: height * 0.43,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+  },
+  heroImageWrapper: {
+    flex: 1,
+    borderRadius: 32,
     overflow: 'hidden',
-    marginTop: -height * 0.04,
+    backgroundColor: '#E5E7EB',
   },
-  mainBoardBg: {
+  heroImage: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
   },
-  mainBoardBgImage: {
+  heroImageStyle: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  boardTypes: {
-    bottom: height * 0.02,
-    position: 'absolute',
-    right: 0,
-    left: width * 0.11,
-    width: width * 0.8,
-    height: height * 0.078,
-    borderRadius: width * 0.038,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+  heroTopBar: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingTop: 20,
+  },
+  heroBackButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.4)',
-    zIndex: 2,
+    marginTop: 0,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  subBoard: {
-    width: width * 0.145,
-    height: height * 0.0675,
-    borderRadius: width * 0.025,
-    justifyContent: 'space-between',
-    marginRight: width * 0.015,
+  heroActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(229, 231, 235, 0.6)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
+  },
+  thumbnailTray: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 32,
+    alignItems: 'center',
+  },
+  thumbnailStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 24,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 22,
+    elevation: 8,
     overflow: 'hidden',
   },
-  selectedSubBoard: {
-    borderColor: '#C539A5',
-    borderWidth: 2,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+  thumbnailButton: {
+    width: 56,
+    height: 48,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: '#FFFFFF',
   },
-  thumbImage: {
+  thumbnailButtonActive: {
+    borderColor: '#C539A5',
+  },
+  thumbnailImage: {
     width: '100%',
     height: '100%',
   },
-  head: {
-    top:45,
-    right: width * 0.06,
-    position: 'absolute',
+  bodyWrapper: {
+    marginTop: -44,
+    paddingHorizontal: 22,
+    paddingTop: 72,
+  },
+  detailCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 26,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 28,
+    borderWidth: 1,
+    borderColor: '#ECEFF5',
+  },
+  detailHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
-  uploadCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 54.82,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 7,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  heartBorder: {
-    width: 36,
-    height: 36,
-    borderRadius: 54.82,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  contentSection: {
-    backgroundColor: 'white',
-  },
-  paddingHorizontal: {
-    paddingHorizontal: width * 0.05,
-  },
-  titleRow: {
-    marginTop: height * 0.018,
+  detailTitleBlock: {
+    flex: 1,
+    paddingRight: 16,
   },
   title: {
     color: '#C539A5',
-    fontSize: width * 0.051,
-    fontWeight: '700',
-  },
-  ratingContainer: { position: 'absolute', top: 0, right: 5 },
-  rating: {
-    fontSize: width * 0.077,
-    fontWeight: '700',
-    color: '#333333',
-  },
-  starRow: { flexDirection: 'row' },
-  location: {
-    fontSize: width * 0.033,
-    color: '#B0B1B4',
-    paddingHorizontal: width * 0.008,
-  },
-  subLocation: {
-    fontSize: width * 0.033,
-    color: '#B0B1B4',
-    paddingHorizontal: width * 0.02,
-  },
-  icon: { flexDirection: 'row' },
-  icon2: { flexDirection: 'row', paddingHorizontal: 2 },
-  line: {
-    width: width * 0.9,
-    borderWidth: 1,
-    borderColor: '#EEEEEE',
-    marginTop: height * 0.004,
-  },
-  section: {
-    marginBottom: height * 0.006,
-    marginTop: height * 0.012,
-  },
-  map: {
-    width: 330,
-    height: 155,
-    borderRadius: 16,
-    borderWidth: 3,
-  },
-  touchableMap: {
-    borderRadius: width * 0.04,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: '#E5E7EB',
-  },
-  sectionTitle: {
-    fontSize: width * 0.039,
-    fontWeight: '700',
-    color: '#595959',
-  },
-  sectionText: {
-    fontSize: width * 0.033,
-    color: '#B0B1B4',
-  },
-  mapContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  locationIcon: {
-    paddingVertical: 8,
-  },
-  buttonContainer: {
-    alignSelf: 'center',
-    marginTop: height * 0.02,
-    marginBottom: height * 0.09,
-  },
-  button: {
-    width: width * 0.595,
-    height: height * 0.057,
-    borderRadius: width * 0.039,
-    backgroundColor: '#C539A5',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    fontSize: width * 0.036,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    fontWeight: '700',
-  },
-  backbutton: {
-    top: 45,
-    left: 10,
-    position: 'absolute',
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 30,
-    width: width * 0.85,
-    maxWidth: 400,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-    textAlign: 'center',
+    fontWeight: '700',
   },
-  modalSubtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  starRatingContainer: {
+  locationRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
-    
+    marginTop: 8,
   },
-  starButton: {
-    padding: 8,
-    marginHorizontal: 0,
+  locationText: {
+    marginLeft: 6,
+    fontSize: 14,
+    color: '#6B7280',
   },
-  ratingText: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 30,
-    textAlign: 'center',
-    fontWeight: '500',
+  subLocationText: {
+    marginTop: 4,
+    fontSize: 14,
+    color: '#9CA3AF',
   },
-  modalButtonContainer: {
+  ratingLabel: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginHorizontal: 8,
-  },
-  cancelButton: {
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     backgroundColor: '#F5F5F5',
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#DDD',
   },
-  submitButton: {
-    backgroundColor: '#C539A5',
+  ratingIcon: {
+    marginRight: 6,
   },
-  disabledButton: {
-    backgroundColor: '#E0E0E0',
-  },
-  cancelButtonText: {
-    color: '#666',
+  ratingLabelValue: {
     fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
+    color: '#1F2937',
   },
-  submitButtonText: {
-    color: 'white',
+  ratingLabelMeta: {
+    marginLeft: 6,
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginTop: 18,
+    marginRight: -8,
+  },
+  tagChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#F2BCE9',
+    marginRight: 8,
+    marginBottom: 6,
+    minWidth: 90,
+    alignItems: 'center',
+  },
+  tagChipHighlighted: {
+    backgroundColor: '#C539A5',
+    borderRadius: 999,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#C539A5',
+    textTransform: 'uppercase',
+  },
+  tagTextLight: {
+    color: '#FDF2F8',
+  },
+  infoRow: {
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  infoLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  infoValue: {
+    marginTop: 6,
     fontSize: 16,
     fontWeight: '600',
-    textAlign: 'center',
+    color: '#1F2937',
   },
-  disabledButtonText: {
-    color: '#999',
+  infoValueMultiline: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#4B5563',
+  },
+  infoDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 20,
+  },
+  sectionBlock: {
+    marginTop: 26,
+  },
+  sectionHeading: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  aboutText: {
+    marginTop: 12,
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#4B5563',
+  },
+  mapCard: {
+    marginTop: 16,
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  map: {
+    width: '100%',
+    height: 180,
+  },
+  connectButton: {
+    marginTop: 28,
+    height: 54,
+    borderRadius: 18,
+    backgroundColor: '#C539A5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  connectButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  ratingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingVertical: 24,
+    paddingHorizontal: 22,
+    marginTop: 32,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: '#E6E1F4',
+  },
+  ratingCardModal: {
+    marginTop: 0,
+    marginBottom: 8,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    elevation: 0,
+    shadowColor: 'transparent',
+  },
+  ratingCardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  ratingCardSubtitle: {
+    marginTop: 6,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  ratingStarRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  ratingStarButton: {
+    padding: 6,
+  },
+  ratingHint: {
+    marginTop: 12,
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
+  commentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: 18,
+    padding: 4,
   },
   commentInput: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-    fontSize: 16,
-    textAlignVertical: 'top',
-    minHeight: 80,
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 14,
+    minHeight: 64,
     maxHeight: 120,
+    color: '#111827',
+    textAlignVertical: 'top',
+  },
+  sendButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#C539A5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+  },
+  ratingSummaryRow: {
+    flexDirection: 'row',
+    marginTop: 24,
+  },
+  ratingSummaryLeft: {
+    alignItems: 'center',
+    paddingRight: 24,
+  },
+  ratingSummaryNumber: {
+    fontSize: 46,
+    fontWeight: '700',
+    color: '#C539A5',
+  },
+  ratingSummaryStars: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  ratingSummaryCaption: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  ratingProgressList: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  ratingProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  ratingProgressLabel: {
+    width: 18,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  ratingProgressBar: {
+    flex: 1,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: '#F3E8FF',
+    marginHorizontal: 12,
+    overflow: 'hidden',
+  },
+  ratingProgressFill: {
+    height: '100%',
+    backgroundColor: '#C539A5',
+  },
+  ratingProgressCount: {
+    width: 48,
+    fontSize: 12,
+    color: '#9CA3AF',
+    textAlign: 'right',
+  },
+  reviewSection: {
+    marginBottom: 12,
+  },
+  emptyReviewText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+  reviewCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 18,
+    marginTop: 18,
+    shadowColor: '#3F3D56',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.07,
+    shadowRadius: 22,
+    elevation: 4,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reviewAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F3E8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reviewAvatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#7C3AED',
+  },
+  reviewMeta: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  reviewName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  reviewMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  reviewStars: {
+    flexDirection: 'row',
+    marginRight: 12,
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  reviewComment: {
+    marginTop: 12,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#4B5563',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  modalContainer: {
+    width: Math.min(width * 0.92, 420),
+    maxHeight: height * 0.85,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    paddingTop: 18,
+    paddingHorizontal: 18,
+    paddingBottom: 12,
+    shadowColor: '#1F2937',
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.14,
+    shadowRadius: 32,
+    elevation: 10,
+  },
+  modalCloseButton: {
+    alignSelf: 'flex-end',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  modalScrollContent: {
+    paddingBottom: 12,
   },
 });
+
+

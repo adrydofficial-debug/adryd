@@ -1,5 +1,11 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import {
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  StyleProp,
+  ViewStyle,
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -13,7 +19,12 @@ type RootStackParamList = {
 };
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const BackButton: React.FC = () => {
+interface BackButtonProps {
+  style?: StyleProp<ViewStyle>;
+  iconColor?: string;
+}
+
+const BackButton: React.FC<BackButtonProps> = ({ style, iconColor = '#000' }) => {
   const navigation = useNavigation<NavigationProp>();
 
   const handleBackPress = () => {
@@ -41,11 +52,11 @@ const BackButton: React.FC = () => {
 
   return (
     <TouchableOpacity
-      style={styles.backButton}
+      style={[styles.backButton, style]}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       onPress={handleBackPress}
     >
-      <Ionicons name="arrow-back" size={width * 0.06} color="#000" />
+      <Ionicons name="arrow-back" size={width * 0.06} color={iconColor} />
     </TouchableOpacity>
   );
 };
