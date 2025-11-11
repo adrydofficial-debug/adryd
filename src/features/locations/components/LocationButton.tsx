@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import PinkLocation from '../../../assets/images/PinkkLocation.svg';
+import { PinkLocationIcon } from '../../../assets/images';
 import { useCities } from '../hooks/hooks';
 const { width, height } = Dimensions.get('window');
 type City = {
@@ -38,7 +38,7 @@ const LocationButton: React.FC<Props> = ({
         style={styles.locationBtnCustom}
         onPress={() => setVisible(true)}
       >
-        <PinkLocation
+        <PinkLocationIcon
           width={width * 0.03}
           height={width * 0.03}
           style={{ marginRight: width * 0.011 }}

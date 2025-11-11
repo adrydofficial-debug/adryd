@@ -10,6 +10,7 @@ import {
   Image,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Images } from '../../../assets/images';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -44,7 +45,7 @@ const Notifications: React.FC<Props> = ({ navigation }) => {
       iconColor: '#4CAF50',
       iconBgColor: '#E8F5E8',
       isHighlighted: true,
-      image: require('../../../assets/images/Ellipse.png'),
+      image: Images.ellipse,
     },
     {
       id: '2',
@@ -56,7 +57,7 @@ const Notifications: React.FC<Props> = ({ navigation }) => {
       iconColor: '#E91E63',
       iconBgColor: '#FCE4EC',
       isHighlighted: false,
-      image: require('../../../assets/images/AdrydLogo.png'),
+      image: Images.adrydLogo,
     },
     {
       id: '3',
@@ -67,7 +68,7 @@ const Notifications: React.FC<Props> = ({ navigation }) => {
       iconColor: '#757575',
       iconBgColor: '#F5F5F5',
       isHighlighted: false,
-      image: require('../../../assets/images/Dot.png'),
+      image: Images.dot,
     },
     {
       id: '4',
@@ -78,7 +79,7 @@ const Notifications: React.FC<Props> = ({ navigation }) => {
       iconColor: '#4CAF50',
       iconBgColor: '#E8F5E8',
       isHighlighted: false,
-      image: require('../../../assets/images/AxoVolt.png'),
+      image: Images.axoVolt,
     },
   ];
 

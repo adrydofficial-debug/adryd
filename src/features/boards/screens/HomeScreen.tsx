@@ -15,7 +15,7 @@ import {
   default as LinearGradientLib,
 } from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
-import PinkLocation from '../../../assets/images/PinkkLocation.svg';
+import { PinkLocationIcon, Images } from '../../../assets/images';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
 import { useAuthStore } from '../../../store/authStore';
@@ -71,10 +71,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [drawerVisible, setDrawerVisible] = useState<boolean>(false);
   const [selectedCity] = useState<string>('Bahawalpur');
 
-  const bannerImages = [
-    require('../../../assets/images/BannerOne.png'),
-    require('../../../assets/images/HomeBanner.png'),
-  ];
+  const bannerImages = [Images.bannerOne, Images.homeBanner];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -264,7 +261,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               }}
               activeOpacity={0.7}
             >
-              <PinkLocation
+              <PinkLocationIcon
                 width={width * 0.03}
                 height={width * 0.03}
                 style={{ marginRight: width * 0.011 }}
@@ -285,19 +282,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 })
               }
             >
-              <Image
-                source={require('../../../assets/images/Search.png')}
-                style={styles.FilterIcon}
-              />
+              <Image source={Images.search} style={styles.FilterIcon} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.bellBtn}
               onPress={() => navigation.navigate('Notifications')}
             >
-              <Image
-                style={styles.bellIcon}
-                source={require('../../../assets/images/PinkBell.png')}
-              />
+              <Image style={styles.bellIcon} source={Images.pinkBell} />
             </TouchableOpacity>
           </View>
         </View>

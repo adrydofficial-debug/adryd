@@ -20,6 +20,7 @@ import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
 import { useTranslation } from 'react-i18next';
 import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
+import ProgressBar from '../../../components/ProgressBar';
 import { 
   useAdvertisements,
   useGlobalSelectedDates,
@@ -361,10 +362,10 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.headerTitle}>{t('createScreen.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
+
+       
         <View style={styles.progressContainer}>
-          {renderProgressStep(1, false, true)}
-          {renderProgressStep(2, true, false)}
-          {renderProgressStep(3, false, false)}
+      <ProgressBar currentStep={1}/>
         </View>
 
         <KeyboardAvoidingView

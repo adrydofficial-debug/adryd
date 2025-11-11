@@ -28,7 +28,7 @@ import CustomButton from '../../../components/CustomButton';
 import { useTranslation } from 'react-i18next';
 import { useCampaignStore } from '../../../store/campaignStore';
 import { useUploadAdvertisementFiles, useAddAdvertisementMedia } from '../hooks/hooks';
-
+import  ProgressBar from '../../../components/ProgressBar';
 // Types for navigation
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 type RootStackParamList = {
@@ -350,9 +350,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
         </View>
 
         <View style={styles.progressContainer}>
-          {renderProgressStep(1, false, true)}
-          {renderProgressStep(2, true, false)}
-          {renderProgressStep(3, false, false)}
+           <ProgressBar currentStep={3}/>
         </View>
 
         <ScrollView

@@ -23,6 +23,7 @@ import { AuthStackParamList } from '../AuthNavigator';
 import { useResetPassword } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
+import { Images } from '../../../assets/images';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -242,7 +243,7 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
         <View style={styles.fullScreenModal}>
           <View style={styles.successContent}>
             <Image
-              source={require('../../../assets/images/ThannkTick.png')}
+              source={Images.thankTick}
               style={styles.thankTickImage}
               resizeMode="contain"
             />

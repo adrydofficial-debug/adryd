@@ -21,12 +21,14 @@ import MapView from 'react-native-maps';
 import { useRateBoard } from '../hooks/useRateBoard';
 import { useAuthStore } from '../../../store/authStore';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  Images,
+  UploadIcon,
+  HeartIcon,
+} from '../../../assets/images';
 // Image assets (placeholder)
-const placeholder = require('../../../assets/images/bannerBg.png');
-import Upload from '../../../assets/images/Upload.svg';
-import Location from '../../../assets/images/location-pinkSVG.svg';
+const placeholder = Images.bannerBg;
 // import Line from '../../assets/icons/line.svg';
-import Heart from '../../../assets/images/Heart.svg';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
 import { useTranslation } from 'react-i18next';
@@ -539,10 +541,10 @@ const SingleBoardDetail: React.FC = () => {
                 <BackButton style={styles.heroBackButton} iconColor="#1F2937" />
                 <View style={styles.heroActions}>
                   <TouchableOpacity style={styles.actionIcon}>
-                    <Upload width={20} height={20} />
+                    <UploadIcon width={20} height={20} />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.actionIcon}>
-                    <Heart width={28} height={20} />
+                    <HeartIcon width={28} height={20} />
                   </TouchableOpacity>
                 </View>
               </View>
