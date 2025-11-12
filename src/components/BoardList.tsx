@@ -56,6 +56,7 @@ interface BoardListProps {
   navigation?: any;
   onPressDetail?: (item: BoardItem) => void;
   numColumns?: number; 
+  showSeeAll?: boolean;
 }
 
 const boardData: BoardItem[] = [
@@ -101,6 +102,7 @@ const BoardList: React.FC<BoardListProps> = ({
   navigation,
   onPressDetail,
   numColumns = 1, 
+  showSeeAll = true,
 }) => {
   const { i18n: i18nInstance } = useTranslation();
   
@@ -159,6 +161,9 @@ const BoardList: React.FC<BoardListProps> = ({
   };
 
   const handleSeeAllPress = () => {
+    if (!showSeeAll) {
+      return;
+    }
     if (navigation) {
       navigation.navigate('CategoryScreen', {
         categoryId: 'all',
@@ -425,9 +430,11 @@ const BoardList: React.FC<BoardListProps> = ({
       {/* {subHeading && <Text style={styles.subHeading}>{subHeading}</Text>} */}
       <View style={styles.header}>
         <Text style={styles.heading}>{heading}</Text>
-        <TouchableOpacity onPress={handleSeeAllPress}>
-          <Text style={styles.seeAll}>See All</Text>
-        </TouchableOpacity>
+        {showSeeAll ? (
+          <TouchableOpacity onPress={handleSeeAllPress}>
+            <Text style={styles.seeAll}>See All</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
       <FlatList
         data={processedData}

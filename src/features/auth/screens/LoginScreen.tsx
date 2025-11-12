@@ -34,9 +34,9 @@ const hp = (p: number) => (height * p) / 100;
 // ✅ Yup validation
 const loginValidationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
-    .required('Phone number is required')
-    .matches(/^\+92[0-9]{10}$/, 'Enter a valid Pakistani phone number'),
-  password: Yup.string().required('Password is required'),
+    .required('')
+    .matches(/^\+92[0-9]{10}$/, ''),
+  password: Yup.string().required(''),
 });
 
 const LoginScreen: React.FC = () => {
@@ -46,7 +46,6 @@ const LoginScreen: React.FC = () => {
   const setUser = useAuthStore(s => s.setUser);
   const { t } = useTranslation('auth');
 
-  const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -81,9 +80,12 @@ const LoginScreen: React.FC = () => {
 
   const handleLogin = async (
     values: LoginCredentials,
-    { validateForm, setTouched }: FormikHelpers<LoginCredentials>,
+    { validateForm, setTouched, setFieldTouched }: FormikHelpers<LoginCredentials>,
   ) => {
     setApiError(null);
+    // Mark both fields as touched to trigger validation display
+    setFieldTouched('phoneNumber', true);
+    setFieldTouched('password', true);
     setTouched({ phoneNumber: true, password: true });
     const errors = await validateForm();
     if (Object.keys(errors).length > 0) return;
@@ -134,7 +136,6 @@ const LoginScreen: React.FC = () => {
                 <Text style={styles.highlight}>{t('login.highlight')}</Text> {t('login.subtitleEnd')}
               </Text>
             </View>
-
             <Formik<LoginCredentials>
               initialValues={{
                 phoneNumber: '+923359857379',
@@ -157,7 +158,7 @@ const LoginScreen: React.FC = () => {
                   <CustomInput
                     label={t('login.phoneNumber')}
                     placeholder="3XXXXXXXXX"
-                    keyboardType="phone-pad"
+                    isPhoneNumber={true}
                     value={values.phoneNumber}
                     onChangeText={text =>
                       handlePhoneNumberChange(text, setFieldValue)
@@ -166,7 +167,7 @@ const LoginScreen: React.FC = () => {
                     onFocus={() => handleFocus('phoneNumber')}
                     focused={focusedField === 'phoneNumber'}
                     error={
-                      (touched.phoneNumber && errors.phoneNumber) || apiError
+                      (touched.phoneNumber && (errors.phoneNumber !== undefined || !values.phoneNumber || values.phoneNumber === '+92' || values.phoneNumber.length < 13)) || apiError
                     }
                     showErrorText={false}
                     returnKeyType="next"
@@ -175,43 +176,23 @@ const LoginScreen: React.FC = () => {
                   />
 
                   {/* Password input */}
-                  <View style={styles.passwordContainer}>
-                    <Text style={styles.inputLabel}>{t('login.password')}</Text>
-                    <View style={styles.passwordInputContainer}>
-                      <TextInput
-                        ref={passwordRef}
-                        style={[
-                          styles.passwordInput,
-                          (touched.password && errors.password) || apiError
-                            ? styles.inputError
-                            : undefined,
-                          focusedField === 'password'
-                            ? styles.passwordInputFocused
-                            : undefined,
-                        ]}
-                        placeholder="********"
-                        secureTextEntry={!showPassword}
-                        value={values.password}
-                        onChangeText={text =>
-                          handlePasswordChange(text, handleChange('password'))
-                        }
-                        onBlur={() => handleBlur('password', formikBlur)}
-                        onFocus={() => handleFocus('password')}
-                        placeholderTextColor="#999"
-                        returnKeyType="done"
-                      />
-                      <TouchableOpacity
-                        style={styles.eyeIconContainer}
-                        onPress={() => setShowPassword(!showPassword)}
-                      >
-                        <Ionicons
-                          name={showPassword ? 'eye' : 'eye-off'}
-                          size={wp(5)}
-                          color="#666"
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                  <CustomInput
+                    ref={passwordRef}
+                    label={t('login.password')}
+                    placeholder="********"
+                    isPassword={true}
+                    value={values.password}
+                    onChangeText={text =>
+                      handlePasswordChange(text, handleChange('password'))
+                    }
+                    onBlur={() => handleBlur('password', formikBlur)}
+                    onFocus={() => handleFocus('password')}
+                    focused={focusedField === 'password'}
+                    error={
+                      (touched.password && (errors.password !== undefined || !values.password || values.password.trim() === '')) || apiError
+                    }
+                    returnKeyType="done"
+                  />
 
                   {/* Forgot password */}
                   <TouchableOpacity
@@ -264,7 +245,7 @@ const LoginScreen: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <DrawerComponent visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
+     
       <NoInternet />
     </LinearGradient>
   );

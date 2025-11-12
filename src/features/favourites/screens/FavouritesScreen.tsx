@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useMemo, useState} from 'react';
 import {
   View,
   Text,
@@ -6,33 +6,32 @@ import {
   Dimensions,
   TouchableOpacity,
   StatusBar,
-  ScrollView,
-  Image,
   FlatList,
-  RefreshControl,
+  ImageBackground,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {useNavigation, useFocusEffect} from '@react-navigation/native';
-import BoardList from '../../../components/BoardList';
-import { useFavoritesBoards } from '../../boards/hooks/useFavorites';
-import { BoardItem } from '../../../components/BoardList';
+import {useFavoritesBoards} from '../../boards/hooks/useFavorites';
+import type {BoardItem} from '../../../components/BoardList';
 import BackButton from '../../../components/BackButton';
 
 const {width, height} = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
 
+const LIST_HORIZONTAL_PADDING = width * 0.06;
+const CARD_GAP = 16;
+const CARD_WIDTH = (width - LIST_HORIZONTAL_PADDING * 2 - CARD_GAP) / 2;
+const FALLBACK_IMAGE = require('../../../assets/images/bannerBg.png');
+
 interface FavouritesScreenProps {
   navigation: any;
 }
 
 const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
-  const [page, setPage] = useState(1);
-  const [refreshing, setRefreshing] = useState(false);
+  const page = 1;
   const limit = 10;
-  
-  // Use the favorites API hook
+  const [refreshing, setRefreshing] = useState(false);
+
   const {
     data: favoritesData,
     isLoading,
@@ -40,147 +39,310 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
     refetch,
   } = useFavoritesBoards(page, limit);
 
-  // Convert API data to BoardItem format for BoardList component
-  const convertToBoardItem = (board: any): BoardItem => {
-    return {
-      id: board.id?.toString() || 'unknown',
-      title: board.title || 'Untitled Board',
-      description: board.description || '',
-      location: board.location || 'Unknown Location',
-      distance: '1.6 km', // Default distance
-      size: board.size || '12x8',
-      price: board.price || 0,
-      currency: board.currency || 'USD',
-      image_url: board.image || null,
-    };
-  };
+  const convertToBoardItem = (board: any): BoardItem => ({
+    id: board.id?.toString() || 'unknown',
+    title: board.title || 'Untitled Board',
+    description: board.description || '',
+    location: board.location || 'Unknown Location',
+    distance: '1.6 km',
+    size: board.size || '12x8',
+    price: board.price || 0,
+    currency: board.currency || 'USD',
+    image_url: board.image || null,
+    rating: board.rating ?? board.avg_rating ?? 0,
+    reviewCount: board.review_count || board.totalRatings || 0,
+    category: board.category?.name || board.category_name,
+    labels: board.labels,
+    discount: board.discount,
+    media: Array.isArray(board.media) ? board.media : [],
+  });
+
+  const favourites = useMemo(
+    () => (favoritesData ? favoritesData.map(convertToBoardItem) : []),
+    [favoritesData],
+  );
 
   const onRefresh = async () => {
-    console.log('onRefresh triggered');
     setRefreshing(true);
     try {
       await refetch();
-      console.log('Favorites refreshed successfully');
-    } catch (error) {
-      console.error('Error refreshing favorites:', error);
+    } catch (err) {
+      console.error('Error refreshing favourites:', err);
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const sanitizeUrl = (input?: string | null) => {
+    if (!input) {
+      return null;
+    }
+    const trimmed = input.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const isAbsolute = /^https?:\/\//i.test(trimmed);
+    if (isAbsolute) {
+      try {
+        return encodeURI(trimmed);
+      } catch {
+        return trimmed;
+      }
+    }
+    const normalizedPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    return `https://adryd-backend-production.up.railway.app${normalizedPath}`;
+  };
+
+  const resolveImageSource = (item: BoardItem) => {
+    const asRemoteSource = (maybeUrl?: string | null) => {
+      const sanitized = sanitizeUrl(maybeUrl);
+      return sanitized ? {uri: sanitized} : null;
+    };
+
+    if (item.image) {
+      if (typeof item.image === 'string') {
+        const remote = asRemoteSource(item.image);
+        if (remote) {
+          return remote;
+        }
+      } else {
+        return item.image;
+      }
+    }
+
+    if (item.image_url) {
+      const remote = asRemoteSource(item.image_url);
+      if (remote) {
+        return remote;
+      }
+    }
+
+    if (Array.isArray(item.media)) {
+      for (const mediaItem of item.media) {
+        if (typeof mediaItem === 'string') {
+          const remote = asRemoteSource(mediaItem);
+          if (remote) {
+            return remote;
+          }
+        } else if (mediaItem && typeof mediaItem === 'object') {
+          const remote = asRemoteSource((mediaItem as any)?.url ?? null);
+          if (remote) {
+            return remote;
+          }
+        }
+      }
+    }
+
+    return FALLBACK_IMAGE;
+  };
+
+  const formatSizeTag = (sizeStr?: string) => {
+    if (!sizeStr || sizeStr.trim() === '') {
+      return 'Size 2ft by 4ft';
+    }
+
+    const normalized = sizeStr.trim();
+    if (normalized.toLowerCase().includes('size')) {
+      return normalized;
+    }
+
+    if (normalized.includes('ft') || normalized.includes('by')) {
+      return `Size ${normalized}`;
+    }
+
+    const parts = normalized.split('x');
+    if (parts.length === 2) {
+      const widthVal = parseInt(parts[0], 10);
+      const heightVal = parseInt(parts[1], 10);
+      if (!isNaN(widthVal) && !isNaN(heightVal)) {
+        if (widthVal > 20 || heightVal > 20) {
+          const widthFt = Math.round(widthVal / 12);
+          const heightFt = Math.round(heightVal / 12);
+          return `Size ${widthFt}ft by ${heightFt}ft`;
+        }
+        return `Size ${widthVal}ft by ${heightVal}ft`;
+      }
+    }
+
+    return `Size ${normalized}`;
   };
 
   const handleFavouritePress = (item: BoardItem) => {
     navigation.navigate('SingleBoardDetail', {item});
   };
 
-  // Removed auto-refetch on screen focus to avoid repeated API calls
-  // Use pull-to-refresh or manual refresh instead
+  const renderFavouriteCard = ({
+    item,
+    index,
+  }: {
+    item: BoardItem;
+    index: number;
+  }) => {
+    const imageSource = resolveImageSource(item);
+    const rawRating =
+      typeof item.rating === 'string'
+        ? parseFloat(item.rating)
+        : typeof item.rating === 'number'
+        ? item.rating
+        : 0;
+    const ratingValue = Number.isFinite(rawRating) ? rawRating : 0;
+    const reviewCount = item.reviewCount || 0;
+    const category =
+      item.category || (item as any).category_name || 'Static';
+    const sizeTag = formatSizeTag(item.size);
+    const location =
+      item.location && item.location !== 'Unknown Location'
+        ? item.location
+        : undefined;
+    const distance =
+      item.distance && item.distance !== '1.6 km' ? item.distance : undefined;
 
-  const renderProgressStep = (
-    stepNumber: number,
-    isActive: boolean,
-    isCompleted: boolean,
-  ) => (
-    <View style={styles.progressStepContainer}>
-      <View
-        style={[
-          styles.progressStep,
-          isActive && styles.activeStep,
-          isCompleted && styles.completedStep,
-        ]}>
-        <Text
-          style={[
-            styles.progressStepText,
-            isActive && styles.activeStepText,
-            isCompleted && styles.completedStepText,
-          ]}>
-          {stepNumber}
-        </Text>
-      </View>
-      {stepNumber < 3 && (
-        <View
-          style={[
-            styles.progressLine,
-            isActive && styles.activeProgressLine,
-          ]}
-        />
-      )}
-    </View>
-  );
+    const labels: string[] = [];
+    if (item.labels && Array.isArray(item.labels) && item.labels.length > 0) {
+      labels.push(...item.labels);
+    } else {
+      if ((item as any).isSpecial || (item as any).special) {
+        labels.push('Special');
+      }
+      const discountValue =
+        item.discount !== undefined && item.discount !== null
+          ? String(item.discount)
+          : undefined;
+      if (discountValue) {
+        const discountText = discountValue.includes('%')
+          ? discountValue
+          : `${discountValue}% Less`;
+        labels.push(discountText);
+      }
+    }
 
+    const isRightColumn = (index + 1) % 2 === 0;
 
-  return (
+    return (
+      <TouchableOpacity
+        style={[styles.card, !isRightColumn && styles.cardSpacing]}
+        onPress={() => handleFavouritePress(item)}
+        activeOpacity={0.9}>
+        <ImageBackground
+          source={imageSource}
+          style={styles.cardImage}
+          imageStyle={styles.cardImageBorder}>
+          <View style={styles.favoriteBadge}>
+            <Ionicons name="heart" size={17} color="#FFFFFF" />
+          </View>
+          {labels.length > 0 && (
+            <View style={styles.labelsContainer}>
+              {labels.map((label, labelIndex) => (
+                <View key={labelIndex} style={styles.labelTag}>
+                  <Text style={styles.labelText} numberOfLines={1}>
+                    {label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </ImageBackground>
+
+        <View style={styles.cardBody}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {item.title || 'Untitled Board'}
+          </Text>
+
+          <View style={styles.ratingRow}>
+            <Text style={styles.ratingValue}>{ratingValue.toFixed(1)}</Text>
+            <Ionicons
+              name="star"
+              size={12}
+              color="#FFB800"
+              style={styles.ratingIcon}
+            />
+            {reviewCount > 0 && (
+              <Text style={styles.reviewCount}>{`(${reviewCount})`}</Text>
+            )}
+          </View>
+
+          <View style={styles.tagsRow}>
+            <View style={styles.tag}>
+              <Text style={styles.tagText} numberOfLines={1}>
+                {category}
+              </Text>
+            </View>
+            <View style={styles.tag}>
+              <Text style={styles.tagText} numberOfLines={1}>
+                {sizeTag}
+              </Text>
+            </View>
+            {distance ? (
+              <View style={styles.tag}>
+                <Text style={styles.tagText} numberOfLines={1}>
+                  {distance}
+                </Text>
+              </View>
+            ) : null}
+            {location ? (
+              <View style={styles.tag}>
+                <Text style={styles.tagText} numberOfLines={1}>
+                  {location}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  return(
     <View style={styles.container}>
-      <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
-      <LinearGradient
-        colors={['#FFF4FD', '#fef3f9']}
-        start={{x: 0, y: 0}}
-        end={{x: 0, y: 1}}
-        style={styles.container}>
-        
-        {/* Header with BackButton component */}
+      <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+      <View style={styles.content}>
         <View style={styles.header}>
           <BackButton />
-          <Text style={styles.headerTitle}>My Favourites</Text>
+          <Text style={styles.headerTitle}>Favorite</Text>
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Progress Bar */}
-        <View style={styles.progressContainer}>
-          {renderProgressStep(1, true, false)}
-          {renderProgressStep(2, false, false)}
-          {renderProgressStep(3, false, false)}
-        </View>
-
-        {/* Favourites Content */}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { minHeight: height * 0.8 } // Ensure minimum height for pull-to-refresh
-          ]}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#C539A5']}
-              tintColor="#C539A5"
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading favourites...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={wp(15)}
+              color="#ff6b6b"
             />
-          }
-          showsVerticalScrollIndicator={false}>
-          
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading favourites...</Text>
-            </View>
-          ) : error ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="alert-circle-outline" size={wp(15)} color="#ff6b6b" />
-              <Text style={styles.emptyTitle}>Error Loading Favourites</Text>
-              <Text style={styles.emptySubtitle}>
-                {error instanceof Error ? error.message : 'Something went wrong'}
-              </Text>
-              <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-                <Text style={styles.retryButtonText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          ) : favoritesData && favoritesData.length > 0 ? (
-            <BoardList
-              data={favoritesData.map(convertToBoardItem)}
-              heading="Favourite Boards"
-              navigation={navigation}
-              onPressDetail={handleFavouritePress}
-            />
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="heart-outline" size={wp(15)} color="#C539A5" />
-              <Text style={styles.emptyTitle}>No Favourites Yet</Text>
-              <Text style={styles.emptySubtitle}>
-                Start adding boards to your favourites to see them here
-              </Text>
-            </View>
-          )}
-        </ScrollView>
-      </LinearGradient>
+            <Text style={styles.emptyTitle}>Error Loading Favourites</Text>
+            <Text style={styles.emptySubtitle}>
+              {error instanceof Error ? error.message : 'Something went wrong'}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : favourites.length > 0 ? (
+          <FlatList
+            data={favourites}
+            keyExtractor={item => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.columnWrapper}
+            contentContainerStyle={styles.listContent}
+            renderItem={renderFavouriteCard}
+            showsVerticalScrollIndicator={false}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="heart-outline" size={wp(15)} color="#C539A5" />
+            <Text style={styles.emptyTitle}>No Favourites Yet</Text>
+            <Text style={styles.emptySubtitle}>
+              Start adding boards to your favourites to see them here
+            </Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 };
@@ -190,208 +352,152 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  content: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: width * 0.05,
+    paddingHorizontal: LIST_HORIZONTAL_PADDING,
     paddingTop: hp(5),
-    paddingBottom: height * 0.03,
-  },
-  backButton: {
-    backgroundColor: '#fff',
-    width: wp(10),
-    height: wp(10),
-    borderRadius: wp(5),
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingBottom: hp(1.8),
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E9E9EF',
   },
   headerTitle: {
     fontSize: width * 0.055,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: '700',
+    color: '#1C1C1E',
+    letterSpacing: 0.2,
   },
   headerSpacer: {
     width: wp(10),
+    height: wp(10),
   },
-  progressContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: width * 0.1,
-    paddingBottom: height * 0.03,
+  listContent: {
+    paddingHorizontal: LIST_HORIZONTAL_PADDING,
+    paddingBottom: hp(8),
+    paddingTop: hp(1),
   },
-  progressStepContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  columnWrapper: {
+    justifyContent: 'flex-start',
+    marginBottom: CARD_GAP,
   },
-  progressStep: {
-    width: width * 0.08,
-    height: width * 0.08,
-    borderRadius: width * 0.04,
-    backgroundColor: '#C12C9F',
-    justifyContent: 'center',
-    alignItems: 'center',
+  card: {
+    width: CARD_WIDTH,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#F0F0F5',
+    overflow: 'hidden',
+    shadowColor: '#1F2937',
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  activeStep: {
-    backgroundColor: '#C12C9F',
+  cardSpacing: {
+    marginRight: CARD_GAP,
   },
-  completedStep: {
-    backgroundColor: '#4CAF50',
+  cardImage: {
+    width: '100%',
+    height: 140,
+    justifyContent: 'flex-start',
   },
-  progressStepText: {
-    fontSize: width * 0.04,
-    fontWeight: 'bold',
-    color: '#999',
+  cardImageBorder: {
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
   },
-  activeStepText: {
-    color: '#fff',
-  },
-  completedStepText: {
-    color: '#fff',
-  },
-  progressLine: {
-    width: width * 0.15,
-    height: 2,
-    backgroundColor: '#E0E0E0',
-    marginHorizontal: width * 0.02,
-  },
-  activeProgressLine: {
-    backgroundColor: '#C12C9F',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: width * 0.05,
-    paddingBottom: 280,
-  },
-  formCard: {
-    backgroundColor: '#fff',
-    borderRadius: width * 0.04,
-    padding: width * 0.05,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  uploadSection: {
-    marginBottom: height * 0.03,
-  },
-  uploadContainer: {
-    borderWidth: 2,
-    borderColor: '#FF6B9D',
-    borderStyle: 'dashed',
-    borderRadius: width * 0.03,
-    backgroundColor: '#FFF4FD',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: height * 0.15,
-  },
-  uploadIcon: {},
-  uploadText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#000',
-    marginBottom: height * 0.005,
-  },
-  uploadSubtext: {
-    fontSize: 10,
-    color: '#999',
-    textAlign: 'center',
-    fontWeight: '400',
-  },
-  imagePreviewContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    maxWidth: '100%',
-    maxHeight: '100%',
-  },
-  previewImage: {
-    width: 310,
-    height: 160,
-    borderRadius: width * 0.02,
-  },
-  deleteImageButton: {
+  favoriteBadge: {
     position: 'absolute',
-    bottom: -width * 0.02,
-    right: -width * 0.02,
-    backgroundColor: '#fff',
-    borderRadius: width * 0.03,
-    padding: width * 0.008,
-    shadowColor: '#000',
+    top: 10,
+    right: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F054A6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#F054A6',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  formFields: {
-    marginTop: height * 0.01,
+  labelsContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
   },
-  customInputContainer: {
-    marginBottom: height * 0.025,
-  },
-  buttonContainer: {
-    paddingHorizontal: width * 0.05,
-    paddingBottom: height * 0.05,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  nextButton: {
-    width: '90%',
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
-    opacity: 0.7,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  placeholderText: {
-    color: '#999',
-    fontSize: 16,
-    fontStyle: 'italic',
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#6f6666ff',
-    marginBottom: 8,
-  },
-  dropdownWrapper: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  dropdownContainer: {
-    marginBottom: 0, // Remove default margin since it's inside input container
-  },
-  testButton: {
-    backgroundColor: '#ff6b6b',
-    padding: 10,
+  labelTag: {
+    backgroundColor: '#FF7DC5',
     borderRadius: 8,
-    marginTop: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 5,
+  },
+  labelText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  cardBody: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 6,
+  },
+  ratingRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 10,
   },
-  testButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  ratingValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
   },
-  // New styles for FavouritesScreen
+  ratingIcon: {
+    marginLeft: 6,
+    marginRight: 4,
+  },
+  reviewCount: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginTop: 0,
+  },
+  tag: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 4,
+    marginBottom: 2,
+    flexShrink: 0,
+  },
+  tagText: {
+    fontSize: 9,
+    color: '#595959',
+    fontWeight: '400',
+    maxWidth: CARD_WIDTH * 0.85,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -439,4 +545,3 @@ const styles = StyleSheet.create({
 });
 
 export default FavouritesScreen;
-

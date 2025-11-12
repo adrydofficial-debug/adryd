@@ -408,19 +408,15 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                   />
                 </TouchableOpacity>
               </View>
-              <View style={styles.descriptionContainer}>
-                <Text style={styles.descriptionLabel}>{t('createScreen.description')}</Text>
-                <TextInput
-                  style={styles.descriptionInput}
-                  value={description}
-                  onChangeText={() => {}}
-                  placeholder={t('createScreen.enterDescription')}
-                  placeholderTextColor="#999"
-                  multiline={true}
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
-              </View>
+              <CustomInput
+                label={t('createScreen.description')}
+                placeholder={t('createScreen.enterDescription')}
+                value={description}
+                onChangeText={() => {}}
+                multiline={true}
+                numberOfLines={4}
+                containerStyle={styles.descriptionContainer}
+              />
               {/* <View style={styles.locationContainer}> */}
                 {/* <Text style={styles.locationLabel}>{t('createScreen.location')}</Text> */}
                 {/* <View style={styles.mapContainer}>

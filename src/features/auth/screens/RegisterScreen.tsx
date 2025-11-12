@@ -304,8 +304,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
                     <CustomInput
                       label={t('login.phoneNumber', { lng: currentLanguage })}
-                      placeholder="+923XXXXXXXXX"
-                      keyboardType="phone-pad"
+                      placeholder="3XXXXXXXXX"
+                      isPhoneNumber={true}
                       value={values.phoneNumber}
                       onChangeText={text => handlePhoneChange(text, setFieldValue)}
                       onBlur={handleBlur('phoneNumber')}
@@ -316,43 +316,20 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     />
 
                     {/* Password */}
-                    <View style={styles.passwordContainer}>
-                      <Text style={styles.inputLabel} key={`password-label-${currentLanguage}`}>{t('register.password', { lng: currentLanguage })}</Text>
-                      <View style={styles.passwordInputContainer}>
-                        <TextInput
-                          style={[
-                            styles.passwordInput,
-                            (shouldShowError('password') || (errors.password && touched.password)) &&
-                              styles.inputError,
-                            isRTL && { textAlign: 'right', paddingRight: wp(4), paddingLeft: wp(12) },
-                            !isRTL && { paddingLeft: wp(4), paddingRight: wp(12) },
-                          ]}
-                          placeholder={t('register.password', { lng: currentLanguage })}
-                          secureTextEntry={!showPassword}
-                          value={values.password}
-                          onChangeText={text => {
-                            handleChange('password')(text);
-                            validatePassword(text);
-                          }}
-                          onBlur={handleBlur('password')}
-                          onFocus={() => setFocusedField('password')}
-                          placeholderTextColor="#999"
-                        />
-                        <TouchableOpacity
-                          style={[
-                            styles.eyeIconContainer,
-                            isRTL ? { right: undefined, left: wp(4) } : { left: undefined, right: wp(4) }
-                          ]}
-                          onPress={() => setShowPassword(!showPassword)}
-                        >
-                          <Ionicons
-                            name={showPassword ? 'eye' : 'eye-off'}
-                            size={wp(5)}
-                            color="#666"
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
+                    <CustomInput
+                      label={t('register.password', { lng: currentLanguage })}
+                      placeholder={t('register.password', { lng: currentLanguage })}
+                      isPassword={true}
+                      value={values.password}
+                      onChangeText={text => {
+                        handleChange('password')(text);
+                        validatePassword(text);
+                      }}
+                      onBlur={handleBlur('password')}
+                      onFocus={() => setFocusedField('password')}
+                      focused={focusedField === 'password'}
+                      error={shouldShowError('password') || (errors.password && touched.password)}
+                    />
 
                     <TouchableOpacity
                       style={[

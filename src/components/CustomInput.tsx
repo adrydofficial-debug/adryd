@@ -1,5 +1,5 @@
 // src/components/CustomInput.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dimensions,
   StyleSheet,
@@ -7,9 +7,11 @@ import {
   TextInput,
   TextInputProps,
   TextStyle,
+  TouchableOpacity,
   View,
   ViewStyle,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -51,6 +53,14 @@ interface CustomInputProps {
   returnKeyType?: TextInputProps['returnKeyType'];
   blurOnSubmit?: boolean;
   onSubmitEditing?: TextInputProps['onSubmitEditing'];
+  // Phone number props
+  isPhoneNumber?: boolean;
+  phonePrefix?: string;
+  // Password props
+  isPassword?: boolean;
+  showPasswordToggle?: boolean;
+  multiline?: boolean;
+  numberOfLines?: number;
 }
 
 const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
@@ -68,13 +78,69 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
   labelStyle,
   error,
   focused = false,
-  showErrorText = true,
+  showErrorText = false,
   returnKeyType,
   blurOnSubmit,
   onSubmitEditing,
+  isPhoneNumber = false,
+  phonePrefix = '+92',
+  isPassword = false,
+  showPasswordToggle = true,
+  multiline = false,
+  numberOfLines = 1,
 }, ref) => {
-  const isPhoneInput =
-    keyboardType === 'phone-pad' && value && value.startsWith('+92');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Determine if this is a phone input
+  const isPhoneInput = isPhoneNumber || (keyboardType === 'phone-pad' && (value?.startsWith('+92') || value?.startsWith('+')));
+
+  // Determine if this is a password input
+  const shouldShowPasswordToggle = isPassword && showPasswordToggle;
+  const actualSecureTextEntry = isPassword ? !isPasswordVisible : secureTextEntry;
+
+  const handleFocus = (e: any) => {
+    setIsFocused(true);
+    onFocus?.(e);
+  };
+
+  const handleBlur = (e: any) => {
+    setIsFocused(false);
+    onBlur?.(e);
+  };
+
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible(!isPasswordVisible);
+  };
+
+  // Format phone number
+  const formatPhoneNumber = (text: string) => {
+    if (!isPhoneInput) return text;
+    
+    // Remove all non-numeric characters
+    const cleaned = text.replace(/[^0-9]/g, '');
+    
+    // If it starts with country code, extract it
+    if (cleaned.startsWith(phonePrefix.replace('+', ''))) {
+      const number = cleaned.substring(phonePrefix.replace('+', '').length);
+      if (number.length <= 10) {
+        return `${phonePrefix}${number}`;
+      }
+      return value; // Don't update if exceeds limit
+    }
+    
+    // If it doesn't start with country code, add it
+    if (cleaned.length <= 10) {
+      return `${phonePrefix}${cleaned}`;
+    }
+    
+    return value; // Don't update if exceeds limit
+  };
+
+  const handlePhoneChange = (text: string) => {
+    const formatted = formatPhoneNumber(text);
+    onChangeText(formatted);
+  };
 
   return (
     <View style={[styles.inputContainer, containerStyle]}>
@@ -85,28 +151,23 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
           style={[
             styles.phoneInputWrapper,
             error ? styles.phoneInputWrapperError : undefined,
-            focused && !error ? styles.phoneInputWrapperFocused : undefined,
+            (isFocused || focused) && !error ? styles.phoneInputWrapperFocused : undefined,
           ]}
         >
           <Text
-            style={[styles.phonePrefix, focused && styles.phonePrefixFocused]}
+            style={[styles.phonePrefix, (isFocused || focused) && styles.phonePrefixFocused]}
           >
-            +92
+            {phonePrefix}
           </Text>
           <TextInput
             ref={ref}
             placeholder={placeholder}
-            value={value.replace('+92', '')}
-            onChangeText={text => {
-              const cleaned = text.replace(/[^0-9]/g, '');
-              if (cleaned.length <= 10) {
-                onChangeText(`+92${cleaned}`);
-              }
-            }}
-            onBlur={onBlur}
-            onFocus={onFocus}
+            value={value?.replace(phonePrefix, '') || ''}
+            onChangeText={handlePhoneChange}
+            onBlur={handleBlur}
+            onFocus={handleFocus}
             style={[styles.phoneInput, inputStyle]}
-            keyboardType={keyboardType}
+            keyboardType="phone-pad"
             placeholderTextColor={placeholderTextColor}
             returnKeyType={returnKeyType}
             blurOnSubmit={blurOnSubmit}
@@ -114,26 +175,46 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
           />
         </View>
       ) : (
-        <TextInput
-          ref={ref}
-          placeholder={placeholder}
-          value={value}
-          onChangeText={onChangeText}
-          onBlur={onBlur}
-          onFocus={onFocus}
-          style={[
-            styles.input,
-            inputStyle,
-            error ? styles.inputError : undefined,
-            focused ? styles.inputFocused : undefined,
-          ]}
-          secureTextEntry={secureTextEntry}
-          keyboardType={keyboardType}
-          placeholderTextColor={placeholderTextColor}
-          returnKeyType={returnKeyType}
-          blurOnSubmit={blurOnSubmit}
-          onSubmitEditing={onSubmitEditing}
-        />
+        <View style={styles.inputWrapper}>
+          <TextInput
+            ref={ref}
+            placeholder={placeholder}
+            value={value}
+            onChangeText={onChangeText}
+            onBlur={handleBlur}
+            onFocus={handleFocus}
+            style={[
+              styles.input,
+              shouldShowPasswordToggle && styles.inputWithToggle,
+              inputStyle,
+              error ? styles.inputError : undefined,
+              (isFocused || focused) ? styles.inputFocused : undefined,
+              multiline && styles.inputMultiline,
+            ]}
+            secureTextEntry={actualSecureTextEntry}
+            keyboardType={keyboardType}
+            placeholderTextColor={placeholderTextColor}
+            returnKeyType={returnKeyType}
+            blurOnSubmit={blurOnSubmit}
+            onSubmitEditing={onSubmitEditing}
+            multiline={multiline}
+            numberOfLines={numberOfLines}
+            textAlignVertical={multiline ? 'top' : 'center'}
+          />
+          {shouldShowPasswordToggle && (
+            <TouchableOpacity
+              style={styles.passwordToggle}
+              onPress={togglePasswordVisibility}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={isPasswordVisible ? 'eye-outline' : 'eye-off-outline'}
+                size={20}
+                color="#999"
+              />
+            </TouchableOpacity>
+          )}
+        </View>
       )}
 
       {error && showErrorText && typeof error === 'string' && (
@@ -153,6 +234,10 @@ const styles = StyleSheet.create({
     color: '#595959',
     marginBottom: 8,
   },
+  inputWrapper: {
+    position: 'relative',
+    width: '100%',
+  },
   input: {
     width: '100%',
     height: hp(6),
@@ -164,6 +249,22 @@ const styles = StyleSheet.create({
     borderColor: '#e2d1d1',
     color: '#000',
     marginBottom: hp(1),
+  },
+  inputWithToggle: {
+    paddingRight: wp(12), // Make room for password toggle icon
+  },
+  inputMultiline: {
+    height: 'auto',
+    minHeight: hp(6),
+    paddingTop: hp(1.5),
+    paddingBottom: hp(1.5),
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: wp(4),
+    top: hp(1.5),
+    padding: wp(1),
+    zIndex: 1,
   },
   phoneInputWrapper: {
     flexDirection: 'row',
