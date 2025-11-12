@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import AndroidOpenSettings from 'react-native-android-open-settings';
+import { Images } from "../assets/images";
 
 interface NoInternetProps {
   // Optional: Allow parent to control if component should be rendered at all
@@ -84,7 +85,7 @@ const NoInternet: React.FC<NoInternetProps> = ({ enabled = true }) => {
       <View style={styles.overlay}>
         <View style={styles.modalBox}>
           <Image
-            source={require("../assets/images/noInternet.png")}
+            source={Images.noInternet}
             style={styles.image}
             resizeMode="contain"
           />

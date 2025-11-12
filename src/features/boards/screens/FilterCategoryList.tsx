@@ -20,6 +20,7 @@ import { useAuthStore } from '../../../store/authStore';
 import BoardTabs, { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
 import { useFilteredBoards } from '../hooks/useFilteredBoards';
+import { Images } from '../../../assets/images';
 
 const { width, height } = Dimensions.get('window');
 
@@ -179,10 +180,7 @@ const FilterCategoryList: React.FC<any> = ({ route, navigation }) => {
     return (
       <>
         <View style={styles.searchRow}>
-          <Image
-            source={require('../../../assets/images/Search.png')}
-            style={styles.searchIcon}
-          />
+          <Image source={Images.search} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search"
@@ -206,10 +204,7 @@ const FilterCategoryList: React.FC<any> = ({ route, navigation }) => {
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.filterBtn}>
-            <Image
-              source={require('../../../assets/images/fillterrr.png')}
-              style={styles.filterIcon}
-            />
+            <Image source={Images.filterIllustration} style={styles.filterIcon} />
           </TouchableOpacity>
         </View>
 

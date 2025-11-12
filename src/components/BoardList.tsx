@@ -18,7 +18,9 @@ const {width, height} = Dimensions.get('window');
 const CARD_WIDTH = 165;
 const CARD_HEIGHT = 237;
 
-const FALLBACK_IMAGE = require('../assets/images/bannerBg.png');
+import { Images } from '../assets/images';
+
+const FALLBACK_IMAGE = Images.bannerBg;
 
 
 
@@ -64,7 +66,7 @@ const boardData: BoardItem[] = [
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
-    image: require('../assets/images/bannerBg.png'),
+    image: Images.bannerBg,
   },
   {
     id: '2',
@@ -72,7 +74,7 @@ const boardData: BoardItem[] = [
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
-    image: require('../assets/images/bannerBg.png'),
+    image: Images.bannerBg,
   },
   {
     id: '3',
@@ -80,7 +82,7 @@ const boardData: BoardItem[] = [
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
-    image: require('../assets/images/bannerBg.png'),
+    image: Images.bannerBg,
   },
 ];
 

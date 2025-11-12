@@ -29,7 +29,7 @@ import {
 } from '../hooks/useCompanies';
 import NoInternet from '../../../components/NoInternet';
 import { useCampaignStore } from '../../../store/campaignStore';
-
+import ProgressBar from '../../../components/ProgressBar';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -440,9 +440,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.progressContainer}>
-          {renderProgressStep(1, true, false)}
-          {renderProgressStep(2, false, false)}
-          {renderProgressStep(3, false, false)}
+           <ProgressBar currentStep={1}/>
         </View>
         <ScrollView
           style={styles.scrollView}

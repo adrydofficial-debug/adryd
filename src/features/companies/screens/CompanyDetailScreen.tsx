@@ -450,12 +450,9 @@ import MapView from 'react-native-maps';
 import { useRateBoard } from '../hooks/useRateBoard';
 import { useAuthStore } from '../../../store/authStore';
 import { useQueryClient } from '@tanstack/react-query';
+import { Images, EditSquareIcon, LocationPinkIcon } from '../../../assets/images';
 // Image assets (placeholder)
-const placeholder = require('../../../assets/images/bannerBg.png');
-import Upload from '../../../assets/images/EditSquare.svg';
-import Location from '../../../assets/images/location-pinkSVG.svg';
-// import Line from '../../assets/icons/line.svg';
-import Heart from '../../../assets/images/EditSquare.svg';
+const placeholder = Images.bannerBg;
 import BackButton from '../../../components/BackButton';
 // Removed typed RootStack import to avoid cross-module typing dependency
 
@@ -682,10 +679,10 @@ const SingleBoardDetail: React.FC = () => {
         {/* Top-right icons */}
         <View style={styles.head}>
           <TouchableOpacity style={styles.uploadCircle}>
-            <Upload width={width * 0.05} height={height * 0.03} />
+            <EditSquareIcon width={width * 0.05} height={height * 0.03} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.heartBorder}>
-            <Heart width={width * 0.08} height={height * 0.017} />
+            <EditSquareIcon width={width * 0.08} height={height * 0.017} />
           </TouchableOpacity>
         </View>
       </View>
@@ -698,7 +695,7 @@ const SingleBoardDetail: React.FC = () => {
               <View>
                 <Text style={styles.title}>{billboard.title}</Text>
                 <View style={styles.icon}>
-                  <Location width={9} height={8} style={styles.locationIcon} />
+                  <LocationPinkIcon width={9} height={8} style={styles.locationIcon} />
                   <Text style={styles.location}>{billboard.location}</Text>
                 </View>
                 <View style={styles.icon2}>

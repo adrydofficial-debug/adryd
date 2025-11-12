@@ -17,15 +17,17 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useProfile } from '../features/profile/hooks/useProfile';
-import SecurityIcon from '../assets/images/security.svg';
-import CompaniesIcon from '../assets/images/Companys.svg';
-import FavoriteIcon from '../assets/images/favorite.svg';
-import InviteIcon from '../assets/images/Invite.svg';
-import HelpIcon from '../assets/images/help.svg';
-import TermsIcon from '../assets/images/Terms.svg';
-import ContactIcon from '../assets/images/Chat.svg';
-import Logout from '../assets/images/Logout.svg';
-import EditSquare from '../assets/images/EditSquare.svg';
+import {
+  SecurityIcon,
+  CompanySvg,
+  FavoriteIcon,
+  InviteIcon,
+  HelpIcon,
+  TermsIcon,
+  ContactIcon,
+  LogoutIcon,
+  EditSquareIcon,
+} from '../assets/images';
 import { useAuthStore } from '../store/authStore';
 import messaging from '@react-native-firebase/messaging';
 import { deleteFcmToken } from '../features/fcmtoken/api/api';
@@ -220,13 +222,13 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
 
   const iconMap: Record<DrawerItem['icon'], React.ComponentType<any>> = {
     security: SecurityIcon,
-    companies: CompaniesIcon,
+    companies: CompanySvg,
     favorite: FavoriteIcon,
     invite: InviteIcon,
     help: HelpIcon,
     terms: TermsIcon,
     contact: ContactIcon,
-    logout: Logout,
+    logout: LogoutIcon,
   };
 
   const renderMenuItem = (item: DrawerItem, hasSubtitle: boolean = true) => (
@@ -322,7 +324,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
                  }
                }}
              >
-               <EditSquare width={22} height={22} />
+               <EditSquareIcon width={22} height={22} />
              </TouchableOpacity>
             {/* <TouchableOpacity style={styles.editButton} activeOpacity={0.7}>
               <Text style={styles.editIcon}>✏️</Text>
@@ -402,7 +404,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
             >
               <View style={styles.menuItemLeft}>
                 <View style={styles.iconContainer}>
-                  <Logout width={22} height={22} />
+                <LogoutIcon width={22} height={22} />
                 </View>
               </View>
               <View style={styles.menuItemCenter}>

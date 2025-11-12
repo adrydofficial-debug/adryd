@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { Images } from '../assets/images';
 
 const { width, height } = Dimensions.get('window');
 const DESIGN_WIDTH = 390;
@@ -36,30 +37,30 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, shouldWaitForLo
     // {
     //   id: 1,
     //   type: 'logo',
-    //   image: require('../assets/images/AdrydLogo.png'),
+    //   image: Images.adrydLogo,
     // },
     {
       id: 1,
       type: 'slogan',
-      image: require('../assets/images/facebook cover (6) 1.png'),
+      image: Images.facebookCover1,
       text: 'مطلب کچھ بھی',
     },
     // {
     //   id: 3,
     //   type: 'welcome',
-    //   image: require('../assets/images/facebook cover (6) 1 (1).png'),
+    //   image: Images.facebookCover2,
     //   text: 'Welcome',
     // },
     // {
     //   id: 4,
     //   type: 'welcome',
-    //   image: require('../assets/images/facebook cover (6) 1 (2).png'),
+    //   image: Images.facebookCover3,
     //   text: 'Welcome',
     // },
     // {
     //   id: 5,
     //   type: 'welcome',
-    //   image: require('../assets/images/facebook cover (6) 1 (3).png'),
+    //   image: Images.facebookCover4,
     //   text: 'Welcome',
     // },
   ];
