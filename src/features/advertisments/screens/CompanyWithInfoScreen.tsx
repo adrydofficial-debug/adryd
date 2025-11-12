@@ -254,15 +254,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  progressWrapper:{
-   
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: width * 0.1,
-    paddingBottom: height * 0.03,
-  
-  },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -293,10 +285,11 @@ const styles = StyleSheet.create({
     width: wp(11),
   },
   progressWrapper: {
-    flexDirection: 'row',
+flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: wp(8),
-    paddingBottom: hp(2),
+    paddingHorizontal: width * 0.1,
+    paddingBottom: height * 0.03,
   },
   progressItem: {
     alignItems: 'center',
@@ -358,8 +351,8 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     width: '48%',
-    minHeight: hp(18),
-    maxHeight: hp(18),
+    minHeight: hp(22),
+    maxHeight: hp(22),
     backgroundColor: '#FFFFFF',
     borderRadius: wp(4),
     paddingVertical: hp(3),
@@ -409,7 +402,7 @@ const styles = StyleSheet.create({
     color: '#C539A5',
   },
   summarySubtitle: {
-    fontSize: wp(3),
+    fontSize: wp(2.8),
     color: '#A1A1A1',
     marginTop: hp(0.3),
   },

@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: width * 0.09,
     position: 'absolute',
-    bottom: hp(10),
+    bottom: hp(4),
     left: 0,
     right: 0, 
   },

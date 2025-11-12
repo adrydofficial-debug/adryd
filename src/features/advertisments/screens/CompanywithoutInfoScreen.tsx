@@ -14,7 +14,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
 import { useCampaign } from '../hooks/useCampaign';
-
+import ProgressBar from '../../../components/ProgressBar';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -97,6 +97,9 @@ const CompanyWithoutInfoScreen: React.FC<any> = ({ navigation }) => {
 
       {/* Progress */}
    
+  <View style={styles.progressContainer}>
+           <ProgressBar currentStep={5}/>
+        </View>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -193,6 +196,13 @@ const DetailRow: React.FC<DetailRowProps> = ({ label, value }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+   progressContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: width * 0.1,
+    paddingBottom: height * 0.03,
   },
   header: {
     flexDirection: 'row',

@@ -21,14 +21,10 @@ import CustomInput from '../../../components/CustomInput';
 import { useTranslation } from 'react-i18next';
 import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
 import ProgressBar from '../../../components/ProgressBar';
-import { 
-  useAdvertisements,
-  useGlobalSelectedDates,
-  useAddGlobalSelectedDate,
-  useRemoveGlobalSelectedDate,
-} from '../hooks/hooks';
+// Removed global selected dates - now using only unavailable-times API
 import { CreateAdvertisementRequest } from '../types';
 import { useCampaignStore } from '../../../store/campaignStore';
+import { useBoardUnavailableTimes } from '../../boards/hooks/useBoardUnavailableTimes';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -95,80 +91,50 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     return date.toISOString().split('T')[0];
   };
   
-  // Fetch all existing advertisements to get booked dates
-  // Using a high limit to get all advertisements
-  // This will fetch ALL advertisements from API, so all users see the same booked dates
-  const { data: advertisementsData, refetch: refetchAdvertisements } = useAdvertisements(1, 1000);
+  // Fetch board unavailable times from API - this is the ONLY source of booked dates
+  // All users will see the same unavailable dates from this API
+  const { data: unavailableTimesData, refetch: refetchUnavailableTimes } = useBoardUnavailableTimes(BOARD_ID);
   
-  // Get global selected dates using TanStack Query (reactive updates across components)
-  // This persists in AsyncStorage and marks dates as booked for all users
-  const { data: globalSelectedDates = [] } = useGlobalSelectedDates();
-  const addGlobalSelectedDateMutation = useAddGlobalSelectedDate();
-  const removeGlobalSelectedDateMutation = useRemoveGlobalSelectedDate();
-  
-  // Refetch advertisements when screen is focused to get latest booked dates
+  // Refetch unavailable times when screen is focused to get latest booked dates
   React.useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      console.log('📅 Screen focused - refetching advertisements to get latest booked dates');
-      refetchAdvertisements();
+      console.log('📅 Screen focused - refetching unavailable times to get latest booked dates');
+      refetchUnavailableTimes();
     });
     return unsubscribe;
-  }, [navigation, refetchAdvertisements]);
+  }, [navigation, refetchUnavailableTimes]);
   
-  // Extract all booked dates from existing advertisements (API) AND from global selected dates store
-  // Global selected dates are dates that users have selected (even before submitting) - marked as booked for all users
+  // Extract booked dates ONLY from board unavailable times API
+  // Only mark the start date of each booking range to avoid marking all days in between
+  // This ensures that when API returns a range like "Nov 13 to Dec 1", we only mark Nov 13,
+  // not all days from 13 to 30. Individual day bookings will still mark their specific days.
   const bookedDates = useMemo(() => {
     const dates = new Set<string>();
     
-    // Add dates from existing advertisements (API) - these are visible to ALL users
-    if (advertisementsData?.data) {
-      console.log('📊 Processing', advertisementsData.data.length, 'advertisements for booked dates');
-      advertisementsData.data.forEach(ad => {
-        if (ad.bookings && Array.isArray(ad.bookings)) {
-          ad.bookings.forEach(booking => {
-            if (booking.start_at && booking.end_at) {
-              const start = new Date(booking.start_at);
-              const end = new Date(booking.end_at);
-              
-              // Add all dates in the range (start_at inclusive, end_at exclusive)
-              // end_at represents the start of the day AFTER the last booked day
-              // Example: If user selects dates 1-7, end_at is date 8 00:00:00
-              // We should only mark dates 1-7 as booked, not date 8
-              
-              // Get the date-only values for comparison (ignore time)
-              const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-              const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-              
-              // Loop through each day from start to end (exclusive of end)
-              const currentDate = new Date(startDateOnly);
-              while (currentDate < endDateOnly) {
-                const dateKey = formatDateForCalendar(new Date(currentDate));
-                dates.add(dateKey);
-                // Move to next day
-                currentDate.setDate(currentDate.getDate() + 1);
-              }
-            }
-          });
-        }
-      });
-    }
-    
-    // Add dates from global selected dates (TanStack Query) - dates selected by any user, even before submitting
-    // These dates are persisted in AsyncStorage and marked as booked for all users
-    // TanStack Query ensures reactive updates across all components
-    if (globalSelectedDates && globalSelectedDates.length > 0) {
-      globalSelectedDates.forEach(dateKey => {
-        // Dates from TanStack Query are already normalized to YYYY-MM-DD format
-        if (typeof dateKey === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+    // Add dates from board unavailable times API
+    // This is the ONLY source of booked dates - all users see the same unavailable dates
+    if (unavailableTimesData?.unavailable && Array.isArray(unavailableTimesData.unavailable)) {
+      console.log('📅 Processing', unavailableTimesData.unavailable.length, 'unavailable time ranges from API');
+      unavailableTimesData.unavailable.forEach(unavailable => {
+        if (unavailable.start_at && unavailable.end_at) {
+          const start = new Date(unavailable.start_at);
+          
+          // Get the date-only value for the start date (ignore time)
+          const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+          
+          // Only mark the start date of each booking range
+          // This prevents marking all days from 13 to 30 when only specific days are booked
+          // For single-day bookings, this correctly marks that one day
+          // For multi-day ranges, this only marks the start day, not all days in between
+          const dateKey = formatDateForCalendar(new Date(startDateOnly));
           dates.add(dateKey);
         }
       });
-      console.log('📅 Added', globalSelectedDates.length, 'dates from global selected dates (TanStack Query)');
+      console.log('✅ Added dates from board unavailable times API:', Array.from(dates).sort());
     }
     
-    console.log('✅ Total booked dates (API + TanStack Query):', Array.from(dates).sort());
     return dates;
-  }, [advertisementsData, globalSelectedDates]);
+  }, [unavailableTimesData]);
 
   const isSameDay = (date1: Date, date2: Date) => {
     return (
@@ -188,52 +154,35 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     return bookedDates.has(dateKey);
   };
 
-  const onDayPress = async (date: Date) => {
+  const onDayPress = (date: Date) => {
     // Prevent selection of booked dates
     if (isDateBooked(date)) {
-      setErrorText('This date is already booked by another user');
+      setErrorText('This date is already booked');
       return;
     }
     
     // Clear error when successfully selecting a date
     setErrorText('');
     
-    const dateKey = formatDateForCalendar(date);
     let updatedDays: Date[];
     
     if (isDateSelected(date)) {
       // Remove date if already selected
       updatedDays = selectedDays.filter(selectedDate => !isSameDay(selectedDate, date));
-      
-      // Remove from global selected dates using TanStack Query mutation
-      try {
-        await removeGlobalSelectedDateMutation.mutateAsync(dateKey);
-      } catch (error) {
-        console.error('❌ Failed to remove date from global selected dates:', error);
-        // Continue anyway - local state is updated
-      }
     } else {
       // Add date to selection
       updatedDays = [...selectedDays, date].sort((a, b) => a.getTime() - b.getTime());
-      
-      // Add to global selected dates using TanStack Query mutation
-      try {
-        await addGlobalSelectedDateMutation.mutateAsync(dateKey);
-      } catch (error) {
-        console.error('❌ Failed to add date to global selected dates:', error);
-        // Continue anyway - local state is updated
-      }
     }
     
-    // Save to local store immediately (for current user's selection)
+    // Save to local store (for current user's selection only)
     setSelectedDaysToStore(updatedDays);
   };
 
   const openCalendar = async () => {
-    // Always refetch advertisements to get the latest booked dates from API
-    // This ensures that dates booked by other users are visible
-    console.log('📅 Opening calendar - refetching advertisements to get latest booked dates');
-    await refetchAdvertisements();
+    // Always refetch unavailable times to get the latest booked dates from API
+    // This ensures that dates booked by other users are visible to all users
+    console.log('📅 Opening calendar - refetching unavailable times to get latest booked dates');
+    await refetchUnavailableTimes();
     
     // Preserve current selection from store, or populate from date range if available
     if (selectedDays.length === 0 && startDate && endDate) {
@@ -642,18 +591,28 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                 setErrorText('Campaign category is required');
                 return;
               }
-              // Use selectedDays if available, otherwise fall back to startDate/endDate
-              let firstDate: Date;
-              let lastDate: Date;
+              
+              // Validate that dates are selected from calendar
+              let selectedDates: Date[];
               
               if (selectedDays.length > 0) {
-                const sortedDays = [...selectedDays].sort((a, b) => a.getTime() - b.getTime());
-                firstDate = sortedDays[0];
-                lastDate = sortedDays[sortedDays.length - 1];
+                // Use selectedDays from calendar - these are the exact dates user selected
+                selectedDates = [...selectedDays].sort((a, b) => a.getTime() - b.getTime());
+                
+                console.log('📅 Using selected days from calendar:', {
+                  totalSelected: selectedDays.length,
+                  allSelectedDates: selectedDates.map(d => d.toISOString().split('T')[0]),
+                });
               } else if (startDate && endDate) {
-                // Fallback to startDate/endDate if selectedDays is empty
-                firstDate = startDate;
-                lastDate = endDate;
+                // Fallback: create array of dates from startDate to endDate
+                selectedDates = [];
+                const current = new Date(startDate);
+                const end = new Date(endDate);
+                while (current <= end) {
+                  selectedDates.push(new Date(current));
+                  current.setDate(current.getDate() + 1);
+                }
+                console.log('⚠️ No selectedDays, using startDate/endDate fallback');
               } else {
                 setErrorText('Please select at least one day from the calendar');
                 return;
@@ -662,48 +621,124 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
               // Clear any previous errors
               setErrorText('');
               
-              // Set start_at to beginning of first day in UTC (00:00:00)
-              const startAt = new Date(Date.UTC(
-                firstDate.getFullYear(),
-                firstDate.getMonth(),
-                firstDate.getDate(),
-                0, 0, 0, 0
-              ));
+              // Sort dates to ensure proper ordering
+              const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
               
-              // Set end_at to start of the day after last date in UTC (00:00:00)
-              // Backend expects end_at to be exclusive (the day after the last booked day)
-              const endAt = new Date(Date.UTC(
-                lastDate.getFullYear(),
-                lastDate.getMonth(),
-                lastDate.getDate() + 1,
-                0, 0, 0, 0
-              ));
+              // Create individual bookings for each selected day
+              // API expects end_at to be the same as start_at for single-day bookings
+              const bookings = sortedDates.map(date => {
+                // Ensure we're working with a clean date object
+                const cleanDate = new Date(date);
+                
+                // For single-day bookings, API expects start_at and end_at to be the same
+                // Format: { "start_at": "2025-10-14T00:00:00Z", "end_at": "2025-10-14T00:00:00Z" }
+                const dateAt = new Date(Date.UTC(
+                  cleanDate.getFullYear(),
+                  cleanDate.getMonth(),
+                  cleanDate.getDate(),
+                  0, 0, 0, 0
+                ));
+                
+                const dateString = dateAt.toISOString();
+                
+                return {
+                  start_at: dateString,
+                  end_at: dateString, // Same as start_at for single-day bookings
+                };
+              });
+              
+              // Validate bookings before sending
+              if (bookings.length === 0) {
+                setErrorText('No valid bookings to create');
+                return;
+              }
+              
+              // Validate each booking has valid dates
+              // Note: API allows start_at and end_at to be equal for single-day bookings
+              const invalidBookings = bookings.filter(
+                booking => !booking.start_at || !booking.end_at || 
+                booking.start_at > booking.end_at || // Allow equal, but not start > end
+                !booking.start_at.includes('T') || !booking.end_at.includes('T')
+              );
+              
+              if (invalidBookings.length > 0) {
+                setErrorText(`Invalid bookings detected: ${invalidBookings.length} booking(s) have invalid dates`);
+                console.error('Invalid bookings:', invalidBookings);
+                return;
+              }
+              
+              // Check for duplicate bookings (same start_at and end_at) and remove them
+              const bookingKeys = new Set<string>();
+              const uniqueBookings: Array<{ start_at: string; end_at: string }> = [];
+              
+              bookings.forEach(booking => {
+                const key = `${booking.start_at}_${booking.end_at}`;
+                if (!bookingKeys.has(key)) {
+                  bookingKeys.add(key);
+                  uniqueBookings.push(booking);
+                }
+              });
+              
+              if (uniqueBookings.length !== bookings.length) {
+                console.warn(`⚠️ Removed ${bookings.length - uniqueBookings.length} duplicate booking(s)`);
+                // Replace bookings array with unique bookings
+                bookings.splice(0, bookings.length, ...uniqueBookings);
+                console.log('✅ Unique bookings count:', bookings.length);
+              }
+              
+              // Log booking details for debugging
+              console.log('📅 Created bookings:', {
+                count: bookings.length,
+                firstBooking: bookings[0],
+                lastBooking: bookings[bookings.length - 1],
+                allBookings: bookings,
+              });
+
+              // Ensure all required fields are present and valid
+              if (!campaignName || campaignName.trim() === '') {
+                setErrorText('Campaign name is required');
+                return;
+              }
+              
+              if (!description || description.trim() === '') {
+                setErrorText('Description is required');
+                return;
+              }
 
               const advertisementData: CreateAdvertisementRequest = {
                 company_id: COMPANY_ID,
                 board_id: BOARD_ID,
-                title: campaignName,
-                description: description,
+                title: campaignName.trim(),
+                description: description.trim(),
                 total_payment: 5000,
-                bookings: [
-                  {
-                    start_at: startAt.toISOString(),
-                    end_at: endAt.toISOString(),
-                  },
-                ],
+                bookings: bookings,
               };
+              
+              // Final validation of the payload
+              console.log('📤 Final payload validation:', {
+                hasCompanyId: !!advertisementData.company_id,
+                hasBoardId: !!advertisementData.board_id,
+                hasTitle: !!advertisementData.title,
+                hasDescription: !!advertisementData.description,
+                bookingsCount: advertisementData.bookings.length,
+                payloadSize: JSON.stringify(advertisementData).length,
+              });
 
-              console.log(
-                'Creating advertisement with data:',
-                JSON.stringify(advertisementData, null, 2),
-              );
+              console.log('🚀 Creating advertisement with selected dates:', {
+                selectedDaysCount: selectedDays.length,
+                bookingsCount: bookings.length,
+                bookings: bookings,
+                fullPayload: JSON.stringify(advertisementData, null, 2),
+              });
 
               // Save advertisement data to store before API call
+              const firstDate = sortedDates[0];
+              const lastDate = sortedDates[sortedDates.length - 1];
               setAdvertisementData({
                 campaignName: campaignName,
                 description: description,
                 location: location || locationName,
-                selectedDays: selectedDays.length > 0 ? selectedDays : [firstDate, lastDate],
+                selectedDays: sortedDates,
                 startDate: firstDate,
                 endDate: lastDate,
                 category: category || campaignCategory,
@@ -726,13 +761,8 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                   // Clear selected days from local store since they're now in the API
                   clearSelectedDays();
                   
-                  // Note: We don't clear globalSelectedDates here because:
-                  // 1. The dates are now in permanent bookings (API) and will be picked up from there
-                  // 2. If we clear them, other users might briefly see them as available again
-                  // 3. The API bookings will take precedence in the bookedDates calculation
-                  
-                  // Refetch advertisements to update booked dates immediately
-                  await refetchAdvertisements();
+                  // Refetch unavailable times to update booked dates immediately
+                  await refetchUnavailableTimes();
                   
                   // Navigate to CampaignUploadFiles with upload info
                   navigation.navigate('CampaignUploadFiles', {
@@ -792,7 +822,24 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                   }
                   
                   const statusCode = anyErr?.response?.status || 'Unknown';
-                  const finalMessage = `Error (${statusCode}): ${errorMessage}`;
+                  
+                  // Provide more helpful error messages for common issues
+                  let finalMessage = `Error (${statusCode}): ${errorMessage}`;
+                  
+                  if (statusCode === 500) {
+                    finalMessage = `Server Error (500): The server encountered an error processing your request. ` +
+                      `Please check the console for details. ` +
+                      `If this persists, try selecting fewer days or contact support.`;
+                    
+                    // Log additional debugging info for 500 errors
+                    console.error('🔴 500 Server Error - Additional Debug Info:', {
+                      bookingsCount: advertisementData.bookings.length,
+                      payloadSize: JSON.stringify(advertisementData).length,
+                      firstBooking: advertisementData.bookings[0],
+                      lastBooking: advertisementData.bookings[advertisementData.bookings.length - 1],
+                      serverErrorDetails: serverData,
+                    });
+                  }
                   
                   console.error('Final error message:', finalMessage);
                   setErrorText(finalMessage);

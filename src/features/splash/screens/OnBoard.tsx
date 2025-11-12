@@ -16,7 +16,11 @@ const { width, height } = Dimensions.get("window");
 // Circle positions for 3 screens
 const positions: number[] = [400, -109, 400];
 
-const Onboard: React.FC = () => {
+interface OnboardProps {
+  onComplete?: () => void;
+}
+
+const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
   const index = useRef<Animated.Value>(new Animated.Value(0)).current;
   const [screen, setScreen] = useState<number>(0); // 0,1,2
 
@@ -86,9 +90,20 @@ const Onboard: React.FC = () => {
           )}
 
           {/* Main Button */}
-          <View style={[styles.mainBtn, { width: btnWidth, height: btnHeight, borderRadius: btnHeight / 3 }]}>
+          <TouchableOpacity
+            style={[styles.mainBtn, { width: btnWidth, height: btnHeight, borderRadius: btnHeight / 3 }]}
+            onPress={() => {
+              if (screen === 2) {
+                // Last screen, complete onboarding
+                onComplete?.();
+              } else {
+                // Navigate to next screen
+                goTo(screen + 1);
+              }
+            }}
+          >
             <Text style={{ fontWeight: "500", fontSize: width * 0.04 }}>Get Started</Text>
-          </View>
+          </TouchableOpacity>
 
           {/* Right Arrow */}
           {screen < 2 && (
