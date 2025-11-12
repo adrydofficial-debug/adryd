@@ -292,7 +292,7 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
     );
   };
 
-  return (
+  return(
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <View style={styles.content}>
