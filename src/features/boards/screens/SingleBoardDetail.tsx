@@ -32,6 +32,7 @@ const placeholder = Images.bannerBg;
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
 import { useTranslation } from 'react-i18next';
+import { useFavoriteStatus, useToggleFavorite } from '../hooks/useFavorites';
 // Removed typed RootStack import to avoid cross-module typing dependency
 
 // Using untyped navigation to avoid cross-module type coupling issues
@@ -140,6 +141,22 @@ const SingleBoardDetail: React.FC = () => {
   const { item } = (route.params as { item: any }) || { item: null };
   const user = useAuthStore(s => s.user);
   const queryClient = useQueryClient();
+
+  const rawBoardId = Number(item?.id);
+  const boardId = Number.isFinite(rawBoardId) && rawBoardId > 0 ? rawBoardId : undefined;
+
+  const [isFavorite, setIsFavorite] = useState<boolean>(() =>
+    typeof item?.is_favorite === 'boolean' ? item.is_favorite : false,
+  );
+
+  const {
+    data: favoriteStatusData,
+    isLoading: isFavoriteLoading,
+  } = useFavoriteStatus(boardId);
+
+  const toggleFavoriteMutation = useToggleFavorite(boardId);
+  const isFavoritePending = isFavoriteLoading || toggleFavoriteMutation.isPending;
+  const canToggleFavorite = typeof boardId === 'number' && boardId > 0;
   
   // Debug log to help troubleshoot
   console.log('SingleBoardDetail - route.params:', route.params);
@@ -227,6 +244,18 @@ const SingleBoardDetail: React.FC = () => {
       rating: newRating,
     }));
   }, [item?.rating]);
+
+  useEffect(() => {
+    if (typeof item?.is_favorite === 'boolean') {
+      setIsFavorite(item.is_favorite);
+    }
+  }, [item?.is_favorite]);
+
+  useEffect(() => {
+    if (favoriteStatusData && typeof favoriteStatusData.is_favorite === 'boolean') {
+      setIsFavorite(favoriteStatusData.is_favorite);
+    }
+  }, [favoriteStatusData]);
 
   // Normalize to exactly 5 images (use first five, or pad with placeholders)
   const images = useMemo<ImageSourcePropType[]>(() => {
@@ -446,6 +475,29 @@ const SingleBoardDetail: React.FC = () => {
     }
   };
 
+  const handleToggleFavorite = async () => {
+    if (!canToggleFavorite || isFavoritePending) {
+      return;
+    }
+
+    if (!user?.id) {
+      Alert.alert('Login Required', 'Please log in to manage favorites.');
+      return;
+    }
+
+    try {
+      const result = await toggleFavoriteMutation.mutateAsync();
+      if (result && typeof result.is_favorite === 'boolean') {
+        setIsFavorite(result.is_favorite);
+      } else {
+        setIsFavorite(prev => !prev);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      Alert.alert('Error', 'Unable to update favorite. Please try again.');
+    }
+  };
+
   // Main image is controlled via thumbnail taps only to avoid accidental cycling
 
   const renderRatingCard = (variant: 'page' | 'modal' = 'page') => (
@@ -543,8 +595,21 @@ const SingleBoardDetail: React.FC = () => {
                   <TouchableOpacity style={styles.actionIcon}>
                     <UploadIcon width={20} height={20} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionIcon}>
-                    <HeartIcon width={28} height={20} />
+                  <TouchableOpacity
+                    style={[styles.actionIcon, isFavorite && styles.favoriteActionIcon]}
+                    onPress={handleToggleFavorite}
+                    activeOpacity={0.85}
+                    disabled={!canToggleFavorite || isFavoritePending}
+                  >
+                    {isFavoritePending ? (
+                      <ActivityIndicator size="small" color="#C539A5" />
+                    ) : (
+                      <Ionicons
+                        name={isFavorite ? 'heart' : 'heart-outline'}
+                        size={22}
+                        color={isFavorite ? '#C539A5' : '#9CA3AF'}
+                      />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -759,6 +824,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 12,
+  },
+  favoriteActionIcon: {
+    borderColor: '#C539A5',
+    backgroundColor: 'rgba(197, 57, 165, 0.12)',
   },
   thumbnailTray: {
     position: 'absolute',
