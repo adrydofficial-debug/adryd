@@ -67,18 +67,21 @@ export interface BoardMedia {
 export interface Category {
   id: number;
   name: string;
+  slug: string;
   boards: Board[];
 }
 
 export interface BoardCategoryGroup {
   id: number;
   name: string;
+  slug: string;
   categories: Category[];
 }
 
 export interface FilterMeta {
   name: string;
   slug: string;
+  groupSlug?: string;
 }
 
 export interface Filters {

@@ -17,24 +17,52 @@ import {
 } from './entities';
 
 // 🧭 Map FiltersResponse → Filters
-export const mapFiltersResponse = (res: FiltersResponse): Filters => ({
-  groups: (res.data.groups ?? []).map((group: BoardCategoryGroup) => ({
+export const mapFiltersResponse = (res: FiltersResponse): Filters => {
+  const groups = (res.data.groups ?? []).map((group: BoardCategoryGroup) => ({
     id: group.id,
     name: group.name,
+    slug: group.slug,
     categories: (group.categories ?? []).map(cat => ({
       id: cat.id,
       name: cat.name,
+      slug: cat.slug,
       boards: (cat.boards ?? []).map(mapBoard),
     })),
-  })),
-  recommended: (res.data.recommended ?? []).map(mapBoard),
-  nearest: (res.data.nearest ?? []).map(mapBoard),
-  seeAll: (res.data.seeAll ?? []).map(mapBoard),
-  filters: (res.filters ?? []).map(f => ({
-    name: f.name,
-    slug: f.slug,
-  })), // <-- new mapping for simplified FilterMeta
-});
+  }));
+
+  const filters = (res.filters ?? []).map(f => {
+    let matchedGroupSlug: string | undefined;
+
+    for (const group of res.data.groups ?? []) {
+      const groupSlug = group.slug;
+      const matchedCategory = group.categories?.find(c => c.slug === f.slug);
+
+      if (matchedCategory) {
+        matchedGroupSlug = groupSlug;
+        break;
+      }
+
+      if (groupSlug === f.slug) {
+        matchedGroupSlug = groupSlug;
+        break;
+      }
+    }
+
+    return {
+      name: f.name,
+      slug: f.slug,
+      groupSlug: matchedGroupSlug,
+    };
+  });
+
+  return {
+    groups,
+    recommended: (res.data.recommended ?? []).map(mapBoard),
+    nearest: (res.data.nearest ?? []).map(mapBoard),
+    seeAll: (res.data.seeAll ?? []).map(mapBoard),
+    filters,
+  };
+};
 
 // 🧭 Map FilteredBoardsResponse → PaginatedBoards
 export const mapFilteredBoards = (
@@ -114,9 +142,8 @@ export const mapBoard = (b: any): any => ({
   slug: b.slug ?? String(b.id ?? ''),
   category: b.category ?? null,
   owner: b.owner ?? null,
-  location: typeof b.location === 'string'
-  ? b.location
-  : b.location?.name ?? '',
+  location:
+    typeof b.location === 'string' ? b.location : b.location?.name ?? '',
   media: Array.isArray(b.media) ? b.media : [],
   avg_rating: b.avg_rating ?? b.avgRating ?? 0,
   total_ratings: b.total_ratings ?? b.totalRatings ?? 0,
