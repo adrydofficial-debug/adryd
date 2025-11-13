@@ -25,6 +25,7 @@ export interface Board {
   media?: BoardMedia[];
 
   // 👇 Ratings summary
+  ratings?: BoardRating[];
   avg_rating: number;
   total_ratings: number;
 
@@ -32,6 +33,24 @@ export interface Board {
   metadata?: Record<string, any> | null;
   created_at?: string;
   updated_at?: string;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 💬 Board Rating                                                            */
+/* -------------------------------------------------------------------------- */
+export interface BoardRating {
+  id: number;
+  rating: number;
+  comment?: string | null;
+  user_id: string;
+  board_id: number;
+  created_at?: string;
+  updated_at?: string;
+  user: {
+    id: string;
+    full_name?: string | null;
+    avatar_url?: string | null;
+  };
 }
 
 /* -------------------------------------------------------------------------- */
