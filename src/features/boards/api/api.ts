@@ -23,10 +23,15 @@ export const fetchBoardFilters = (cityId?: number) =>
     .then(res => res.data);
 
 // 🔍 Get filtered boards (paginated)
-export const fetchFilteredBoards = (params: FilterBoardsParams) =>
-  apiClient
-    .post<FilteredBoardsResponse>('api/boards/filter', params) // <-- changed from .get to .post
-    .then(res => res.data);
+export const fetchFilteredBoards = (params: FilterBoardsParams) => {
+  console.log('[fetchFilteredBoards] request params:', params);
+  return apiClient
+    .post<FilteredBoardsResponse>('/api/boards/filter', params)
+    .then(res => {
+      console.log('[fetchFilteredBoards] response:', res.data);
+      return res.data;
+    });
+};
 
 // ⭐ Rate a board
 export const rateBoard = (boardId: number, payload: RateBoardRequest) =>
