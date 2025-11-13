@@ -1,45 +1,52 @@
+import messaging from '@react-native-firebase/messaging';
+import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Animated,
   Dimensions,
   Easing,
   I18nManager,
-  Platform,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  Image,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
-import Svg, { Circle, Path } from 'react-native-svg';
-import { useProfile } from '../features/profile/hooks/useProfile';
+import Svg, { Path } from 'react-native-svg';
 import {
-  SecurityIcon,
   CompanySvg,
-  FavoriteIcon,
-  InviteIcon,
-  HelpIcon,
-  TermsIcon,
   ContactIcon,
-  LogoutIcon,
   EditSquareIcon,
+  FavoriteIcon,
+  HelpIcon,
+  InviteIcon,
+  LogoutIcon,
+  SecurityIcon,
+  TermsIcon,
 } from '../assets/images';
-import { useAuthStore } from '../store/authStore';
-import messaging from '@react-native-firebase/messaging';
 import { deleteFcmToken } from '../features/fcmtoken/api/api';
+import { useProfile } from '../features/profile/hooks/useProfile';
 import i18n from '../i18n';
 import { saveLanguage } from '../services/languageStorage';
+import { useAuthStore } from '../store/authStore';
 type DrawerItem = {
   id: number;
   title: string;
   subtitle?: string;
   onPress?: () => void;
   color?: string;
-  icon: 'security' | 'companies'  | 'favorite' | 'invite' | 'help' | 'terms' | 'contact' | 'logout';
+  icon:
+    | 'security'
+    | 'companies'
+    | 'favorite'
+    | 'invite'
+    | 'help'
+    | 'terms'
+    | 'contact'
+    | 'logout';
 };
 
 type DrawerComponentProps = {
@@ -52,7 +59,10 @@ const DRAWER_WIDTH = Math.min(width * 0.82, 340);
 // Push the drawer slightly beyond its width to avoid any visible sliver in RTL/layout transitions
 const OFFSCREEN_X = DRAWER_WIDTH + 40;
 
-const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) => {
+const DrawerComponent: React.FC<DrawerComponentProps> = ({
+  visible,
+  onClose,
+}) => {
   const navigation = useNavigation();
   const { t } = useTranslation('profile');
   // Only fetch profile when drawer is visible to prevent unnecessary API calls
@@ -62,7 +72,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   const translateX = useRef(new Animated.Value(-OFFSCREEN_X)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ur'>(
-    (i18n.language as 'en' | 'ur') || 'en'
+    (i18n.language as 'en' | 'ur') || 'en',
   );
 
   useEffect(() => {
@@ -86,17 +96,15 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
     try {
       await saveLanguage(lang);
       const isRTL = lang === 'ur';
-      
+
       // Update I18nManager BEFORE changing language to ensure proper layout direction
-      if (I18nManager.isRTL !== isRTL) {
-        I18nManager.forceRTL(isRTL);
-        I18nManager.allowRTL(isRTL);
-      }
-      
+      I18nManager.forceRTL(isRTL);
+      I18nManager.allowRTL(isRTL);
+
       // Change language - this will trigger languageChanged event
       await i18n.changeLanguage(lang);
       setCurrentLanguage(lang);
-      
+
       // On Android, RN Native may require a reload for RTL changes, but we try without first
       // The languageChanged listener in i18n/index.ts will also apply layout direction
     } catch (error) {
@@ -178,7 +186,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
       id: 4,
       title: t('drawer.favorite'),
       subtitle: t('drawer.favoriteSubtitle'),
-       onPress: () => {
+      onPress: () => {
         onClose(); // Close the drawer first
         try {
           navigation.navigate('FavouritesScreen' as never);
@@ -201,13 +209,24 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   ];
 
   const supportItems: DrawerItem[] = [
-    { id: 6, title: t('drawer.help'), onPress: () => {},
-    //  color: '#607D8B', 
-    icon: 'help' },
-    { id: 7, title: t('drawer.terms'), onPress: () => {},
-    //  color: '#795548',
-      icon: 'terms' },
-      { id: 8, title: t('drawer.contact'), onPress: () => {
+    {
+      id: 6,
+      title: t('drawer.help'),
+      onPress: () => {},
+      //  color: '#607D8B',
+      icon: 'help',
+    },
+    {
+      id: 7,
+      title: t('drawer.terms'),
+      onPress: () => {},
+      //  color: '#795548',
+      icon: 'terms',
+    },
+    {
+      id: 8,
+      title: t('drawer.contact'),
+      onPress: () => {
         onClose();
         try {
           navigation.navigate('ContactSupportScreen' as never);
@@ -216,8 +235,9 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
           console.error('❌ Navigation error:', error);
         }
       },
-    //  color: '#009688',
-      icon: 'contact' },
+      //  color: '#009688',
+      icon: 'contact',
+    },
   ];
 
   const iconMap: Record<DrawerItem['icon'], React.ComponentType<any>> = {
@@ -254,7 +274,14 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
       </View>
       <View style={styles.menuItemRight}>
         <Svg width={18} height={18} viewBox="0 0 24 24">
-          <Path d="M8 4l8 8-8 8" stroke="#BDBDBD" strokeWidth={2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <Path
+            d="M8 4l8 8-8 8"
+            stroke="#BDBDBD"
+            strokeWidth={2}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </Svg>
       </View>
     </TouchableOpacity>
@@ -263,10 +290,12 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
   return (
     <View
       pointerEvents={visible ? 'auto' : 'none'}
-      style={[StyleSheet.absoluteFill, ({ direction: 'ltr' } as any)]}
+      style={[StyleSheet.absoluteFill, { direction: 'ltr' } as any]}
     >
       <TouchableWithoutFeedback onPress={onClose}>
-        <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]} />
+        <Animated.View
+          style={[styles.backdrop, { opacity: backdropOpacity }]}
+        />
       </TouchableWithoutFeedback>
 
       <Animated.View
@@ -285,14 +314,26 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
           <View style={styles.profileCard}>
             <View style={styles.profileImageContainer}>
               <View style={styles.profileImage}>
-                {(profile?.avatar_url || user?.user_metadata?.avatar_url) ? (
-                  <Image 
-                    source={{ uri: profile?.avatar_url || user?.user_metadata?.avatar_url }} 
+                {profile?.avatar_url || user?.user_metadata?.avatar_url ? (
+                  <Image
+                    source={{
+                      uri:
+                        profile?.avatar_url || user?.user_metadata?.avatar_url,
+                    }}
                     style={styles.profileImageAvatar}
                   />
                 ) : (
                   <Text style={styles.profileImageText}>
-                    {(profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.user_metadata?.username || user?.email?.split('@')[0] || 'U')?.charAt(0).toUpperCase()}
+                    {(
+                      profile?.full_name ||
+                      user?.user_metadata?.full_name ||
+                      user?.user_metadata?.name ||
+                      user?.user_metadata?.username ||
+                      user?.email?.split('@')[0] ||
+                      'U'
+                    )
+                      ?.charAt(0)
+                      .toUpperCase()}
                   </Text>
                 )}
               </View>
@@ -300,40 +341,43 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
             <View style={styles.profileCenter}>
               <Text style={styles.profileName}>
                 {profile?.full_name ||
-                 user?.user_metadata?.full_name || 
-                 user?.user_metadata?.name || 
-                 user?.user_metadata?.username || 
-                 user?.email?.split('@')[0] || 
-                 'User'}
+                  user?.user_metadata?.full_name ||
+                  user?.user_metadata?.name ||
+                  user?.user_metadata?.username ||
+                  user?.email?.split('@')[0] ||
+                  'User'}
               </Text>
               <Text style={styles.profilePhone}>
                 {profile?.phone || t('drawer.noPhone')}
               </Text>
             </View>
-             <TouchableOpacity 
-               style={styles.editButton} 
-               activeOpacity={0.7} 
-               onPress={() => {
-                
-                 onClose(); // Close the drawer first
-                 try {
-                   navigation.navigate('UpdateProfile' as never);
-                   console.log('✅ Navigation to UpdateProfile successful');
-                 } catch (error) {
-                   console.error('❌ Navigation error:', error);
-                 }
-               }}
-             >
-               <EditSquareIcon width={22} height={22} />
-             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.editButton}
+              activeOpacity={0.7}
+              onPress={() => {
+                onClose(); // Close the drawer first
+                try {
+                  navigation.navigate('UpdateProfile' as never);
+                  console.log('✅ Navigation to UpdateProfile successful');
+                } catch (error) {
+                  console.error('❌ Navigation error:', error);
+                }
+              }}
+            >
+              <EditSquareIcon width={22} height={22} />
+            </TouchableOpacity>
             {/* <TouchableOpacity style={styles.editButton} activeOpacity={0.7}>
               <Text style={styles.editIcon}>✏️</Text>
             </TouchableOpacity> */}
           </View>
 
-          <View style={styles.menuCard}>{menuItems.map(i => renderMenuItem(i, true))}</View>
+          <View style={styles.menuCard}>
+            {menuItems.map(i => renderMenuItem(i, true))}
+          </View>
 
-          <View style={styles.menuCard}>{supportItems.map(i => renderMenuItem(i, false))}</View>
+          <View style={styles.menuCard}>
+            {supportItems.map(i => renderMenuItem(i, false))}
+          </View>
 
           {/* Language Toggle */}
           <View style={styles.menuCard}>
@@ -347,11 +391,13 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
                   ]}
                   onPress={() => handleLanguageToggle('en')}
                   activeOpacity={0.7}
+                  disabled={currentLanguage === 'en'}
                 >
                   <Text
                     style={[
                       styles.languageOptionText,
-                      currentLanguage === 'en' && styles.languageOptionTextActive,
+                      currentLanguage === 'en' &&
+                        styles.languageOptionTextActive,
                     ]}
                   >
                     ENG
@@ -363,12 +409,14 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
                     currentLanguage === 'ur' && styles.languageOptionActive,
                   ]}
                   onPress={() => handleLanguageToggle('ur')}
+                  disabled={currentLanguage === 'ur'}
                   activeOpacity={0.7}
                 >
                   <Text
                     style={[
                       styles.languageOptionText,
-                      currentLanguage === 'ur' && styles.languageOptionTextActive,
+                      currentLanguage === 'ur' &&
+                        styles.languageOptionTextActive,
                     ]}
                   >
                     URDU
@@ -404,7 +452,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ visible, onClose }) =
             >
               <View style={styles.menuItemLeft}>
                 <View style={styles.iconContainer}>
-                <LogoutIcon width={22} height={22} />
+                  <LogoutIcon width={22} height={22} />
                 </View>
               </View>
               <View style={styles.menuItemCenter}>
@@ -452,8 +500,7 @@ const styles = StyleSheet.create({
     padding: width * 0.04,
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical:30
- 
+    marginVertical: 30,
   },
   profileImageContainer: {
     width: width * 0.15,
@@ -580,5 +627,3 @@ const styles = StyleSheet.create({
 });
 
 export default DrawerComponent;
-
-
