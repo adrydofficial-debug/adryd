@@ -11,7 +11,6 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNotifications } from '../hooks/useNotifications';
 import { markAllNotificationsRead } from '../api/api';
-
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;

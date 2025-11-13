@@ -18,7 +18,9 @@ const {width, height} = Dimensions.get('window');
 const CARD_WIDTH = 165;
 const CARD_HEIGHT = 237;
 
-const FALLBACK_IMAGE = require('../assets/images/bannerBg.png');
+import { Images } from '../assets/images';
+
+const FALLBACK_IMAGE = Images.bannerBg;
 
 
 
@@ -54,6 +56,7 @@ interface BoardListProps {
   navigation?: any;
   onPressDetail?: (item: BoardItem) => void;
   numColumns?: number; 
+  showSeeAll?: boolean;
 }
 
 const boardData: BoardItem[] = [
@@ -63,7 +66,7 @@ const boardData: BoardItem[] = [
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
-    image: require('../assets/images/bannerBg.png'),
+    image: Images.bannerBg,
   },
   {
     id: '2',
@@ -71,7 +74,7 @@ const boardData: BoardItem[] = [
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
-    image: require('../assets/images/bannerBg.png'),
+    image: Images.bannerBg,
   },
   {
     id: '3',
@@ -79,7 +82,7 @@ const boardData: BoardItem[] = [
     location: 'Lahore Gulberg',
     distance: '1.6 km',
     size: '12x8',
-    image: require('../assets/images/bannerBg.png'),
+    image: Images.bannerBg,
   },
 ];
 
@@ -99,6 +102,7 @@ const BoardList: React.FC<BoardListProps> = ({
   navigation,
   onPressDetail,
   numColumns = 1, 
+  showSeeAll = true,
 }) => {
   const { i18n: i18nInstance } = useTranslation();
   
@@ -157,6 +161,9 @@ const BoardList: React.FC<BoardListProps> = ({
   };
 
   const handleSeeAllPress = () => {
+    if (!showSeeAll) {
+      return;
+    }
     if (navigation) {
       navigation.navigate('CategoryScreen', {
         categoryId: 'all',
@@ -423,9 +430,11 @@ const BoardList: React.FC<BoardListProps> = ({
       {/* {subHeading && <Text style={styles.subHeading}>{subHeading}</Text>} */}
       <View style={styles.header}>
         <Text style={styles.heading}>{heading}</Text>
-        <TouchableOpacity onPress={handleSeeAllPress}>
-          <Text style={styles.seeAll}>See All</Text>
-        </TouchableOpacity>
+        {showSeeAll ? (
+          <TouchableOpacity onPress={handleSeeAllPress}>
+            <Text style={styles.seeAll}>See All</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
       <FlatList
         data={processedData}

@@ -5,13 +5,15 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
-  StatusBar,Image
+  StatusBar,
+  Image,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import CustomButton from '../../../components/CustomButton';
 import NoInternet from '../../../components/NoInternet';
+import { Images } from '../../../assets/images';
 
 const { width, height } = Dimensions.get('window');
 
@@ -50,7 +52,7 @@ const AdvertismentCongratulateScreen: React.FC = () => {
             <View style={styles.headerSection}>
               {/* Congratulations Icon */}
               <View style={styles.iconContainer}>
-                <Image source={require('../../../assets/images/shakHands.png')} style={styles.imgStyle}/>
+                <Image source={Images.handshake} style={styles.imgStyle} />
               </View>
               {/* Congratulations Text */}
               <Text style={styles.congratulationsText}>Congratulations</Text>
@@ -287,7 +289,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: width * 0.09,
     position: 'absolute',
-    bottom: hp(10),
+    bottom: hp(4),
     left: 0,
     right: 0, 
   },

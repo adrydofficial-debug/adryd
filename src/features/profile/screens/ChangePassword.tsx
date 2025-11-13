@@ -176,91 +176,49 @@ const ChangePassword: React.FC = () => {
             </View>
            
             {/* Current Password Input */}
-            <View style={styles.inputContainer}>
-              <CustomInput
-                label={t('changePassword.current', { lng: currentLanguage })}
-                placeholder={t('changePassword.currentPlaceholder', { lng: currentLanguage })}
-                secureTextEntry={!showCurrentPassword}
-                value={currentPassword}
-                onChangeText={handleCurrentPasswordChange}
-                onBlur={() => setFocusedField(null)}
-                onFocus={() => handleFocus('currentPassword')}
-                focused={focusedField === 'currentPassword'}
-                error={isEmptyError || apiErrorBorder}
-                showErrorText={false}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.eyeIcon,
-                  isRTL ? { right: undefined, left: wp(7) } : { left: undefined, right: wp(7) }
-                ]}
-                onPress={() => setShowCurrentPassword(!showCurrentPassword)}
-              >
-                <Ionicons
-                  name={showCurrentPassword ? 'eye' : 'eye-off'}
-                  size={wp(5)}
-                  color="#666"
-                />
-              </TouchableOpacity>
-            </View>
+            <CustomInput
+              label={t('changePassword.current', { lng: currentLanguage })}
+              placeholder={t('changePassword.currentPlaceholder', { lng: currentLanguage })}
+              isPassword={true}
+              value={currentPassword}
+              onChangeText={handleCurrentPasswordChange}
+              onBlur={() => setFocusedField(null)}
+              onFocus={() => handleFocus('currentPassword')}
+              focused={focusedField === 'currentPassword'}
+              error={isEmptyError || apiErrorBorder}
+              showErrorText={false}
+              containerStyle={styles.inputContainer}
+            />
 
             {/* New Password Input */}
-            <View style={styles.inputContainer}>
-              <CustomInput
-                label={t('changePassword.new', { lng: currentLanguage })}
-                placeholder={t('changePassword.newPlaceholder', { lng: currentLanguage })}
-                secureTextEntry={!showNewPassword}
-                value={newPassword}
-                onChangeText={handleNewPasswordChange}
-                onBlur={() => setFocusedField(null)}
-                onFocus={() => handleFocus('newPassword')}
-                focused={focusedField === 'newPassword'}
-                error={isEmptyError || apiErrorBorder}
-                showErrorText={false}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.eyeIcon,
-                  isRTL ? { right: undefined, left: wp(7) } : { left: undefined, right: wp(7) }
-                ]}
-                onPress={() => setShowNewPassword(!showNewPassword)}
-              >
-                <Ionicons
-                  name={showNewPassword ? 'eye' : 'eye-off'}
-                  size={wp(5)}
-                  color="#666"
-                />
-              </TouchableOpacity>
-            </View>
+            <CustomInput
+              label={t('changePassword.new', { lng: currentLanguage })}
+              placeholder={t('changePassword.newPlaceholder', { lng: currentLanguage })}
+              isPassword={true}
+              value={newPassword}
+              onChangeText={handleNewPasswordChange}
+              onBlur={() => setFocusedField(null)}
+              onFocus={() => handleFocus('newPassword')}
+              focused={focusedField === 'newPassword'}
+              error={isEmptyError || apiErrorBorder}
+              showErrorText={false}
+              containerStyle={styles.inputContainer}
+            />
 
             {/* Confirm Password Input */}
-            <View style={styles.inputContainer}>
-              <CustomInput
-                label={t('changePassword.confirm', { lng: currentLanguage })}
-                placeholder={t('changePassword.confirmPlaceholder', { lng: currentLanguage })}
-                secureTextEntry={!showConfirmPassword}
-                value={confirmPassword}
-                onChangeText={handleConfirmPasswordChange}
-                onBlur={() => setFocusedField(null)}
-                onFocus={() => handleFocus('confirmPassword')}
-                focused={focusedField === 'confirmPassword'}
-                error={isEmptyError || apiErrorBorder}
-                showErrorText={false}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.eyeIcon,
-                  isRTL ? { right: undefined, left: wp(7) } : { left: undefined, right: wp(7) }
-                ]}
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                <Ionicons
-                  name={showConfirmPassword ? 'eye' : 'eye-off'}
-                  size={wp(5)}
-                  color="#6a5f5fff"
-                />
-              </TouchableOpacity>
-            </View>
+            <CustomInput
+              label={t('changePassword.confirm', { lng: currentLanguage })}
+              placeholder={t('changePassword.confirmPlaceholder', { lng: currentLanguage })}
+              isPassword={true}
+              value={confirmPassword}
+              onChangeText={handleConfirmPasswordChange}
+              onBlur={() => setFocusedField(null)}
+              onFocus={() => handleFocus('confirmPassword')}
+              focused={focusedField === 'confirmPassword'}
+              error={isEmptyError || apiErrorBorder}
+              showErrorText={false}
+              containerStyle={styles.inputContainer}
+            />
 
             {/* Error Message */}
             {apiError ? <Text style={styles.errorText}>{apiError}</Text> : null}

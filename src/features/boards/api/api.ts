@@ -7,8 +7,10 @@ import {
   FavoritesResponse,
   FilteredBoardsResponse,
   FiltersResponse,
+  IsFavoriteResponse,
   RateBoardResponse,
   RatingSummaryResponse,
+  ToggleFavoriteResponse,
   UnavailableTimesResponse,
 } from './types/responses';
 
@@ -48,7 +50,9 @@ export const fetchRatingSummary = (boardId: number) =>
 
 // 💖 Toggle favorite
 export const toggleFavorite = (boardId: number) =>
-  apiClient.post(`/api/boards/${boardId}/favorite`).then(res => res.data);
+  apiClient
+    .post<ToggleFavoriteResponse>(`/api/boards/${boardId}/favorite`)
+    .then(res => res.data);
 
 // 💖 Get favorites
 export const fetchFavorites = (page = 1, limit = 10) =>
@@ -61,7 +65,7 @@ export const fetchFavorites = (page = 1, limit = 10) =>
 // 🔍 Check if board is favorite
 export const isFavorite = (boardId: number) =>
   apiClient
-    .get<{ is_favorite: boolean }>(`/api/boards/${boardId}/is-favorite`)
+    .get<IsFavoriteResponse>(`/api/boards/${boardId}/is-favorite`)
     .then(res => res.data);
 
 // 📅 Get unavailable times for a board

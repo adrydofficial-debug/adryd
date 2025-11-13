@@ -5,7 +5,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -13,6 +12,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import CustomInput from '../../../components/CustomInput';
 
 // Clean imports
 import { CreateCompanyRequest } from '../types';
@@ -133,23 +133,15 @@ const CompanyForm: React.FC<CompanyFormProps> = ({
   return (
     <View style={styles.container}>
       {/* Company Name */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Company Name *</Text>
-        <TextInput
-          style={[
-            styles.input,
-            formik.touched.company_name && formik.errors.company_name && styles.inputError,
-          ]}
-          placeholder="Enter company name"
-          value={formik.values.company_name}
-          onChangeText={(value) => handleFieldChange('company_name', value)}
-          onBlur={formik.handleBlur('company_name')}
-          placeholderTextColor="#999"
-        />
-        {formik.touched.company_name && formik.errors.company_name && (
-          <Text style={styles.errorText}>{formik.errors.company_name}</Text>
-        )}
-      </View>
+      <CustomInput
+        label="Company Name *"
+        placeholder="Enter company name"
+        value={formik.values.company_name}
+        onChangeText={(value) => handleFieldChange('company_name', value)}
+        onBlur={formik.handleBlur('company_name')}
+        error={formik.touched.company_name && formik.errors.company_name ? formik.errors.company_name : null}
+        containerStyle={styles.inputGroup}
+      />
 
       {/* Business Group Selection */}
       {showCategorySelection && groups.length > 0 && (
@@ -241,87 +233,53 @@ const CompanyForm: React.FC<CompanyFormProps> = ({
       )}
 
       {/* Company NTN */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Company NTN *</Text>
-        <TextInput
-          style={[
-            styles.input,
-            formik.touched.company_ntn && formik.errors.company_ntn && styles.inputError,
-          ]}
-          placeholder="1234567-1"
-          value={formik.values.company_ntn}
-          onChangeText={(value) => handleFieldChange('company_ntn', value)}
-          onBlur={formik.handleBlur('company_ntn')}
-          keyboardType="numeric"
-          placeholderTextColor="#999"
-        />
-        {formik.touched.company_ntn && formik.errors.company_ntn && (
-          <Text style={styles.errorText}>{formik.errors.company_ntn}</Text>
-        )}
-      </View>
+      <CustomInput
+        label="Company NTN *"
+        placeholder="1234567-1"
+        value={formik.values.company_ntn}
+        onChangeText={(value) => handleFieldChange('company_ntn', value)}
+        onBlur={formik.handleBlur('company_ntn')}
+        keyboardType="numeric"
+        error={formik.touched.company_ntn && formik.errors.company_ntn ? formik.errors.company_ntn : null}
+        containerStyle={styles.inputGroup}
+      />
 
       {/* Address */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Address *</Text>
-        <TextInput
-          style={[
-            styles.input,
-            styles.textArea,
-            formik.touched.address && formik.errors.address && styles.inputError,
-          ]}
-          placeholder="Enter complete address"
-          value={formik.values.address}
-          onChangeText={(value) => handleFieldChange('address', value)}
-          onBlur={formik.handleBlur('address')}
-          multiline
-          numberOfLines={3}
-          placeholderTextColor="#999"
-        />
-        {formik.touched.address && formik.errors.address && (
-          <Text style={styles.errorText}>{formik.errors.address}</Text>
-        )}
-      </View>
+      <CustomInput
+        label="Address *"
+        placeholder="Enter complete address"
+        value={formik.values.address}
+        onChangeText={(value) => handleFieldChange('address', value)}
+        onBlur={formik.handleBlur('address')}
+        multiline={true}
+        numberOfLines={3}
+        error={formik.touched.address && formik.errors.address ? formik.errors.address : null}
+        containerStyle={styles.inputGroup}
+      />
 
       {/* Email */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Email *</Text>
-        <TextInput
-          style={[
-            styles.input,
-            formik.touched.email && formik.errors.email && styles.inputError,
-          ]}
-          placeholder="company@example.com"
-          value={formik.values.email}
-          onChangeText={(value) => handleFieldChange('email', value)}
-          onBlur={formik.handleBlur('email')}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholderTextColor="#999"
-        />
-        {formik.touched.email && formik.errors.email && (
-          <Text style={styles.errorText}>{formik.errors.email}</Text>
-        )}
-      </View>
+      <CustomInput
+        label="Email *"
+        placeholder="company@example.com"
+        value={formik.values.email}
+        onChangeText={(value) => handleFieldChange('email', value)}
+        onBlur={formik.handleBlur('email')}
+        keyboardType="email-address"
+        error={formik.touched.email && formik.errors.email ? formik.errors.email : null}
+        containerStyle={styles.inputGroup}
+      />
 
       {/* Contact Number */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Contact Number *</Text>
-        <TextInput
-          style={[
-            styles.input,
-            formik.touched.contact_number && formik.errors.contact_number && styles.inputError,
-          ]}
-          placeholder="+923001234567"
-          value={formik.values.contact_number}
-          onChangeText={(value) => handleFieldChange('contact_number', value)}
-          onBlur={formik.handleBlur('contact_number')}
-          keyboardType="phone-pad"
-          placeholderTextColor="#999"
-        />
-        {formik.touched.contact_number && formik.errors.contact_number && (
-          <Text style={styles.errorText}>{formik.errors.contact_number}</Text>
-        )}
-      </View>
+      <CustomInput
+        label="Contact Number *"
+        placeholder="3XXXXXXXXX"
+        isPhoneNumber={true}
+        value={formik.values.contact_number}
+        onChangeText={(value) => handleFieldChange('contact_number', value)}
+        onBlur={formik.handleBlur('contact_number')}
+        error={formik.touched.contact_number && formik.errors.contact_number ? formik.errors.contact_number : null}
+        containerStyle={styles.inputGroup}
+      />
 
       {/* Logo Fields */}
       {showLogoFields && (
@@ -331,85 +289,50 @@ const CompanyForm: React.FC<CompanyFormProps> = ({
           </View>
 
           {/* Logo URL */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Logo URL *</Text>
-            <TextInput
-              style={[
-                styles.input,
-                formik.touched.logo_url && formik.errors.logo_url && styles.inputError,
-              ]}
-              placeholder="https://example.com/logo.png"
-              value={formik.values.logo_url}
-              onChangeText={(value) => handleFieldChange('logo_url', value)}
-              onBlur={formik.handleBlur('logo_url')}
-              keyboardType="url"
-              autoCapitalize="none"
-              placeholderTextColor="#999"
-            />
-            {formik.touched.logo_url && formik.errors.logo_url && (
-              <Text style={styles.errorText}>{formik.errors.logo_url}</Text>
-            )}
-          </View>
+          <CustomInput
+            label="Logo URL *"
+            placeholder="https://example.com/logo.png"
+            value={formik.values.logo_url}
+            onChangeText={(value) => handleFieldChange('logo_url', value)}
+            onBlur={formik.handleBlur('logo_url')}
+            keyboardType="url"
+            error={formik.touched.logo_url && formik.errors.logo_url ? formik.errors.logo_url : null}
+            containerStyle={styles.inputGroup}
+          />
 
           {/* Logo Filename */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Logo Filename *</Text>
-            <TextInput
-              style={[
-                styles.input,
-                formik.touched.logo_filename && formik.errors.logo_filename && styles.inputError,
-              ]}
-              placeholder="logo.png"
-              value={formik.values.logo_filename}
-              onChangeText={(value) => handleFieldChange('logo_filename', value)}
-              onBlur={formik.handleBlur('logo_filename')}
-              autoCapitalize="none"
-              placeholderTextColor="#999"
-            />
-            {formik.touched.logo_filename && formik.errors.logo_filename && (
-              <Text style={styles.errorText}>{formik.errors.logo_filename}</Text>
-            )}
-          </View>
+          <CustomInput
+            label="Logo Filename *"
+            placeholder="logo.png"
+            value={formik.values.logo_filename}
+            onChangeText={(value) => handleFieldChange('logo_filename', value)}
+            onBlur={formik.handleBlur('logo_filename')}
+            error={formik.touched.logo_filename && formik.errors.logo_filename ? formik.errors.logo_filename : null}
+            containerStyle={styles.inputGroup}
+          />
 
           {/* Logo Size and Type Row */}
           <View style={styles.row}>
-            <View style={[styles.inputGroup, styles.halfWidth]}>
-              <Text style={styles.label}>Logo Size (bytes) *</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  formik.touched.logo_size && formik.errors.logo_size && styles.inputError,
-                ]}
-                placeholder="2048"
-                value={formik.values.logo_size.toString()}
-                onChangeText={(value) => handleFieldChange('logo_size', parseInt(value) || 0)}
-                onBlur={formik.handleBlur('logo_size')}
-                keyboardType="numeric"
-                placeholderTextColor="#999"
-              />
-              {formik.touched.logo_size && formik.errors.logo_size && (
-                <Text style={styles.errorText}>{formik.errors.logo_size}</Text>
-              )}
-            </View>
+            <CustomInput
+              label="Logo Size (bytes) *"
+              placeholder="2048"
+              value={formik.values.logo_size.toString()}
+              onChangeText={(value) => handleFieldChange('logo_size', parseInt(value) || 0)}
+              onBlur={formik.handleBlur('logo_size')}
+              keyboardType="numeric"
+              error={formik.touched.logo_size && formik.errors.logo_size ? formik.errors.logo_size : null}
+              containerStyle={[styles.inputGroup, styles.halfWidth]}
+            />
 
-            <View style={[styles.inputGroup, styles.halfWidth]}>
-              <Text style={styles.label}>Logo Type *</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  formik.touched.logo_type && formik.errors.logo_type && styles.inputError,
-                ]}
-                placeholder="image/png"
-                value={formik.values.logo_type}
-                onChangeText={(value) => handleFieldChange('logo_type', value)}
-                onBlur={formik.handleBlur('logo_type')}
-                autoCapitalize="none"
-                placeholderTextColor="#999"
-              />
-              {formik.touched.logo_type && formik.errors.logo_type && (
-                <Text style={styles.errorText}>{formik.errors.logo_type}</Text>
-              )}
-            </View>
+            <CustomInput
+              label="Logo Type *"
+              placeholder="image/png"
+              value={formik.values.logo_type}
+              onChangeText={(value) => handleFieldChange('logo_type', value)}
+              onBlur={formik.handleBlur('logo_type')}
+              error={formik.touched.logo_type && formik.errors.logo_type ? formik.errors.logo_type : null}
+              containerStyle={[styles.inputGroup, styles.halfWidth]}
+            />
           </View>
         </>
       )}

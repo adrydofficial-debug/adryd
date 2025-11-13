@@ -157,6 +157,7 @@ import AppNavigator from './src/app/navigation/AppNavigator';
 import LanguageSelectionModal from './src/components/LanguageSelectionModal';
 import SplashScreen from './src/components/SplashScreen';
 import AuthNavigator from './src/features/auth/AuthNavigator';
+import Onboard from './src/features/splash/screens/OnBoard';
 import i18n from './src/i18n';
 import {
   getLanguage,
@@ -164,6 +165,10 @@ import {
   saveLanguage,
   setLanguageSelected,
 } from './src/services/languageStorage';
+import {
+  isOnboardingCompleted,
+  setOnboardingCompleted,
+} from './src/services/onboardingStorage';
 import { useAuthStore } from './src/store/authStore';
 enableScreens();
 // ⚡ React Query client with conservative defaults to avoid auto-refetching
@@ -186,14 +191,31 @@ const AuthGate = () => {
   const { user, loading, initializeSession } = useAuthStore();
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [checkingLanguage, setCheckingLanguage] = useState(true);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+  const [splashComplete, setSplashComplete] = useState(false);
 
   useEffect(() => {
     initializeSession();
-    checkLanguagePreference();
+    checkOnboardingAndLanguage();
   }, [initializeSession]);
 
-  const checkLanguagePreference = async () => {
+  const checkOnboardingAndLanguage = async () => {
     try {
+      // Check if user has completed onboarding
+      const hasCompletedOnboarding = await isOnboardingCompleted();
+      setHasSeenOnboarding(hasCompletedOnboarding);
+      
+      if (!hasCompletedOnboarding) {
+        // First time user - will show onboarding after splash
+        setShowOnboarding(true);
+      } else {
+        // Returning user - skip onboarding
+        setShowOnboarding(false);
+      }
+
+      // Check language preference
       const hasSelectedLanguage = await isLanguageSelected();
       if (!hasSelectedLanguage) {
         setShowLanguageModal(true);
@@ -205,9 +227,10 @@ const AuthGate = () => {
         }
       }
     } catch (error) {
-      console.error('Error checking language preference:', error);
+      console.error('Error checking onboarding/language preference:', error);
     } finally {
       setCheckingLanguage(false);
+      setCheckingOnboarding(false);
     }
   };
 
@@ -222,21 +245,49 @@ const AuthGate = () => {
     }
   };
 
-  if (loading || checkingLanguage) {
+  const handleOnboardingComplete = async () => {
+    try {
+      await setOnboardingCompleted();
+      setShowOnboarding(false);
+      setHasSeenOnboarding(true);
+    } catch (error) {
+      console.error('Error marking onboarding as completed:', error);
+      setShowOnboarding(false);
+    }
+  };
+
+  const handleSplashComplete = () => {
+    setSplashComplete(true);
+  };
+
+  // For returning users, auto-complete splash after 2 seconds once checks are done
+  useEffect(() => {
+    if (!loading && !checkingLanguage && !checkingOnboarding && hasSeenOnboarding && !splashComplete) {
+      const timer = setTimeout(() => {
+        setSplashComplete(true);
+      }, 2000); // 2 seconds for returning users
+      return () => clearTimeout(timer);
+    }
+  }, [loading, checkingLanguage, checkingOnboarding, hasSeenOnboarding, splashComplete]);
+
+  // Show splash screen while checking or if splash hasn't completed
+  // For returning users, show brief splash (2 seconds)
+  // For first-time users, show full splash then onboarding
+  if (loading || checkingLanguage || checkingOnboarding || !splashComplete) {
     return (
-      <SplashScreen />
-      // <View
-      //   style={{
-      //     flex: 1,
-      //     justifyContent: 'center',
-      //     alignItems: 'center',
-      //     backgroundColor: '#fff',
-      //   }}
-      // >
-      //   <ActivityIndicator size="large" />
-      // </View>
+      <SplashScreen 
+        onComplete={handleSplashComplete}
+        shouldWaitForLoading={loading || checkingLanguage || checkingOnboarding}
+      />
     );
   }
+
+  // Show onboarding for first-time users (after splash completes)
+  if (showOnboarding && !hasSeenOnboarding) {
+    return <Onboard onComplete={handleOnboardingComplete} />;
+  }
+
+  // Show main app (Home or Login based on user state)
   return (
     <>
       <NavigationContainer>

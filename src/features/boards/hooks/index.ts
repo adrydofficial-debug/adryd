@@ -6,5 +6,5 @@ export * from './useFilteredBoards';
 export * from './useRateBoard';
 export * from './useGroups';
 export * from './useRecommendedBoards';
-export * from './useNearestBoards';
+// export * from './useNearestBoards'; // File doesn't exist - commented out
 export * from './useBoardUnavailableTimes';

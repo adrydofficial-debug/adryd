@@ -37,14 +37,14 @@ const hp = (percentage: number) => (height * percentage) / 100;
 
 const validationSchema = Yup.object().shape({
   phoneNumber: Yup.string()
-    .required('Phone number is required')
+    .required('')
     .matches(/^\+92[0-9]{10}$/, 'Phone number must be in format +92XXXXXXXXXX'),
   newPassword: Yup.string()
-    .required('New password is required')
-    .min(6, 'Password must be at least 6 characters'),
+    .required('')
+    .min(6, ''),
   confirmPassword: Yup.string()
-    .oneOf([Yup.ref('newPassword')], 'Passwords must match')
-    .required('Please confirm your password'),
+    .oneOf([Yup.ref('newPassword')], '')
+    .required(''),
 });
 
 const ForgotPassword: React.FC = () => {
@@ -186,7 +186,7 @@ const ForgotPassword: React.FC = () => {
 
   return (
     <LinearGradient
-      colors={['#FFF4FD', '#fef3f9']}
+      colors={['#ffffff', '#ffffff']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={styles.container}
@@ -250,8 +250,8 @@ const ForgotPassword: React.FC = () => {
                   <>
                     <CustomInput
                       label={t('login.phoneNumber', { lng: currentLanguage })}
-                      placeholder="+923XXXXXXXXX"
-                      keyboardType="phone-pad"
+                      placeholder="3XXXXXXXXX"
+                      isPhoneNumber={true}
                       value={values.phoneNumber}
                       onChangeText={(text) => {
                         const cleaned = text.replace(/[^0-9+]/g, '');
@@ -271,74 +271,30 @@ const ForgotPassword: React.FC = () => {
                     />
 
                     {/* New Password */}
-                    <View style={styles.passwordContainer}>
-                      <Text style={styles.inputLabel} key={`new-password-label-${currentLanguage}`}>{t('forgot.newPassword', { lng: currentLanguage })}</Text>
-                      <View style={styles.passwordInputContainer}>
-                        <TextInput
-                          style={[
-                            styles.passwordInput,
-                            shouldShowError('newPassword') && styles.inputError,
-                            isRTL && { textAlign: 'right', paddingRight: wp(4), paddingLeft: wp(12) },
-                            !isRTL && { paddingLeft: wp(4), paddingRight: wp(12) },
-                          ]}
-                          placeholder={t('forgot.newPassword', { lng: currentLanguage })}
-                          secureTextEntry={!showNewPassword}
-                          value={values.newPassword}
-                          onChangeText={handleChange('newPassword')}
-                          onBlur={() => handleBlur('newPassword')}
-                          onFocus={() => setFocusedField('newPassword')}
-                          placeholderTextColor="#999"
-                        />
-                        <TouchableOpacity
-                          style={[
-                            styles.eyeIconContainer,
-                            isRTL ? { right: undefined, left: wp(4) } : { left: undefined, right: wp(4) }
-                          ]}
-                          onPress={() => setShowNewPassword(!showNewPassword)}
-                        >
-                          <Ionicons
-                            name={showNewPassword ? 'eye' : 'eye-off'}
-                            size={wp(5)}
-                            color="#666"
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
+                    <CustomInput
+                      label={t('forgot.newPassword', { lng: currentLanguage })}
+                      placeholder={t('forgot.newPassword', { lng: currentLanguage })}
+                      isPassword={true}
+                      value={values.newPassword}
+                      onChangeText={handleChange('newPassword')}
+                      onBlur={() => handleBlur('newPassword')}
+                      onFocus={() => setFocusedField('newPassword')}
+                      focused={focusedField === 'newPassword'}
+                      error={shouldShowError('newPassword')}
+                    />
 
                     {/* Confirm Password */}
-                    <View style={styles.passwordContainer}>
-                      <Text style={styles.inputLabel} key={`confirm-password-label-${currentLanguage}`}>{t('forgot.confirmPassword', { lng: currentLanguage })}</Text>
-                      <View style={styles.passwordInputContainer}>
-                        <TextInput
-                          style={[
-                            styles.passwordInput,
-                            shouldShowError('confirmPassword') && styles.inputError,
-                            isRTL && { textAlign: 'right', paddingRight: wp(4), paddingLeft: wp(12) },
-                            !isRTL && { paddingLeft: wp(4), paddingRight: wp(12) },
-                          ]}
-                          placeholder={t('forgot.confirmPassword', { lng: currentLanguage })}
-                          secureTextEntry={!showConfirmPassword}
-                          value={values.confirmPassword}
-                          onChangeText={handleChange('confirmPassword')}
-                          onBlur={() => handleBlur('confirmPassword')}
-                          onFocus={() => setFocusedField('confirmPassword')}
-                          placeholderTextColor="#999"
-                        />
-                        <TouchableOpacity
-                          style={[
-                            styles.eyeIconContainer,
-                            isRTL ? { right: undefined, left: wp(4) } : { left: undefined, right: wp(4) }
-                          ]}
-                          onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                        >
-                          <Ionicons
-                            name={showConfirmPassword ? 'eye' : 'eye-off'}
-                            size={wp(5)}
-                            color="#666"
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
+                    <CustomInput
+                      label={t('forgot.confirmPassword', { lng: currentLanguage })}
+                      placeholder={t('forgot.confirmPassword', { lng: currentLanguage })}
+                      isPassword={true}
+                      value={values.confirmPassword}
+                      onChangeText={handleChange('confirmPassword')}
+                      onBlur={() => handleBlur('confirmPassword')}
+                      onFocus={() => setFocusedField('confirmPassword')}
+                      focused={focusedField === 'confirmPassword'}
+                      error={shouldShowError('confirmPassword')}
+                    />
 
                     <TouchableOpacity
                       style={[

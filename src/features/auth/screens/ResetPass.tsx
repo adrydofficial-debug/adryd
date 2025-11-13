@@ -23,6 +23,7 @@ import { AuthStackParamList } from '../AuthNavigator';
 import { useResetPassword } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
+import { Images } from '../../../assets/images';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -151,56 +152,34 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
             </View>
 
             {/* Password Input */}
-            <View style={styles.inputContainer}>
-              <CustomInput
-                label={t('reset.newPassword')}
-                placeholder="Enter new password"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={handlePasswordChange}
-                onBlur={() => setFocusedField(null)}
-                onFocus={() => handleFocus('password')}
-                focused={focusedField === 'password'}
-                error={isEmptyError || apiErrorBorder}
-                showErrorText={false}
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye' : 'eye-off'}
-                  size={wp(5)}
-                  color="#666"
-                />
-              </TouchableOpacity>
-            </View>
+            <CustomInput
+              label={t('reset.newPassword')}
+              placeholder="Enter new password"
+              isPassword={true}
+              value={password}
+              onChangeText={handlePasswordChange}
+              onBlur={() => setFocusedField(null)}
+              onFocus={() => handleFocus('password')}
+              focused={focusedField === 'password'}
+              error={isEmptyError || apiErrorBorder}
+              showErrorText={false}
+              containerStyle={styles.inputContainer}
+            />
 
             {/* Confirm Password Input */}
-            <View style={styles.inputContainer}>
-              <CustomInput
-                label={t('reset.confirmPassword')}
-                placeholder="Confirm password"
-                secureTextEntry={!showConfirmPassword}
-                value={confirmPassword}
-                onChangeText={handleConfirmPasswordChange}
-                onBlur={() => setFocusedField(null)}
-                onFocus={() => handleFocus('confirmPassword')}
-                focused={focusedField === 'confirmPassword'}
-                error={isEmptyError || apiErrorBorder}
-                showErrorText={false}
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                <Ionicons
-                  name={showConfirmPassword ? 'eye' : 'eye-off'}
-                  size={wp(5)}
-                  color="#6a5f5fff"
-                />
-              </TouchableOpacity>
-            </View>
+            <CustomInput
+              label={t('reset.confirmPassword')}
+              placeholder="Confirm password"
+              isPassword={true}
+              value={confirmPassword}
+              onChangeText={handleConfirmPasswordChange}
+              onBlur={() => setFocusedField(null)}
+              onFocus={() => handleFocus('confirmPassword')}
+              focused={focusedField === 'confirmPassword'}
+              error={isEmptyError || apiErrorBorder}
+              showErrorText={false}
+              containerStyle={styles.inputContainer}
+            />
 
             {/* Error Message */}
             {apiError ? <Text style={styles.errorText}>{apiError}</Text> : null}
@@ -242,7 +221,7 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
         <View style={styles.fullScreenModal}>
           <View style={styles.successContent}>
             <Image
-              source={require('../../../assets/images/ThannkTick.png')}
+              source={Images.thankTick}
               style={styles.thankTickImage}
               resizeMode="contain"
             />

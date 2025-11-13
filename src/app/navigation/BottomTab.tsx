@@ -8,18 +8,17 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Svg, { Path } from 'react-native-svg';
-import HomeIcon from '../../assets/images/pinkHome.svg';
-import GrayHomeIcon from '../../assets/images/grayHome.svg';
-import GrayActive from '../../assets/images/grayActive.svg';
-import PinkGray from '../../assets/images/pinkActive.svg';
-import BoardsIcon from '../../assets/images/Companys.svg';
-import AddIcon from '../../assets/images/add.svg';
-import ChatIcon from '../../assets/images/Chat.svg';
-import GrayChatIcon from '../../assets/images/grayNotify.svg';
-import PinkMsg from '../../assets/images/PinkMsg.svg';
-import GrayMsg from '../../assets/images/GrayMsg.svg';
-import ProfileIcon from '../../assets/images/pinkProfile.svg';
-import GrayProfileIcon from '../../assets/images/grayProfile.svg';
+import {
+  PinkHomeIcon,
+  GrayHomeIcon,
+  GrayActiveIcon,
+  PinkActiveIcon,
+  AddIcon,
+  PinkMsgIcon,
+  GrayMsgIcon,
+  PinkProfileIcon,
+  GrayProfileIcon,
+} from '../../assets/images';
 import HomeScreen from '../../features/boards/screens/HomeScreen';
 import CompaignStatus from '../../features/advertisments/screens/CompaignStatus';
 import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen';
@@ -27,7 +26,6 @@ import UpdateProfile from '../../features/profile/screens/UpdateProfile';
 const { width, height } = Dimensions.get('window');
 type TabName = 'Home' | 'Boards' | 'Add' | 'Chat' | 'Profile';
 interface BottomTabProps {
-  // Remove activeTab and onTabPress since we'll manage state internally
 }
 const BottomTab: React.FC<BottomTabProps> = () => {
   const navigation = useNavigation();
@@ -44,22 +42,16 @@ const BottomTab: React.FC<BottomTabProps> = () => {
     setActiveTab(tabName as TabName);
     switch (tabName) {
       case 'Home':
-        // Home is already the default, no action needed
         break;
       case 'Boards':
-        // Just switch to boards tab, don't navigate
         break;
       case 'Add':
-        // Navigate to PreviousCompanyScreen
         navigation.navigate('PreviousCompanyScreen' as never);
-        // Reset to Home tab after navigation
         setActiveTab('Home');
         break;
       case 'Chat':
-        // Just switch to chat tab, don't navigate
         break;
       case 'Profile':
-        // Just switch to profile tab, don't navigate
         break;
       default:
         break;
@@ -71,11 +63,11 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       case 'Home':
         return <HomeScreen navigation={navigation} />;
       case 'Boards':
-        return <CompaignStatus navigation={navigation} />; // You can create a dedicated BoardsScreen later
+        return <CompaignStatus navigation={navigation} />; 
       case 'Add':
-        return <HomeScreen navigation={navigation} />; // This will navigate to AdvertismentCreateScreen
+        return <HomeScreen navigation={navigation} />; 
       case 'Chat':
-        return <FavouritesScreen navigation={navigation} />; // Using FavouritesScreen as placeholder
+        return <FavouritesScreen navigation={navigation} />; 
       case 'Profile':
         return <CompaignStatus navigation={navigation} />;
       default:
@@ -84,11 +76,11 @@ const BottomTab: React.FC<BottomTabProps> = () => {
   };
 
   const tabs = [
-    { name: 'Home', icon: GrayHomeIcon, activeIcon: HomeIcon },
-    { name: 'Boards', icon: GrayActive, activeIcon: PinkGray },
+    { name: 'Home', icon: GrayHomeIcon, activeIcon: PinkHomeIcon },
+    { name: 'Boards', icon: GrayActiveIcon, activeIcon: PinkActiveIcon },
     { name: 'Add', icon: AddIcon, isFAB: true },
-    { name: 'Chat', icon: GrayMsg, activeIcon: PinkMsg },
-    { name: 'Profile', icon: GrayProfileIcon, activeIcon: ProfileIcon },
+    { name: 'Chat', icon: GrayMsgIcon, activeIcon: PinkMsgIcon },
+    { name: 'Profile', icon: GrayProfileIcon, activeIcon: PinkProfileIcon },
   ];
 
   const renderTab = (tab: any, index: number) => {
@@ -123,20 +115,13 @@ const BottomTab: React.FC<BottomTabProps> = () => {
 
   const renderCurvedBar = () => {
     const centerX = width / 2;
-    // match FAB radius to visual FAB size
   const fabRadius = 35;
   const barHeight = 70;
-  // how deep the center dip goes (bigger = deeper)
   const curveDepth = 28;
-  // small horizontal padding left/right of the rounded cut
   const sideGap = 20;
-
-    // total half-width of the semicircular cut
     const r = fabRadius + sideGap;
     const leftStart = centerX - r;
     const rightEnd = centerX + r;
-
-    // cubic-bezier constant for approximating a circular arc
     const k = 0.5522847498;
     const cpOffset = k * r;
 
@@ -187,8 +172,6 @@ const BottomTab: React.FC<BottomTabProps> = () => {
             {tabs.slice(3).map((tab, index) => renderTab(tab, index + 3))}
           </View>
         </View>
-
-        {/* Floating Action Button */}
         {renderTab(tabs[2], 2)}
       </View>
     </View>
@@ -211,7 +194,6 @@ const styles = StyleSheet.create({
     right: 0,
     height: 100,
     zIndex: 1000,
-    // allow FAB to overflow outside the container area so it visually sits above
     overflow: 'visible',
     elevation: 30,
     shadowColor: '#000',
@@ -254,7 +236,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    // lower elevation so FAB (with higher elevation/zIndex) sits visually above
     elevation: 25,
     zIndex: 0,
     backgroundColor: 'transparent',
@@ -278,7 +259,6 @@ const styles = StyleSheet.create({
   centerSpace: {
     width: 90,
     height: 90,
-    // This creates the space for the FAB
   },
   tabButton: {
     width: 50,
@@ -289,7 +269,6 @@ const styles = StyleSheet.create({
   },
   fabButton: {
     position: 'absolute',
-    // lift the FAB higher so it visually sits above the other icons
     bottom: 50,
     left: width / 2 - 34,
     width: 70,
@@ -305,7 +284,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.5,
     shadowRadius: 16,
-    // ensure FAB sits on top of navigationContent and curved bar
     elevation: 99999,
     zIndex: 99999,
   },
