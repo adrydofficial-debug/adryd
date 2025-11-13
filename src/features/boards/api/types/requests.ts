@@ -16,6 +16,7 @@ export interface ToggleFavoriteRequest {
 export interface FilterBoardsParams {
   // Can now be a single string or an array of slugs
   slug?: string | string[];
+  slugs?: string[];
 
   // Kept for backward compatibility; frontend can use either
   filter?: string;

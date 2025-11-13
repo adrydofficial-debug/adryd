@@ -2,7 +2,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { LocationApi } from '../api/api';
 import { City, Location } from '../domain/entities';
-import { supabase } from '../../../services/supabase';
 import { mapCity, mapLocation } from '../domain/mappers';
 
 export const useLocations = (cityId?: number) => {
@@ -21,15 +20,15 @@ export const useCities = () => {
   return useQuery<City[], Error>({
     queryKey: ['cities'],
     queryFn: async () => {
-      console.log('Fetched cities:');
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      const res = await LocationApi.getCities(token);
-      console.log('Fetched cities:::::::::=-=-==-=:', res);
-      const mapped = res.data!.map(mapCity);
-      console.log('Mapped cities:', mapped);
+      console.log('[useCities] Fetching cities...');
+      const res = await LocationApi.getCities();
+      console.log('[useCities] Response:', res);
+      if (!res.data) {
+        console.error('[useCities] No data in response');
+        return [];
+      }
+      const mapped = res.data.map(mapCity);
+      console.log('[useCities] Mapped cities:', mapped);
       return mapped;
     },
     staleTime: 5000,

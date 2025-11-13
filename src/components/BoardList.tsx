@@ -432,7 +432,7 @@ const BoardList: React.FC<BoardListProps> = ({
         <Text style={styles.heading}>{heading}</Text>
         {showSeeAll ? (
           <TouchableOpacity onPress={handleSeeAllPress}>
-            <Text style={styles.seeAll}>See All</Text>
+            {/* <Text style={styles.seeAll}>See All</Text> */}
           </TouchableOpacity>
         ) : null}
       </View>
@@ -474,8 +474,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 15,
     // marginBottom: 2,
-    paddingBottom: 10,
-    paddingTop: 5,
+    // paddingBottom: 10,
+    // paddingTop: -5,
     marginLeft: 14,
   },
   subHeading: {
@@ -487,8 +487,8 @@ const styles = StyleSheet.create({
   },
   heading: {
     fontSize: 17,
-    fontWeight: '700',
-    color: '#222',
+    // fontWeight: '700',
+    // color: '#222',
   },
   seeAll: {
     fontSize: 12,
