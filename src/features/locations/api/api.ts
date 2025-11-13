@@ -14,23 +14,14 @@ export const LocationApi = {
     return data;
   },
 
-  getCities: async (accessToken?: string): Promise<ApiResponse<City[]>> => {
+  getCities: async (): Promise<ApiResponse<City[]>> => {
     console.log(
       '[getCities] → Fetching cities from:',
       `${BASE}/location/cities`,
     );
     try {
-      const payload = accessToken ? { token: accessToken } : {};
-      const { data } = await apiClient.post(
-        `${BASE}/location/cities`,
-        payload,
-        {
-          headers: accessToken
-            ? { Authorization: `Bearer ${accessToken}` }
-            : undefined,
-        },
-      );
-      console.log('[getCities] ✅ Response data:============------------===============', data);
+      const { data } = await apiClient.get(`${BASE}/location/cities`);
+      console.log('[getCities] ✅ Response data:', data);
       return data;
     } catch (error: any) {
       console.error(

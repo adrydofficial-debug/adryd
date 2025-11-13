@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,28 @@ import {
   StatusBar,
   SafeAreaView,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useMutation } from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useCities } from '../hooks/hooks';
-import { City } from '../domain/entities';
+import { useCities, useLocations } from '../hooks/hooks';
+import { City, Location } from '../domain/entities';
+import BoardList, { BoardItem } from '../../../components/BoardList';
+import { useBoardFilters } from '../../boards/hooks/useBoardFilters';
+import { fetchFilteredBoards } from '../../boards/api/api';
+import { FilterBoardsParams } from '../../boards/api/types/requests';
+import { FilteredBoardsResponse } from '../../boards/api/types/responses';
+import { mapFilteredBoards } from '../../boards/domain/mappers';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
+const DEFAULT_MIN_PRICE = 100;
+const DEFAULT_MAX_PRICE = 1000;
 
 interface FilterOption {
   id: string;
@@ -32,11 +45,30 @@ interface AreaHistory {
 }
 
 const SearchLocation: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilters, setSelectedFilters] = useState<Set<string>>(new Set());
+  const [draftSelectedFilters, setDraftSelectedFilters] = useState<Set<string>>(new Set());
+  const [appliedFilters, setAppliedFilters] = useState<Set<string>>(new Set());
+  const [appliedFilterOrder, setAppliedFilterOrder] = useState<string[]>([]);
+  const [filteredBoards, setFilteredBoards] = useState<BoardItem[]>([]);
+  const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [filterPagination, setFilterPagination] = useState({
+    page: DEFAULT_PAGE,
+    totalPages: 1,
+    total: 0,
+    limit: DEFAULT_LIMIT,
+  });
   const [selectedLocation, setSelectedLocation] = useState('Lahore');
+  const [selectedCityId, setSelectedCityId] = useState<number | undefined>(undefined);
+  const [selectedArea, setSelectedArea] = useState<string>('');
+  const [selectedLocationId, setSelectedLocationId] = useState<number | undefined>(undefined);
+  const [isLocationExplicitlySelected, setIsLocationExplicitlySelected] = useState(false);
+  const [draftSelectedArea, setDraftSelectedArea] = useState<string>('');
+  const [draftSelectedLocationId, setDraftSelectedLocationId] = useState<number | undefined>(undefined);
   const [isLocationDropdownVisible, setIsLocationDropdownVisible] = useState(false);
+  const [isCitiesDropdownOpen, setIsCitiesDropdownOpen] = useState(false);
+  const [isFilterSectionVisible, setIsFilterSectionVisible] = useState(false);
   const [areaHistory, setAreaHistory] = useState<AreaHistory[]>([
     { id: '1', name: 'Mall Road' },
     { id: '2', name: 'Gulberg' },
@@ -50,6 +82,26 @@ const SearchLocation: React.FC = () => {
     refetch: refetchCities,
   } = useCities();
 
+  const {
+    data: areasData = [],
+    isLoading: isAreasLoading,
+    error: areasError,
+  } = useLocations(selectedCityId);
+
+  const {
+    data: boardFiltersData,
+    isLoading: isBoardFiltersLoading,
+    error: boardFiltersError,
+    refetch: refetchBoardFilters,
+  } = useBoardFilters();
+
+  const {
+    mutateAsync: runFilterRequest,
+    isPending: isApplyingFilters,
+  } = useMutation<FilteredBoardsResponse, Error, FilterBoardsParams>({
+    mutationFn: (variables: FilterBoardsParams) => fetchFilteredBoards(variables),
+  });
+
   const cities: City[] = citiesData ?? [];
   const filteredCities = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -59,17 +111,46 @@ const SearchLocation: React.FC = () => {
     return cities.filter(city => city.name.toLowerCase().includes(query));
   }, [cities, searchQuery]);
 
+  // Initialize selectedCityId when cities load (but don't mark as explicitly selected)
+  useEffect(() => {
+    if (cities.length > 0 && !selectedCityId && !isLocationExplicitlySelected) {
+      const defaultCity = cities.find(city => city.name === selectedLocation);
+      if (defaultCity) {
+        setSelectedCityId(defaultCity.id);
+        // Don't set isLocationExplicitlySelected - this is just default initialization
+      }
+    }
+  }, [cities, selectedLocation, selectedCityId, isLocationExplicitlySelected]);
+
   // Select a city
-  const selectCity = (cityName: string) => {
-    setSelectedLocation(cityName);
-    setIsLocationDropdownVisible(false);
+  const selectCity = (city: City) => {
+    setSelectedLocation(city.name);
+    setSelectedCityId(city.id);
+    setDraftSelectedArea('');
+    setDraftSelectedLocationId(undefined); // Clear location ID when city changes
+    setSelectedLocationId(undefined); // Clear selected location ID when city changes
+    setIsLocationExplicitlySelected(true); // Mark as explicitly selected by user
+    setIsCitiesDropdownOpen(false); // Close cities dropdown when city is selected
     // Add to area history if not already present
-    if (!areaHistory.find(area => area.name === cityName)) {
+    if (!areaHistory.find(area => area.name === city.name)) {
       setAreaHistory(prev => [
-        { id: Date.now().toString(), name: cityName },
+        { id: Date.now().toString(), name: city.name },
         ...prev.slice(0, 2), // Keep only last 3 items
       ]);
     }
+  };
+
+  // Select an area
+  const selectArea = (area: Location) => {
+    setDraftSelectedArea(area.name);
+    setDraftSelectedLocationId(area.id);
+  };
+
+  // Cancel location selection
+  const handleCancelLocation = () => {
+    setDraftSelectedArea(selectedArea);
+    setDraftSelectedLocationId(selectedLocationId);
+    setIsLocationDropdownVisible(false);
   };
 
   // Remove area from history
@@ -82,30 +163,30 @@ const SearchLocation: React.FC = () => {
     setAreaHistory([]);
   };
 
-  // Filter options based on the image
-  const filterOptions: FilterOption[] = useMemo(() => [
-    { id: 'recommend', name: 'Recommend', category: 'general' },
-    { id: 'near', name: 'Near', category: 'general' },
-    { id: 'special', name: 'Special', category: 'general' },
-    { id: 'digital-pole-signs', name: 'Digital Pole Signs', category: 'digital' },
-    { id: 'digital-smd-led', name: 'Digital SMD / LED Screens', category: 'digital' },
-    { id: 'digital-billboards', name: 'Digital Billboards', category: 'digital' },
-    { id: 'digital-cinema', name: 'Digital Cinema Screens', category: 'digital' },
-    { id: 'digital-wall-panels', name: 'Digital Wall Panels', category: 'digital' },
-    { id: 'digital-instore', name: 'Digital In-store Displays', category: 'digital' },
-    { id: 'billboards', name: 'Billboards', category: 'outdoor' },
-    { id: 'bridge-panels', name: 'Bridge Panels', category: 'outdoor' },
-    { id: 'bus-shelter', name: 'Bus Shelter Ads', category: 'outdoor' },
-    { id: 'mopi-boards', name: 'Mopi Boards', category: 'outdoor' },
-    { id: 'wall-panels', name: 'Wall Panels', category: 'outdoor' },
-    { id: 'pole-signs', name: 'Pole Signs', category: 'outdoor' },
-    { id: 'hoardings', name: 'Hoardings', category: 'outdoor' },
-    { id: 'banners', name: 'Banners', category: 'print' },
-    { id: 'posters', name: 'Posters', category: 'print' },
-    { id: 'flyers', name: 'Flyers', category: 'print' },
-    { id: 'airport-ads', name: 'Airport Advertising', category: 'special' },
-    { id: 'vehicle-ads', name: 'Vehicle Advertising', category: 'special' },
-  ], []);
+  // Filter options from API
+  const filterOptions: FilterOption[] = useMemo(() => {
+    if (!boardFiltersData?.filters) {
+      return [];
+    }
+    return boardFiltersData.filters.map(filter => ({
+      id: filter.slug,
+      name: filter.name,
+    }));
+  }, [boardFiltersData]);
+
+  const filterOptionsMap = useMemo(() => {
+    const map = new Map<string, FilterOption>();
+    filterOptions.forEach(option => map.set(option.id, option));
+    return map;
+  }, [filterOptions]);
+
+  const filterOrderMap = useMemo(() => {
+    const order = new Map<string, number>();
+    filterOptions.forEach((option, index) => {
+      order.set(option.id, index);
+    });
+    return order;
+  }, [filterOptions]);
 
   // Filter options based on search query
   const filteredOptions = useMemo(() => {
@@ -118,7 +199,7 @@ const SearchLocation: React.FC = () => {
 
   // Toggle filter selection
   const toggleFilter = (filterId: string) => {
-    setSelectedFilters(prev => {
+    setDraftSelectedFilters(prev => {
       const newSet = new Set(prev);
       if (newSet.has(filterId)) {
         newSet.delete(filterId);
@@ -131,15 +212,281 @@ const SearchLocation: React.FC = () => {
 
   // Reset all filters
   const resetAllFilters = () => {
-    setSelectedFilters(new Set());
+    setDraftSelectedFilters(new Set());
+    setAppliedFilters(new Set());
+    setAppliedFilterOrder([]);
+    setFilteredBoards([]);
+    setAppliedSearchQuery('');
+    setSearchQuery('');
+    setApiError(null);
+    setFilterPagination({
+      page: DEFAULT_PAGE,
+      totalPages: 1,
+      total: 0,
+      limit: DEFAULT_LIMIT,
+    });
   };
 
-  // Get selected filter names for display
   const selectedFilterNames = useMemo(() => {
-    return filterOptions
-      .filter(option => selectedFilters.has(option.id))
-      .map(option => option.name);
-  }, [selectedFilters, filterOptions]);
+    return Array.from(draftSelectedFilters)
+      .map(id => filterOptionsMap.get(id))
+      .filter(Boolean)
+      .map(option => option!.name);
+  }, [draftSelectedFilters, filterOptionsMap]);
+
+  const appliedFilterTags = useMemo(() => {
+    return appliedFilterOrder
+      .map(id => filterOptionsMap.get(id))
+      .filter(Boolean)
+      .map(option => ({
+        id: option!.id,
+        name: option!.name,
+      }));
+  }, [appliedFilterOrder, filterOptionsMap]);
+
+  const convertBoardToBoardItem = useCallback(
+    (board: any): BoardItem => {
+      const primaryMediaUrl =
+        Array.isArray(board.media) && board.media.length > 0
+          ? board.media[0]?.url
+          : null;
+      const imageUrl = board.image_url || board.image || primaryMediaUrl;
+
+      const priceValue =
+        typeof board.price === 'number'
+          ? board.price
+          : board.price
+          ? parseFloat(board.price)
+          : 0;
+
+      const locationString =
+        typeof board.location === 'string'
+          ? board.location
+          : board.location?.name || board.category?.name || 'Unknown Location';
+
+      return {
+        id: board.id?.toString() || 'unknown',
+        title: board.title || 'Untitled Board',
+        description: board.description || '',
+        location: locationString,
+        distance: '1.6 km',
+        size:
+          board.width && board.height
+            ? `${board.width}x${board.height}`
+            : '12x8',
+        price: priceValue || 0,
+        currency: board.currency || 'PKR',
+        image_url: imageUrl || null,
+        image: imageUrl || undefined,
+        rating: board.avg_rating ?? board.rating ?? 0,
+        reviewCount: board.total_ratings ?? board.reviewCount ?? 0,
+        category: board.category?.name || 'Static',
+        media: Array.isArray(board.media) ? board.media : [],
+      };
+    },
+    [],
+  );
+
+  const handleDetailPress = useCallback(
+    (item: BoardItem) => {
+      navigation.navigate('SingleBoardDetail', { item });
+    },
+    [navigation],
+  );
+
+  const sortedDraftFilterIds = useMemo(() => {
+    const ids = Array.from(draftSelectedFilters);
+    return ids.sort((a, b) => {
+      const orderA = filterOrderMap.get(a) ?? Number.MAX_SAFE_INTEGER;
+      const orderB = filterOrderMap.get(b) ?? Number.MAX_SAFE_INTEGER;
+      return orderA - orderB;
+    });
+  }, [draftSelectedFilters, filterOrderMap]);
+
+  const hasFilterChanges = useMemo(() => {
+    if (sortedDraftFilterIds.length !== appliedFilterOrder.length) {
+      return true;
+    }
+    for (let i = 0; i < sortedDraftFilterIds.length; i += 1) {
+      if (sortedDraftFilterIds[i] !== appliedFilterOrder[i]) {
+        return true;
+      }
+    }
+    return false;
+  }, [sortedDraftFilterIds, appliedFilterOrder]);
+
+  const hasSearchChange = useMemo(() => {
+    return (appliedSearchQuery || '').trim() !== searchQuery.trim();
+  }, [appliedSearchQuery, searchQuery]);
+
+  const hasChanges = hasFilterChanges || hasSearchChange;
+
+  const handleCancelChanges = useCallback(() => {
+    setDraftSelectedFilters(new Set(appliedFilters));
+    setSearchQuery(appliedSearchQuery);
+    setApiError(null);
+  }, [appliedFilters, appliedSearchQuery]);
+
+  // Apply location selection
+  const handleApplyLocation = useCallback(async () => {
+    setSelectedArea(draftSelectedArea);
+    setSelectedLocationId(draftSelectedLocationId);
+    // Clear city_id if area is selected (we use location_id instead)
+    if (draftSelectedLocationId) {
+      setSelectedCityId(undefined);
+      setIsLocationExplicitlySelected(true); // Mark as explicitly selected
+    }
+    setIsLocationDropdownVisible(false);
+    // Add to area history if not already present
+    if (draftSelectedArea && !areaHistory.find(area => area.name === draftSelectedArea)) {
+      setAreaHistory(prev => [
+        { id: Date.now().toString(), name: draftSelectedArea },
+        ...prev.slice(0, 2), // Keep only last 3 items
+      ]);
+    }
+
+    // Automatically trigger filter API call with the new location
+    // Use draft values directly since state updates are async
+    const locationIdToUse = draftSelectedLocationId;
+    const cityIdToUse = draftSelectedLocationId ? undefined : selectedCityId;
+    
+    if (locationIdToUse || cityIdToUse) {
+      const trimmedSearch = searchQuery.trim();
+      const sortedIds = sortedDraftFilterIds;
+      
+      // Build payload based on what filters are selected
+      const payload: FilterBoardsParams = {
+        // Pagination
+        page: DEFAULT_PAGE,
+        limit: DEFAULT_LIMIT,
+        // Search
+        search: trimmedSearch || undefined,
+        // Price filters
+        min_price: DEFAULT_MIN_PRICE,
+        max_price: DEFAULT_MAX_PRICE,
+      };
+
+      // Scenario 1: Filter by slug (board type filters)
+      if (sortedIds.length > 0) {
+        payload.slug = sortedIds;
+        payload.slugs = sortedIds; // Some backends expect both
+      }
+
+      // Scenario 2: Filter by location/city
+      // Only send if explicitly selected (locationIdToUse means area was selected)
+      if (locationIdToUse) {
+        payload.location_id = locationIdToUse;
+      } else if (cityIdToUse && isLocationExplicitlySelected) {
+        // Only send city_id if user explicitly selected a city
+        payload.city_id = cityIdToUse;
+      }
+
+      console.log('[SearchLocation] Auto-applying filters after location selection:', JSON.stringify(payload, null, 2));
+      setApiError(null);
+      try {
+        const response = await runFilterRequest(payload);
+        console.log('[SearchLocation] Filtered boards API response:', response);
+        const mapped = mapFilteredBoards(response);
+        const total = response.pagination?.total ?? mapped.boards.length;
+        const limit = response.pagination?.limit ?? DEFAULT_LIMIT;
+
+        setFilteredBoards(mapped.boards.map(convertBoardToBoardItem));
+        setFilterPagination({
+          page: mapped.page,
+          totalPages: mapped.totalPages,
+          total,
+          limit,
+        });
+        setAppliedFilters(new Set(sortedIds));
+        setAppliedFilterOrder(sortedIds);
+        setAppliedSearchQuery(trimmedSearch);
+      } catch (error) {
+        console.error('[SearchLocation] Failed to apply filters:', error);
+        setApiError('Unable to fetch boards. Please try again.');
+      }
+    }
+  }, [
+    draftSelectedArea,
+    draftSelectedLocationId,
+    selectedCityId,
+    areaHistory,
+    searchQuery,
+    sortedDraftFilterIds,
+    runFilterRequest,
+    convertBoardToBoardItem,
+    isLocationExplicitlySelected,
+  ]);
+
+  const handleApplyFilters = useCallback(async () => {
+    if (isApplyingFilters) {
+      return;
+    }
+
+    const trimmedSearch = searchQuery.trim();
+    const sortedIds = sortedDraftFilterIds;
+    
+    // Build payload based on what filters are selected
+    const payload: FilterBoardsParams = {
+      // Pagination
+      page: DEFAULT_PAGE,
+      limit: DEFAULT_LIMIT,
+      // Search
+      search: trimmedSearch || undefined,
+      // Price filters
+      min_price: DEFAULT_MIN_PRICE,
+      max_price: DEFAULT_MAX_PRICE,
+    };
+
+    // Scenario 1: Filter by slug (board type filters)
+    if (sortedIds.length > 0) {
+      payload.slug = sortedIds;
+      payload.slugs = sortedIds; // Some backends expect both
+    }
+
+    // Scenario 2: Filter by location/city
+    // Only send location/city filters if explicitly selected by user
+    // If area/location is selected, use location_id; otherwise use city_id
+    if (selectedLocationId) {
+      payload.location_id = selectedLocationId;
+    } else if (selectedCityId && isLocationExplicitlySelected) {
+      // Only send city_id if user explicitly selected a city (not just default)
+      payload.city_id = selectedCityId;
+    }
+
+    console.log('[SearchLocation] Applying filters payload:', JSON.stringify(payload, null, 2));
+
+    setApiError(null);
+    try {
+      const response = await runFilterRequest(payload);
+      console.log('[SearchLocation] Filtered boards API response:', response);
+      const mapped = mapFilteredBoards(response);
+      const total = response.pagination?.total ?? mapped.boards.length;
+      const limit = response.pagination?.limit ?? DEFAULT_LIMIT;
+
+      setFilteredBoards(mapped.boards.map(convertBoardToBoardItem));
+      setFilterPagination({
+        page: mapped.page,
+        totalPages: mapped.totalPages,
+        total,
+        limit,
+      });
+      setAppliedFilters(new Set(sortedIds));
+      setAppliedFilterOrder(sortedIds);
+      setAppliedSearchQuery(trimmedSearch);
+    } catch (error) {
+      console.error('[SearchLocation] Failed to apply filters:', error);
+      setApiError('Unable to fetch boards. Please try again.');
+    }
+  }, [
+    convertBoardToBoardItem,
+    isApplyingFilters,
+    runFilterRequest,
+    searchQuery,
+    sortedDraftFilterIds,
+    selectedLocationId,
+    selectedCityId,
+    isLocationExplicitlySelected,
+  ]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -151,16 +498,10 @@ const SearchLocation: React.FC = () => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={20} color="#70737D" />
         </TouchableOpacity>
 
         <View style={styles.searchContainer}>
-          <Ionicons
-            name="search"
-            size={20}
-            color="#999"
-            style={styles.searchIcon}
-          />
           <TextInput
             style={styles.searchInput}
             placeholder="Search your board"
@@ -168,28 +509,51 @@ const SearchLocation: React.FC = () => {
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-        </View>
-
-        <View style={styles.locationContainer}>
           <TouchableOpacity
-            style={styles.locationButton}
-            onPress={() =>
+            style={[
+              styles.locationTag,
+              isLocationDropdownVisible && styles.locationTagActive,
+            ]}
+            onPress={() => {
               setIsLocationDropdownVisible(prev => {
                 const next = !prev;
                 if (!prev) {
                   refetchCities();
+                  setDraftSelectedArea(selectedArea);
+                  setDraftSelectedLocationId(selectedLocationId);
+                  setIsCitiesDropdownOpen(false); // Keep cities dropdown closed by default
+                } else {
+                  setIsCitiesDropdownOpen(false); // Close cities dropdown when modal closes
                 }
                 return next;
-              })
-            }
+              });
+            }}
           >
-            <Text style={styles.locationText}>{selectedLocation}</Text>
-            <Ionicons name="chevron-down" size={16} color="#666" />
+            <Text
+              style={[
+                styles.locationTagText,
+                isLocationDropdownVisible && styles.locationTagTextActive,
+              ]}
+            >
+              {selectedLocation}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.filterIconButton}>
-          <Ionicons name="options" size={24} color="#000" />
+        <TouchableOpacity
+          style={styles.filterIconButton}
+          onPress={() => {
+            setIsFilterSectionVisible(prev => !prev);
+            if (!isFilterSectionVisible) {
+              refetchBoardFilters();
+            }
+          }}
+        >
+          <Ionicons
+            name="options"
+            size={20}
+            color={isFilterSectionVisible ? '#70737D' : '#333'}
+          />
         </TouchableOpacity>
       </View>
 
@@ -199,173 +563,418 @@ const SearchLocation: React.FC = () => {
         contentContainerStyle={styles.mainScrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Location Dropdown - appears in scroll flow just above Set Filter */}
-        {isLocationDropdownVisible && (
-          <View style={styles.locationDropdownContent}>
-            {/* Close Button */}
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setIsLocationDropdownVisible(false)}
-            >
-              <Ionicons name="close" size={20} color="#000" />
-            </TouchableOpacity>
-
-            {/* Title */}
-            <Text style={styles.modalTitle}>Set Location</Text>
-
-            {/* Location Input/Dropdown */}
-            <View style={styles.locationInputContainer}>
-              <Text style={styles.locationInputText}>{selectedLocation}</Text>
-              <Ionicons name="chevron-down" size={20} color="#666" />
-            </View>
-
-            {/* Cities List */}
-            <View style={styles.citiesList}>
-              {isCitiesLoading && (
-                <ActivityIndicator size="small" color="#C538A5" />
-              )}
-              {citiesError && !isCitiesLoading && (
-                <Text style={styles.errorText}>
-                  Unable to load cities. Tap the location again to retry.
+        {(appliedFilterTags.length > 0 || appliedSearchQuery) && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.appliedChipsScroll}
+            contentContainerStyle={styles.appliedChipsContent}
+          >
+            {appliedFilterTags.map(tag => (
+              <View key={tag.id} style={styles.appliedChip}>
+                <Text style={styles.appliedChipText}>{tag.name}</Text>
+              </View>
+            ))}
+            {appliedSearchQuery ? (
+              <View style={styles.appliedChip}>
+                <Text style={styles.appliedChipText}>
+                  Search: {appliedSearchQuery}
                 </Text>
-              )}
-              {!isCitiesLoading && !citiesError && (
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  nestedScrollEnabled={true}
-                >
-                  {filteredCities.map(city => {
-                    const isSelected = city.name === selectedLocation;
-                    return (
-                      <TouchableOpacity
-                        key={city.id}
-                        style={[
-                          styles.cityItem,
-                          isSelected && styles.cityItemSelected,
-                        ]}
-                        onPress={() => selectCity(city.name)}
-                      >
-                        <Text
-                          style={[
-                            styles.cityItemText,
-                            isSelected && styles.cityItemTextSelected,
-                          ]}
-                        >
-                          {city.name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                  {filteredCities.length === 0 && (
-                    <Text style={styles.noResultsText}>No cities found.</Text>
-                  )}
-                </ScrollView>
-              )}
-            </View>
+              </View>
+            ) : null}
+          </ScrollView>
+        )}
 
-            {/* Area History Section */}
-            <View style={styles.areaHistorySection}>
-              <View style={styles.areaHistoryHeader}>
-                <Text style={styles.areaHistoryTitle}>Your Area History</Text>
-                {areaHistory.length > 0 && (
+        {isApplyingFilters && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#C538A5" />
+            <Text style={styles.loadingText}>Applying filters…</Text>
+          </View>
+        )}
+
+        {apiError && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>{apiError}</Text>
+          </View>
+        )}
+
+        {/* Set Filter Section - Only visible when filter icon is clicked */}
+        {isFilterSectionVisible && (
+          <>
+            <View style={styles.filterSectionContainer}>
+              <View style={styles.filterHeader}>
+                <Text style={styles.filterTitle}>Set Filter</Text>
+                {draftSelectedFilters.size > 0 && (
                   <TouchableOpacity
-                    style={styles.resetAllButton}
-                    onPress={resetAreaHistory}
+                    style={styles.resetButton}
+                    onPress={resetAllFilters}
                   >
-                    <Text style={styles.resetAllButtonText}>Reset All</Text>
+                    <Text style={styles.resetButtonText}>Reset All</Text>
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* Area History Tags */}
-              {areaHistory.length > 0 && (
-                <View style={styles.areaHistoryTags}>
-                  {areaHistory.map((area) => (
-                    <View key={area.id} style={styles.areaTag}>
-                      <Text style={styles.areaTagText}>{area.name}</Text>
+              {/* Selected Filter Tags - displayed just below Set Filter heading */}
+              {selectedFilterNames.length > 0 && (
+                <View style={styles.tagsContainer}>
+                  {selectedFilterNames.map((name, index) => (
+                    <View key={index} style={styles.tag}>
+                      <Text style={styles.tagText}>{name}</Text>
                       <TouchableOpacity
-                        style={styles.areaTagClose}
-                        onPress={() => removeAreaFromHistory(area.id)}
+                        style={styles.tagClose}
+                        onPress={() => {
+                          const filterId = filterOptions.find(
+                            f => f.name === name,
+                          )?.id;
+                          if (filterId) toggleFilter(filterId);
+                        }}
                       >
-                        <Ionicons name="close" size={14} color="#C538A5" />
+                        <Ionicons name="close" size={16} color="#1c1b1cff" />
                       </TouchableOpacity>
                     </View>
                   ))}
                 </View>
               )}
+
+              {/* Filter Options List */}
+              <View style={styles.optionsListContent}>
+                {isBoardFiltersLoading ? (
+                  <ActivityIndicator size="small" color="#C538A5" />
+                ) : boardFiltersError ? (
+                  <View style={styles.errorState}>
+                    <Text style={styles.errorStateText}>
+                      Unable to load filters. Tap retry to try again.
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        refetchBoardFilters();
+                      }}
+                      style={styles.retryFiltersButton}
+                    >
+                      <Text style={styles.retryFiltersButtonText}>Retry</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : filteredOptions.length === 0 ? (
+                  <Text style={styles.noOptionsText}>
+                    No filters match your search.
+                  </Text>
+                ) : (
+                  filteredOptions.map(option => {
+                    const isSelected = draftSelectedFilters.has(option.id);
+                    return (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={[
+                          styles.filterOption,
+                          isSelected && styles.filterOptionSelected,
+                        ]}
+                        onPress={() => toggleFilter(option.id)}
+                      >
+                        <View
+                          style={[
+                            styles.checkbox,
+                            isSelected && styles.checkboxSelected,
+                          ]}
+                        >
+                          {isSelected && (
+                            <Ionicons name="checkmark" size={12} color="#fff" />
+                          )}
+                        </View>
+                        <Text
+                          style={[
+                            styles.filterOptionText,
+                            isSelected && styles.filterOptionTextSelected,
+                          ]}
+                        >
+                          {option.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* Boards Results - Only show when filter section is NOT visible */}
+        {!isFilterSectionVisible && (
+          <>
+            {filteredBoards.length > 0 && (
+              <View style={styles.resultsSection}>
+                {/* <Text style={styles.resultsHeading}>Filtered Boards</Text> */}
+                <BoardList
+                  data={filteredBoards}
+                  heading=""
+                  showSeeAll={false}
+                  numColumns={2}
+                  navigation={navigation}
+                  onPressDetail={handleDetailPress}
+                />
+                <Text style={styles.paginationMeta}>
+                  Showing {filteredBoards.length} of {filterPagination.total}{' '}
+                  results
+                </Text>
+              </View>
+            )}
+
+            {filteredBoards.length === 0 &&
+              !isApplyingFilters &&
+              (appliedFilterOrder.length > 0 || appliedSearchQuery) &&
+              !apiError && (
+                <View style={styles.noResultsContainer}>
+                  <Text style={styles.noResultsText}>
+                    No boards match your current filters. Try adjusting them.
+                  </Text>
+                </View>
+              )}
+          </>
+        )}
+
+        {/* Location Modal - Bottom Sheet */}
+        <Modal
+          visible={isLocationDropdownVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setIsLocationDropdownVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={styles.modalBackdrop}
+              activeOpacity={1}
+              onPress={() => setIsLocationDropdownVisible(false)}
+            />
+            <View style={styles.modalContent}>
+              <ScrollView
+                style={styles.modalScrollView}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+              >
+                {/* Close Button */}
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setIsLocationDropdownVisible(false)}
+                >
+                  <Ionicons name="close" size={20} color="#000" />
+                </TouchableOpacity>
+
+                {/* Title */}
+                <Text style={styles.modalTitle}>Set Location</Text>
+
+                {/* City Selection */}
+                <TouchableOpacity
+                style={styles.locationInputContainer}
+                onPress={() => {
+                  setIsCitiesDropdownOpen(prev => !prev);
+                  if (!isCitiesDropdownOpen) {
+                    refetchCities();
+                  }
+                }}
+              >
+                <Text style={styles.locationInputText}>{selectedLocation}</Text>
+                <Ionicons
+                  name={isCitiesDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color="#666"
+                />
+                </TouchableOpacity>
+
+                {/* Cities List */}
+                {isCitiesDropdownOpen && (
+                  <View style={styles.citiesList}>
+                    {isCitiesLoading && (
+                      <View style={{ padding: hp(2), alignItems: 'center' }}>
+                        <ActivityIndicator size="small" color="#C538A5" />
+                      </View>
+                    )}
+                    {citiesError && !isCitiesLoading && (
+                      <View style={{ padding: hp(2) }}>
+                        <Text style={styles.errorText}>
+                          Unable to load cities. Tap the location again to retry.
+                        </Text>
+                      </View>
+                    )}
+                    {!isCitiesLoading && !citiesError && (
+                      <ScrollView
+                        showsVerticalScrollIndicator={true}
+                        nestedScrollEnabled={true}
+                      >
+                        {filteredCities.map(city => {
+                          const isSelected = city.id === selectedCityId;
+                          return (
+                            <TouchableOpacity
+                              key={city.id}
+                              style={[
+                                styles.cityItem,
+                                isSelected && styles.cityItemSelected,
+                              ]}
+                              onPress={() => selectCity(city)}
+                            >
+                              <View style={styles.radioButton}>
+                                {isSelected && (
+                                  <View style={styles.radioButtonSelected} />
+                                )}
+                              </View>
+                              <Text
+                                style={[
+                                  styles.cityItemText,
+                                  isSelected && styles.cityItemTextSelected,
+                                ]}
+                              >
+                                {city.name}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                        {filteredCities.length === 0 && (
+                          <View style={{ padding: hp(2) }}>
+                            <Text style={styles.noResultsText}>No cities found.</Text>
+                          </View>
+                        )}
+                      </ScrollView>
+                    )}
+                  </View>
+                )}
+
+                {/* Area History Section */}
+                {areaHistory.length > 0 && (
+                  <View style={styles.areaHistorySection}>
+                  <View style={styles.areaHistoryHeader}>
+                    <Text style={styles.areaHistoryTitle}>Your Area History</Text>
+                    <TouchableOpacity
+                      style={styles.resetAllButton}
+                      onPress={resetAreaHistory}
+                    >
+                      <Text style={styles.resetAllButtonText}>Reset All</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Area History Tags */}
+                  <View style={styles.areaHistoryTags}>
+                    {areaHistory.map(area => (
+                      <View key={area.id} style={styles.areaTag}>
+                        <Text style={styles.areaTagText}>{area.name}</Text>
+                        <TouchableOpacity
+                          style={styles.areaTagClose}
+                          onPress={() => removeAreaFromHistory(area.id)}
+                        >
+                          <Ionicons name="close" size={14} color="#C538A5" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                  </View>
+                )}
+
+                {/* Select Area Section */}
+                {selectedCityId && (
+                  <View style={styles.selectAreaSection}>
+                  <Text style={styles.selectAreaTitle}>Select Area</Text>
+                  {isAreasLoading && (
+                    <ActivityIndicator size="small" color="#C538A5" />
+                  )}
+                  {areasError && !isAreasLoading && (
+                    <Text style={styles.errorText}>
+                      Unable to load areas. Please try again.
+                    </Text>
+                  )}
+                  {!isAreasLoading && !areasError && (
+                    <ScrollView
+                      style={styles.areasList}
+                      showsVerticalScrollIndicator={false}
+                      nestedScrollEnabled={true}
+                    >
+                      {areasData.map((area: Location) => {
+                        const isSelected = area.id === draftSelectedLocationId;
+                        return (
+                          <TouchableOpacity
+                            key={area.id}
+                            style={[
+                              styles.areaItem,
+                              isSelected && styles.areaItemSelected,
+                            ]}
+                            onPress={() => selectArea(area)}
+                          >
+                            <View
+                              style={[
+                                styles.checkbox,
+                                isSelected && styles.checkboxSelected,
+                              ]}
+                            >
+                              {isSelected && (
+                                <Ionicons name="checkmark" size={12} color="#fff" />
+                              )}
+                            </View>
+                            <Text
+                              style={[
+                                styles.areaItemText,
+                                isSelected && styles.areaItemTextSelected,
+                              ]}
+                            >
+                              {area.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                      {areasData.length === 0 && (
+                        <Text style={styles.noResultsText}>No areas found.</Text>
+                      )}
+                    </ScrollView>
+                  )}
+                  </View>
+                )}
+
+                {/* Footer Actions */}
+                <View style={styles.modalFooterActions}>
+                  <TouchableOpacity
+                    style={styles.modalCancelButton}
+                    onPress={handleCancelLocation}
+                  >
+                    <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.modalApplyButton}
+                    onPress={handleApplyLocation}
+                  >
+                    <Text style={styles.modalApplyButtonText}>Apply</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </View>
           </View>
-        )}
-
-        {/* Set Filter Section */}
-        <View style={styles.filterHeader}>
-          <Text style={styles.filterTitle}>Set Filter</Text>
-          {selectedFilters.size > 0 && (
-            <TouchableOpacity
-              style={styles.resetButton}
-              onPress={resetAllFilters}
-            >
-              <Text style={styles.resetButtonText}>Reset All</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Selected Filter Tags - displayed just below Set Filter heading */}
-        {selectedFilterNames.length > 0 && (
-          <View style={styles.tagsContainer}>
-            {selectedFilterNames.map((name, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>{name}</Text>
-                <TouchableOpacity
-                  style={styles.tagClose}
-                  onPress={() => {
-                    const filterId = filterOptions.find(f => f.name === name)?.id;
-                    if (filterId) toggleFilter(filterId);
-                  }}
-                >
-                  <Ionicons name="close" size={16} color="#1c1b1cff" />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Filter Options List */}
-        <View style={styles.optionsListContent}>
-          {filteredOptions.map((option) => {
-            const isSelected = selectedFilters.has(option.id);
-            return (
-              <TouchableOpacity
-                key={option.id}
-                style={[
-                  styles.filterOption,
-                  isSelected && styles.filterOptionSelected,
-                ]}
-                onPress={() => toggleFilter(option.id)}
-              >
-                <View
-                  style={[
-                    styles.checkbox,
-                    isSelected && styles.checkboxSelected,
-                  ]}
-                >
-                  {isSelected && (
-                    <Ionicons name="checkmark" size={16} color="#fff" />
-                  )}
-                </View>
-                <Text
-                  style={[
-                    styles.filterOptionText,
-                    isSelected && styles.filterOptionTextSelected,
-                  ]}
-                >
-                  {option.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        </Modal>
       </ScrollView>
+
+      {/* Footer Actions - Only visible when filter section is open */}
+      {isFilterSectionVisible && (
+        <View style={styles.footerActions}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => {
+              handleCancelChanges();
+              setIsFilterSectionVisible(false);
+            }}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.applyButton,
+              (!hasChanges || isApplyingFilters) && styles.applyButtonDisabled,
+            ]}
+            activeOpacity={hasChanges && !isApplyingFilters ? 0.7 : 1}
+            onPress={async () => {
+              await handleApplyFilters();
+              setIsFilterSectionVisible(false);
+            }}
+            disabled={!hasChanges || isApplyingFilters}
+          >
+            <Text style={styles.applyButtonText}>
+              {isApplyingFilters ? 'Applying…' : 'Apply'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -374,83 +983,173 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    marginTop: StatusBar.currentHeight || 0,
-    marginBottom: hp(4),
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    paddingTop: hp(1.5),
+    paddingBottom: hp(1.5),
   },
   backButton: {
-    padding: wp(2),
-    marginRight: wp(2),
+    width: 40,
+    height: 40,
+    borderColor:"#E5E7EB",
+    borderWidth:0.7,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: wp(2.5),
   },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
-    paddingHorizontal: wp(3),
-    paddingVertical: hp(1),
-    marginRight: wp(2),
-  },
-  searchIcon: {
-    marginRight: wp(2),
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.2),
+    minHeight: 48,
+    marginRight: wp(2.5),
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: '#000',
     padding: 0,
+    margin: 0,
   },
-  locationContainer: {
-    marginRight: wp(2),
-  },
-  locationButton: {
-    flexDirection: 'row',
+  locationTag: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 7,
+    borderColor: '#E5E7EB',
+    height: 25,
+    paddingHorizontal: 10,
+    paddingVertical: 0,
+    marginLeft: wp(2),
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: wp(2.5),
-    paddingVertical: hp(0.8),
+    borderWidth:0.7,
   },
-  locationText: {
-    fontSize: 14,
-    color: '#000',
-    marginRight: wp(1),
+  locationTagText: {
+    fontSize: 13,
+    color: '#333',
     fontWeight: '500',
   },
+  locationTagActive: {
+    // Add any background or border changes when active if needed
+  },
+  locationTagTextActive: {
+    color: '#70737D',
+  },
   filterIconButton: {
-    padding: wp(2),
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth:0.7,
+    borderColor:"#E5E7EB",
   },
   // Main Scroll View
   mainScrollView: {
     flex: 1,
   },
   mainScrollContent: {
-    paddingBottom: hp(2),
+    paddingBottom: hp(12),
   },
-  // Location Dropdown Styles (now in scroll flow)
-  locationDropdownContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+  appliedChipsScroll: {
+    paddingHorizontal: wp(4),
+    paddingTop: hp(1.5),
+  },
+  appliedChipsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: wp(4),
+  },
+  appliedChip: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 20,
+    paddingHorizontal: wp(3.5),
+    paddingVertical: hp(0.8),
+    marginRight: wp(2),
+  },
+  appliedChipText: {
+    color: '#70737D',
+    fontSize: 12,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1),
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: wp(2),
+  },
+  errorBanner: {
+    marginHorizontal: wp(4),
+    marginBottom: hp(1),
+    paddingHorizontal: wp(3.5),
+    paddingVertical: hp(1.2),
+    borderRadius: 12,
+    backgroundColor: '#FECACA',
+  },
+  errorBannerText: {
+    color: '#B91C1C',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  resultsSection: {
     paddingHorizontal: wp(4),
     paddingBottom: hp(2),
-    marginTop: hp(1),
-    marginHorizontal: wp(4),
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  closeButton: {
+  resultsHeading: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: hp(1),
+  },
+  paginationMeta: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: hp(1),
+    textAlign: 'center',
+  },
+  noResultsContainer: {
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(2),
+  },
+  // Location Modal Styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: height * 0.9,
+  },
+  modalScrollView: {
+    paddingHorizontal: wp(4),
+    paddingBottom: hp(2),
+  },
+  modalCloseButton: {
     alignSelf: 'center',
     width: 32,
     height: 32,
@@ -486,32 +1185,121 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   citiesList: {
-    maxHeight: height * 0.35,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: hp(1),
     marginBottom: hp(2),
+    maxHeight: height * 0.35,
+    overflow: 'hidden',
   },
   cityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: hp(1.5),
     paddingHorizontal: wp(4),
     borderBottomWidth: 1,
     borderBottomColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
   },
   cityItemSelected: {
     backgroundColor: '#FCE7F3',
   },
   cityItemText: {
     fontSize: 14,
-    color: '#000',
+    color: '#70737D',
     fontWeight: '400',
+    marginLeft: wp(3),
   },
   cityItemTextSelected: {
-    color: '#C538A5',
+    color: '#000',
     fontWeight: '500',
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radioButtonSelected: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#C538A5',
+  },
+  selectAreaSection: {
+    marginTop: hp(2),
+    paddingTop: hp(2),
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  selectAreaTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: hp(1.5),
+  },
+  areasList: {
+    maxHeight: height * 0.3,
+  },
+  areaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingTop: 6,
+    paddingBottom: 6,
+    paddingLeft: 12,
+    paddingRight: 6,
+    height: 54,
+    borderWidth: 0.7,
+    borderColor: '#E5E7EB',
+    marginBottom: 0,
+  },
+  areaItemSelected: {
+    backgroundColor: '#FCE7F3',
+    borderColor: '#F2BCE9',
+  },
+  areaItemText: {
+    fontSize: 14,
+    color: '#70737D',
+    fontWeight: '400',
+    marginLeft: 12,
+  },
+  areaItemTextSelected: {
+    color: '#000',
+    fontWeight: '400',
   },
   errorText: {
     textAlign: 'center',
     color: '#FF3B30',
     fontSize: 13,
     marginVertical: hp(1),
+  },
+  errorState: {
+    paddingVertical: hp(2),
+    alignItems: 'center',
+  },
+  errorStateText: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: hp(1),
+    textAlign: 'center',
+    paddingHorizontal: wp(4),
+  },
+  retryFiltersButton: {
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1),
+    borderRadius: 20,
+    backgroundColor: '#C538A5',
+  },
+  retryFiltersButtonText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
   noResultsText: {
     textAlign: 'center',
@@ -550,7 +1338,6 @@ const styles = StyleSheet.create({
   areaHistoryTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: wp(2),
   },
   areaTag: {
     flexDirection: 'row',
@@ -571,6 +1358,14 @@ const styles = StyleSheet.create({
   areaTagClose: {
     padding: 2,
   },
+  filterSectionContainer: {
+    backgroundColor: '#FFFFFF',
+    marginTop: hp(2),
+    paddingTop: hp(2),
+    paddingBottom: hp(1),
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
   filterHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -584,13 +1379,16 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   resetButton: {
-    paddingHorizontal: wp(3),
-    paddingVertical: hp(0.8),
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1),
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   resetButtonText: {
-    fontSize: 14,
-    color: '#C538A5',
-    fontWeight: '500',
+    fontSize: 11,
+    color: '#1F2937',
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -602,60 +1400,159 @@ const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2BCE9',
+    backgroundColor: '#ECBDF3',
     borderRadius: 20,
     paddingHorizontal: wp(3),
     paddingVertical: hp(0.8),
     marginRight: wp(2),
-    marginBottom: hp(0.5),
+    marginBottom: hp(1),
   },
   tagText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#000',
     marginRight: wp(1.5),
-    fontWeight: '500',
-  },
+
+ },
   tagClose: {
     padding: 2,
   },
   optionsListContent: {
     paddingHorizontal: wp(4),
-    paddingTop: hp(1),
+    paddingTop: hp(0.5),
+    paddingBottom: hp(1),
+  },
+  noOptionsText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    paddingVertical: hp(1),
   },
   filterOption: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
-    marginBottom: hp(1),
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    paddingTop: 6,
+    paddingBottom: 6,
+    paddingLeft: 12,
+    paddingRight: 6,
+    height: 54,
+    borderWidth: 0.7,
+    borderColor: '#E5E7EB',
   },
   filterOptionSelected: {
-    backgroundColor: '#C538A5',
+    backgroundColor: '#FCE7F3',
+    borderColor: '#F2BCE9',
   },
   checkbox: {
-    width: 20,
-    height: 20,
+    width: 14,
+    height: 14,
     borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#999',
-    marginRight: wp(3),
+    borderWidth: 1.5,
+    borderColor: '#D1D5DB',
+    marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   checkboxSelected: {
-    backgroundColor: '#fff',
-    borderColor: '#fff',
+    backgroundColor: '#C538A5',
+    borderColor: '#C538A5',
   },
   filterOptionText: {
     fontSize: 14,
-    color: '#000',
+    color: '#70737D',
     fontWeight: '400',
   },
   filterOptionTextSelected: {
+    color: '#000',
+    // fontWeight: '500',
+  },
+  footerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: wp(6),
+    paddingTop: hp(1.5),
+    paddingBottom: hp(2),
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    backgroundColor: '#fff',
+  },
+  cancelButton: {
+    flex: 1,
+    marginRight: wp(3),
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingVertical: hp(1.5),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  applyButton: {
+    flex: 1,
+    borderRadius: 24,
+    paddingVertical: hp(1.5),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#C538A5',
+  },
+  applyButtonDisabled: {
+    backgroundColor: '#F3E8F5',
+  },
+  applyButtonText: {
+    fontSize: 16,
     color: '#fff',
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  modalFooterActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: wp(4),
+    paddingTop: hp(1.5),
+    paddingBottom: hp(2),
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    marginTop: hp(2),
+  },
+  modalCancelButton: {
+    flex: 1,
+    marginRight: wp(3),
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingVertical: hp(1.5),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  modalCancelButtonText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  modalApplyButton: {
+    flex: 1,
+    borderRadius: 24,
+    paddingVertical: hp(1.5),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#C538A5',
+  },
+  modalApplyButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 
