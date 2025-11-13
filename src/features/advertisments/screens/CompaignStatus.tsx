@@ -4,17 +4,17 @@ import {
   Text,
   StyleSheet,
   Dimensions,
-  ScrollView,
   TouchableOpacity,
   StatusBar,
   Image,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import CardStatus, { CardStatusProps } from '../../../components/CardStatus';
 import BottomTab from '../../../app/navigation/BottomTab';
 import { useAdvertisements } from '../hooks/useAdvertisements';
 import CampaignTabs, { CampaignTab } from '../components/CampaignTabs';
+import StatusCard from '../components/StatusCard';
 import { AdvertisementStatus } from '../domain/entities';
 import BackButton from '../../../components/BackButton';
 
@@ -72,6 +72,7 @@ interface CampaignCard {
   isExpanded: boolean;
   details?: AdDetails;
   payment: PaymentInfo;
+  rawStatus: string;
 }
 
 interface ActiveCampaignProps {
@@ -83,8 +84,23 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
   const [activeBottomTab, setActiveBottomTab] = useState<string>('Boards');
   const [activeTab, setActiveTab] = useState<string>('all');
   
-  // Use the existing advertisements hook
-  const { advertisements, loading, error, refetch, filterByStatus } = useAdvertisements();
+  const {
+    advertisements: advertisementList,
+    loading,
+    error,
+    refetch,
+  } = useAdvertisements({ limit: 1000, page: 1, status: undefined }); // Fetch ALL data - no status filter
+  
+  // Debug: Log what we received
+  React.useEffect(() => {
+    console.log('📋 SCREEN - Advertisement list updated:', {
+      count: advertisementList.length,
+      ids: advertisementList.map((ad: any) => ad.id),
+      statuses: advertisementList.map((ad: any) => ad.status),
+      firstItem: advertisementList[0]?.id,
+      lastItem: advertisementList[advertisementList.length - 1]?.id,
+    });
+  }, [advertisementList]);
   
   
   const handleBottomTabPress = (tabName: string) => {
@@ -95,18 +111,15 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
   // Handle campaign tab press
   const handleCampaignTabPress = (tabId: string) => {
     setActiveTab(tabId);
-    
-    // Filter advertisements based on selected tab
-    if (tabId === 'all') {
-      filterByStatus(undefined); // Show all
-    } else {
-      filterByStatus(tabId as AdvertisementStatus);
-    }
   };
 
   // Create tabs configuration
   const tabs: CampaignTab[] = useMemo(() => {
-    const statusCounts = advertisements.reduce((acc, ad) => {
+    if (!advertisementList || advertisementList.length === 0) {
+      return [];
+    }
+
+    const statusCounts = advertisementList.reduce((acc, ad) => {
       acc[ad.status] = (acc[ad.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -115,7 +128,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       {
         id: 'all',
         label: 'All',
-        count: advertisements.length,
+        count: advertisementList.length,
       },
       {
         id: AdvertisementStatus.DRAFT,
@@ -142,7 +155,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         count: statusCounts[AdvertisementStatus.PUBLISHED] || 0,
       },
     ];
-  }, [advertisements]);
+  }, [advertisementList]);
   
   // Map API status to UI status based on the correct flow
   const mapStatusToUI = (status: string) => {
@@ -152,6 +165,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       case 'PAYMENT_PENDING':
         return { uiStatus: 'Payment Pending', color: '#FEB600', tab: 'Payment' };
       case 'IN_REVIEW':
+      case 'UNDER_REVIEW':
         return { uiStatus: 'Review', color: '#E91E63', tab: 'Review' };
       case 'SCHEDULED':
         return { uiStatus: 'Scheduled', color: '#9C27B0', tab: 'Active' };
@@ -172,6 +186,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       'DRAFT': 'Unsubmitted advertisement, still being edited.',
       'PAYMENT_PENDING': 'Awaiting payment before review.',
       'IN_REVIEW': 'Being reviewed by the moderation team.',
+      'UNDER_REVIEW': 'Being reviewed by the moderation team.',
       'SCHEDULED': 'Set to go live at a future date.',
       'PUBLISHED': 'Currently live and displaying content.',
       'COMPLETED': 'Ad campaign finished successfully.',
@@ -181,54 +196,261 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
   };
   
   
-  // Convert API advertisements to UI format
+  // Convert API advertisements to UI format - NO FILTERING, SHOW ALL
   const campaignData: CampaignCard[] = useMemo(() => {
-    if (!advertisements || advertisements.length === 0) return [];
+    // Always show data, even if empty array
+    console.log('🔄 MAPPING ADVERTISEMENTS:', {
+      inputCount: advertisementList?.length || 0,
+      inputIds: advertisementList?.map((ad: any) => ad.id) || [],
+    });
     
-    return advertisements.map((ad: any) => {
-      const statusInfo = mapStatusToUI(ad.status);
+    // NO EARLY RETURNS - Process all data
+    if (!advertisementList || advertisementList.length === 0) {
+      console.log('⚠️ No advertisements to map - returning empty array');
+      return [];
+    }
+    
+    console.log(`✅ Mapping ${advertisementList.length} advertisements to UI format`);
+    
+    return advertisementList.map((ad: any) => {
+      const statusInfo = mapStatusToUI(ad.status || 'DRAFT');
       const booking = ad.bookings?.[0];
-      const startDate = booking ? new Date(booking.start_at) : new Date(ad.created_at);
-      const endDate = booking ? new Date(booking.end_at) : null;
-      
-      
+      const startDateObj = booking ? new Date(booking.start_at) : new Date(ad.created_at);
+      const endDateObj = booking?.end_at ? new Date(booking.end_at) : null;
+
+      const daysDuration = booking && endDateObj
+        ? Math.max(
+            1,
+            Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24))
+          )
+        : null;
+
+      const board = ad.board || {};
+      const boardTitle = (board.title || ad.title || 'Campaign Board').toString();
+
+      const boardLocationName = (() => {
+        const candidates = [
+          board.title,
+          board.slug ? board.slug.replace(/-/g, ' ') : undefined,
+          ad.title,
+        ];
+        const found = candidates.find(value => {
+          if (typeof value !== 'string') return false;
+          return value.trim().length > 0;
+        });
+        return (found || 'N/A').toString();
+      })();
+
+      const boardArea = (() => {
+        const candidates = [
+          board.description,
+          boardLocationName,
+        ];
+        const found = candidates.find(value => {
+          if (typeof value !== 'string') return false;
+          return value.trim().length > 0;
+        });
+        return (found || 'N/A').toString();
+      })();
+
+      const boardMediaUrl =
+        ad.media?.[0]?.url ||
+        board?.media?.[0]?.url ||
+        undefined;
+
+      const totalPayment = typeof ad.total_payment === 'number'
+        ? ad.total_payment
+        : Number(ad.total_payment || 0);
+
       return {
         id: ad.id,
-        title: ad.title,
-        location: ad.board?.location || 'Unknown Location',
-        date: startDate.toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
+        title: ad.title || boardTitle,
+        rawStatus: ad.status || 'DRAFT',
+        location: boardLocationName,
+        locationDetail: boardArea,
+        date: startDateObj.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
         }),
         status: statusInfo.uiStatus as any,
         statusColor: statusInfo.color,
-        daysLeft: endDate ? `${Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))} Days Left` : 'Ongoing',
-      isExpanded: false,
-      details: {
-          name: ad.title,
-          days: booking ? `${Math.ceil((endDate!.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))} days Ad` : 'Ongoing',
-          category: ad.board?.title || 'Advertisement',
-          location: ad.board?.location || 'Unknown Location',
-          reviewTime: getStatusDescription(ad.status),
+        daysLeft: endDateObj
+          ? `${Math.max(1, Math.ceil((endDateObj.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} Days Left`
+          : 'Ongoing',
+        isExpanded: false,
+        details: {
+          name: boardTitle,
+          days: daysDuration ? `${daysDuration} days Ad` : 'Ongoing',
+          category: board?.category?.name || 'Advertisement',
+          location: boardLocationName,
+          reviewTime: getStatusDescription(ad.status || 'DRAFT'),
           reviewStatus: statusInfo.uiStatus,
-      } as any,
-      payment: {
-          date: startDate.toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
-            year: 'numeric' 
+        } as any,
+        payment: {
+          date: startDateObj.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
           }),
-          tax: `PKR ${Math.round((ad.total_payment || 0) * 0.1)}`,
-          total: `PKR ${(ad.total_payment || 0).toLocaleString()}`,
+          tax: `PKR ${Math.round(totalPayment * 0.1).toLocaleString()}`,
+          total: `PKR ${totalPayment.toLocaleString()}`,
         },
+        boardMediaUrl,
       };
     });
-  }, [advertisements]);
+  }, [advertisementList]);
+  
+  // Debug: Log mapped data
+  React.useEffect(() => {
+    console.log('🎯 CAMPAIGN DATA MAPPED:', {
+      mappedCount: campaignData.length,
+      mappedIds: campaignData.map((item) => item.id),
+      rawStatuses: campaignData.map((item) => item.rawStatus),
+    });
+  }, [campaignData]);
   
   
-  // Show all campaigns without filtering
-  const filteredData = campaignData;
+  // Always show complete list without filtering
+  const listData = useMemo(() => {
+    const data = campaignData || [];
+    console.log('data========================',data)
+    // console.log('📊 LIST DATA (no filtering):', {
+    //   showingCount: data.length,
+    //   itemIds: data.map((item) => item.id),
+    //   rawStatuses: data.map((item) => item.rawStatus),
+    // });
+    return data;
+  }, [campaignData]);
+
+  const renderStatusCard = ({ item, index }: { item: CampaignCard; index: number }) => {
+    console.log(`🎨 RENDERING ITEM ${index + 1}:`, {
+      id: item.id,
+      title: item.title,
+      status: item.rawStatus,
+    });
+    const originalAd = advertisementList.find((ad: any) => ad.id === item.id) || item;
+    const booking = originalAd?.bookings?.[0];
+
+    const board = originalAd?.board || {};
+    const boardLocationName = (() => {
+      const candidates = [
+        board.title,
+        board.slug ? board.slug.replace(/-/g, ' ') : undefined,
+        item.title,
+      ];
+      const found = candidates.find(value => {
+        if (typeof value !== 'string') return false;
+        return value.trim().length > 0;
+      });
+      return (found || 'N/A').toString();
+    })();
+
+    const boardArea = (() => {
+      const candidates = [board.description, boardLocationName];
+      const found = candidates.find(value => {
+        if (typeof value !== 'string') return false;
+        return value.trim().length > 0;
+      });
+      return (found || 'N/A').toString();
+    })();
+
+    let startDate = '01.12. Dec';
+    let endDate = '22.12. Dec';
+    let purchaseDuration = '15 days';
+
+    if (booking) {
+      const start = new Date(booking.start_at);
+      const end = new Date(booking.end_at);
+      const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+      const formatDate = (date: Date) => {
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = date.getMonth() + 1;
+        const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+        return `${day}.${month.toString().padStart(2, '0')}. ${monthName}`;
+      };
+
+      startDate = formatDate(start);
+      endDate = formatDate(end);
+      purchaseDuration = `${daysDiff} days`;
+    } else if (item.details?.days) {
+      purchaseDuration = item.details.days.replace('days Ad', 'days').replace(' Ad', ' days') || '15 days';
+    }
+
+    const timelineProgress = item.rawStatus === 'Active'
+      ? 75
+      : item.rawStatus === 'Review'
+        ? 50
+        : item.rawStatus === 'Draft'
+          ? 10
+          : 25;
+
+    const hasCompanyInfo = Boolean(
+      originalAd?.company &&
+        Object.values(originalAd.company).some(value => {
+          if (value === null || value === undefined) return false;
+          const text = String(value).trim();
+          return text.length > 0;
+        })
+    );
+
+    const primaryMediaUrl = item.boardMediaUrl;
+
+    return (
+      <StatusCard
+        key={item.id}
+        id={item.id}
+        title={item.title || 'Adryd Pole Sign Board ad'}
+        status={item.status || 'Draft'}
+        statusColor={item.statusColor}
+        adType={['Static', 'Billboard']}
+        purchaseDuration={purchaseDuration}
+        location={boardLocationName}
+        locationDetail={boardArea}
+        startDate={startDate}
+        endDate={endDate}
+        timelineProgress={timelineProgress}
+        isExpanded={expandedCard === item.id}
+        onPress={() => toggleCardExpansion(item.id)}
+        showCompanyDetail={hasCompanyInfo}
+        companyDetail={hasCompanyInfo && originalAd?.company ? {
+          name: originalAd.company.company_name || 'Company',
+          business: originalAd.company.category?.name || 'Business',
+          location: originalAd.company.address || boardLocationName,
+          number: originalAd.company.contact_number || 'N/A',
+          ntn: originalAd.company.company_ntn || 'N/A',
+          address: originalAd.company.address || boardArea,
+          logoUri: originalAd.company.logo_url || undefined,
+        } : undefined}
+        campaignDetail={{
+          name: item.title || boardLocationName,
+          size: (() => {
+            const width = originalAd?.board?.width;
+            const height = originalAd?.board?.height;
+            if (width && height) {
+              return `${width}ft by ${height}ft`;
+            }
+            return 'N/A';
+          })(),
+          category: originalAd?.board?.category?.name || 'Advertisement',
+          type: originalAd?.board?.category?.group?.name || 'Billboard',
+          location: boardLocationName,
+          area: boardArea,
+          boardImageUri: primaryMediaUrl,
+        }}
+        paymentDetail={{
+          method: 'JazzCash',
+          accountNumber: '*******31',
+          status: 'Paid',
+          amount: originalAd?.total_payment ? `PKR ${originalAd.total_payment.toLocaleString()}` : 'PKR 20000',
+          date: startDate ? new Date(originalAd?.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Sep 22.2025',
+          tax: originalAd?.total_payment ? `PKR ${Math.round(originalAd.total_payment * 0.1).toLocaleString()}` : 'PKR 20000',
+          total: originalAd?.total_payment ? `PKR ${(originalAd.total_payment * 1.1).toLocaleString()}` : 'PKR 30,000',
+        }}
+      />
+    );
+  };
 
   const toggleCardExpansion = (cardId: number) => {
     setExpandedCard(expandedCard === cardId ? null : cardId);
@@ -302,10 +524,10 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
 
   const renderCampaignCard = (item: CampaignCard) => {
     const isExpanded = expandedCard === item.id;
-    const isActive = item.status === 'Active';
-    const isReview = item.status === 'Review';
-    const isBlocked = item.status === 'Blocked';
-    const isRecentHistory = item.status === 'Recent History';
+    const isActive = item.rawStatus === AdvertisementStatus.PUBLISHED;
+    const isReview = item.rawStatus === AdvertisementStatus.UNDER_REVIEW || item.rawStatus === 'IN_REVIEW';
+    const isBlocked = item.rawStatus === 'BLOCKED';
+    const isRecentHistory = item.rawStatus === AdvertisementStatus.COMPLETED;
 
     return (
         <View key={item.id} style={[
@@ -374,7 +596,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
                <View style={styles.expandedContent}>
                  <View style={styles.dashedLine} />
                  <Text style={styles.reviewTitle}>
-                   YOUR <Text style={[styles.reviewHighlight, { color: item.statusColor }]}>{item.status.toUpperCase()}</Text> CAMPAIGN AD DETAILL
+                   YOUR <Text style={[styles.reviewHighlight, { color: item.statusColor }]}>{item.rawStatus}</Text> CAMPAIGN AD DETAIL
                  </Text>
                  <View style={styles.detailsBox}>
                    <View style={styles.detailItem}>
@@ -425,11 +647,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
       <View style={styles.header}>
-        <BackButton />
-        <Text style={styles.headerTitle}>
-          All Campaigns
-        </Text>
-        <View style={styles.headerSpacer} />
+        {/* <BackButton /> */}
       </View>
 
       {/* Campaign Tabs */}
@@ -439,75 +657,65 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         onTabPress={handleCampaignTabPress}
       />
 
-        <ScrollView style={styles.cardsContainer} showsVerticalScrollIndicator={false} contentContainerStyle={styles.cardsContent}>
-         {/* Loading State */}
-         {loading && (
-           <View style={styles.loadingContainer}>
-             <ActivityIndicator size="large" color="#C539A5" />
-             <Text style={styles.loadingText}>Loading campaigns...</Text>
-           </View>
-         )}
+        {/* Loading State */}
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#C539A5" />
+            <Text style={styles.loadingText}>Loading campaigns...</Text>
+          </View>
+        )}
 
-         {/* Error State */}
-         {error && (
-           <View style={styles.errorContainer}>
-             <Text style={styles.errorText}>
-               Failed to load campaigns. Please try again.
-             </Text>
+        {/* Error State */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>
+              Failed to load campaigns. Please try again.
+            </Text>
             <TouchableOpacity 
-               style={styles.retryButton}
-               onPress={() => refetch()}
-             >
-               <Text style={styles.retryButtonText}>Retry</Text>
+              style={styles.retryButton}
+              onPress={() => refetch()}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Campaign Data */}
+        {!loading && !error && (
+          <FlatList
+            style={styles.cardsContainer}
+            data={listData}
+            keyExtractor={(item) => item.id.toString()}
+            contentContainerStyle={[
+              styles.cardsContent,
+              listData.length === 0 && styles.emptyContent,
+            ]}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No campaigns found</Text>
+                <Text style={styles.emptySubtext}>
+                  Create your first campaign to get started
+                </Text>
+              </View>
+            }
+            onLayout={() => {
+              console.log('📱 FLATLIST RENDERED:', {
+                dataCount: listData.length,
+                itemIds: listData.map((item) => item.id),
+              });
+            }}
+            renderItem={renderStatusCard}
+          />
+        )}
       </View>
-         )}
-
-
-         {/* Campaign Data */}
-         {!loading && !error && (
-           <>
-             {filteredData.length === 0 ? (
-               <View style={styles.emptyContainer}>
-                 <Text style={styles.emptyText}>No campaigns found</Text>
-                 <Text style={styles.emptySubtext}>
-                   Create your first campaign to get started
-                 </Text>
-               </View>
-             ) : filteredData.map((item) => (
-              <CardStatus
-                key={item.id}
-                id={item.id}
-                title={item.title}
-                location={item.location}
-                date={item.date}
-                status={item.status}
-                statusColor={item.statusColor}
-                cardType="campaign"
-                isExpanded={expandedCard === item.id}
-                onPress={() => toggleCardExpansion(item.id)}
-                daysLeft={item.daysLeft}
-                details={item.details}
-              />
-            ))
-        }
-           </>
-         )}
-      </ScrollView>
-      
-      {/* Bottom Tab Navigation */}
-      {/* <BottomTab 
-        activeTab={activeBottomTab} 
-        onTabPress={handleBottomTabPress} 
-      /> */}
-    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF4FD',
+    backgroundColor: '#ffffff',
     padding:10,
   },
   cardImg:{
@@ -520,9 +728,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: width * 0.05,
-    paddingTop: hp(5),
-    paddingBottom: height * 0.03,
+    paddingHorizontal: width * 0.02,
+    paddingTop: hp(6),
   },
   backButton: {
     backgroundColor: "#fff",
@@ -548,6 +755,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(5),
     paddingVertical: hp(2),
     paddingBottom: hp(12), // Increased padding for bottom tab
+  },
+  emptyContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   campaignCard: {
     backgroundColor: '#F8F9FA',

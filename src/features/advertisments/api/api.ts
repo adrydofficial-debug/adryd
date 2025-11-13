@@ -24,13 +24,47 @@ export const getAdvertisements = async (
   limit = 10,
   status?: string,
 ): Promise<PaginatedAdvertisementsResponse> => {
+  // Build query parameters - NO ID, NO USER FILTERING
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
   });
-  if (status) params.append('status', status);
   
-  const { data } = await apiClient.get(`${BASE}?${params.toString()}`);
+  // Only add status if explicitly provided (we pass undefined to get ALL)
+  if (status && status !== 'undefined') {
+    params.append('status', status);
+  }
+  
+  // Construct endpoint - should be: /api/advertisements?page=1&limit=10
+  // NO ID in the path, NO user_id in params
+  const endpoint = `${BASE}?${params.toString()}`;
+  
+  console.log('🔵 API CALL - getAdvertisements (NO FILTERS):', {
+    fullEndpoint: endpoint,
+    basePath: BASE,
+    queryParams: params.toString(),
+    page,
+    limit,
+    status: status || 'NONE (fetching all)',
+    note: 'This should fetch ALL advertisements, not filtered by ID or user',
+  });
+  
+  const { data } = await apiClient.get(endpoint);
+  
+  console.log('🟢 API RESPONSE - getAdvertisements:', {
+    total: data?.total,
+    page: data?.page,
+    limit: data?.limit,
+    dataCount: Array.isArray(data?.data) ? data.data.length : 0,
+    firstItemId: data?.data?.[0]?.id,
+    lastItemId: data?.data?.[data?.data?.length - 1]?.id,
+    allIds: Array.isArray(data?.data) ? data.data.map((item: any) => item.id) : [],
+    allUserIds: Array.isArray(data?.data) ? data.data.map((item: any) => item.user_id) : [],
+    warning: data?.total && Array.isArray(data?.data) && data.data.length < data.total 
+      ? `⚠️ API returned ${data.data.length} items but total is ${data.total} - need to fetch more pages`
+      : 'OK',
+  });
+  
   return data;
 };
 

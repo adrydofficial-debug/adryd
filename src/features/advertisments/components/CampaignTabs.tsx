@@ -38,56 +38,49 @@ const CampaignTabs: React.FC<CampaignTabsProps> = ({
 
   const contentStyles = [
     styles.scrollContent,
-    isRTL
-      ? styles.scrollContentRTL
-      : isEnglish
-        ? styles.scrollContentEnglish
-        : styles.scrollContentDefault,
+    isRTL ? styles.scrollContentRTL : styles.scrollContentLTR,
   ];
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
+        bounces={false}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={contentStyles}
         style={styles.scrollView}
       >
-        {tabs.map((tab, index) => (
-          <TouchableOpacity
-            key={tab.id}
-            style={[
-              styles.tab,
-              activeTab === tab.id && styles.activeTab,
-              index === 0 && styles.firstTab,
-              index === tabs.length - 1 && styles.lastTab,
-            ]}
-            onPress={() => onTabPress(tab.id)}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === tab.id && styles.activeTabText,
-              ]}
+        {tabs.map(tab => {
+          const isActive = activeTab === tab.id;
+
+          return (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.tab, isActive && styles.activeTab]}
+              onPress={() => onTabPress(tab.id)}
+              activeOpacity={0.8}
             >
-              {tab.label}
-            </Text>
-            {tab.count !== undefined && (
-              <View style={[
-                styles.countBadge,
-                activeTab === tab.id && styles.activeCountBadge,
-              ]}>
-                <Text style={[
-                  styles.countText,
-                  activeTab === tab.id && styles.activeCountText,
-                ]}>
-                  {tab.count}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
+              <Text
+                style={[styles.tabText, isActive && styles.activeTabText]}
+                numberOfLines={1}
+              >
+                {tab.label}
+              </Text>
+
+              {typeof tab.count === 'number' && (
+                <View
+                  style={[styles.countBadge, isActive && styles.activeCountBadge]}
+                >
+                  <Text
+                    style={[styles.countText, isActive && styles.activeCountText]}
+                  >
+                    {tab.count}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -95,79 +88,68 @@ const CampaignTabs: React.FC<CampaignTabsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    paddingVertical: 15,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#ECECEC',
   },
   scrollView: {
     flexGrow: 0,
   },
   scrollContent: {
-    paddingHorizontal: 20,
+    paddingLeft: 5,
+    paddingRight: 5,
     alignItems: 'center',
+    justifyContent: 'flex-start',
   },
-  scrollContentDefault: {
+  scrollContentLTR: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
-  },
-  scrollContentEnglish: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'flex-start',
   },
   scrollContentRTL: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
   },
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    minWidth: 80,
-    justifyContent: 'center',
-    marginEnd: 12,
-  },
-  firstTab: {
-    marginStart: 0,
-  },
-  lastTab: {
-    marginEnd: 20, // Extra margin for the last tab
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 18,
+    marginRight: 16,
+    minHeight: 34,
   },
   activeTab: {
-    backgroundColor: '#C539A5',
+    borderWidth: 1,
+    borderColor: '#D4D4D8',
+    backgroundColor: '#FFFFFF',
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#6B7280',
+    fontWeight: '600',
+    color: '#6F7380',
   },
   activeTabText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: '#111827',
   },
   countBadge: {
-    marginLeft: 6,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 10,
+    marginLeft: 8,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
     minWidth: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
   },
   activeCountBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: '#EEF2FF',
   },
   countText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#6F7380',
   },
   activeCountText: {
-    color: '#FFFFFF',
+    color: '#111827',
   },
 });
 

@@ -51,4 +51,5 @@ export { default as GrayMsgIcon } from './GrayMsg.svg';
 export { default as PinkProfileIcon } from './pinkProfile.svg';
 export { default as GrayProfileIcon } from './grayProfile.svg';
 export { default as PinkLocationBadge } from './PinkkLocation.svg';
+export { default as GreenTickIcon } from './GreenTick.svg';
 

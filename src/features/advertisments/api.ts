@@ -37,6 +37,7 @@ export const getAdvertisements = async (
   console.log('getAdvertisements - endpoint:', endpoint);
   
   const response = await apiClient.get<AdvertisementListResponse>(endpoint);
+  console.log('getAdvertisements - response status:::::::::::::::::::::;', response);
   console.log('getAdvertisements - response:', {
     total: response.data?.total,
     page: response.data?.page,
@@ -86,7 +87,7 @@ export const createAdvertisementPost = async (
 
   try {
     const response = await apiClient.post<CreateAdvertisementResponse>(BASE_URL, data);
-    console.log('✅ Server response:', response.data);
+    console.log('✅ Server response:"""""""""""""""""""""""""""""""""""', response);
     console.groupEnd();
     return response.data;
   } catch (error) {
@@ -112,6 +113,7 @@ export const updateAdvertisement = async (
   data: UpdateAdvertisementRequest
 ): Promise<UpdateAdvertisementResponse> => {
   const response = await apiClient.put<UpdateAdvertisementResponse>(`${BASE_URL}/${id}`, data);
+  console.log('updateAdvertisement - response:????????????', response);
   return response.data;
 };
 
