@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   FlatList,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import BottomTab from '../../../app/navigation/BottomTab';
 import { useAdvertisements } from '../hooks/useAdvertisements';
@@ -80,6 +81,7 @@ interface ActiveCampaignProps {
 }
 
 const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
+  const navigation = useNavigation<any>();
   const [expandedCard, setExpandedCard] = useState<number | null>(1);
   const [activeBottomTab, setActiveBottomTab] = useState<string>('Boards');
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -137,6 +139,12 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         count: statusCounts[AdvertisementStatus.DRAFT] || 0,
       },
       {
+        id: 'IN_PROGRESS',
+        label: 'InProgress',
+        status: 'IN_PROGRESS',
+        count: statusCounts['IN_PROGRESS'] || 0,
+      },
+      {
         id: AdvertisementStatus.PAYMENT_PENDING,
         label: 'Payment',
         status: AdvertisementStatus.PAYMENT_PENDING,
@@ -154,6 +162,12 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         status: AdvertisementStatus.PUBLISHED,
         count: statusCounts[AdvertisementStatus.PUBLISHED] || 0,
       },
+      {
+        id: 'BLOCKED',
+        label: 'Blocked',
+        status: 'BLOCKED',
+        count: statusCounts['BLOCKED'] || 0,
+      },
     ];
   }, [advertisementList]);
   
@@ -162,6 +176,8 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
     switch (status) {
       case 'DRAFT':
         return { uiStatus: 'Draft', color: '#9E9E9E', tab: 'Draft' };
+      case 'IN_PROGRESS':
+        return { uiStatus: 'InProgress', color: '#ECBDF3', tab: 'Draft' };
       case 'PAYMENT_PENDING':
         return { uiStatus: 'Payment Pending', color: '#FEB600', tab: 'Payment' };
       case 'IN_REVIEW':
@@ -174,7 +190,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       case 'COMPLETED':
         return { uiStatus: 'Recent History', color: '#9E9E9E', tab: 'Recent History' };
       case 'BLOCKED':
-        return { uiStatus: 'Blocked', color: '#F44336', tab: 'Blocked' };
+        return { uiStatus: 'Blocked', color: '#F25255', tab: 'Blocked' };
       default:
         return { uiStatus: 'Draft', color: '#9E9E9E', tab: 'Draft' };
     }
@@ -184,13 +200,14 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
   const getStatusDescription = (status: string) => {
     const statusDescriptions: { [key: string]: string } = {
       'DRAFT': 'Unsubmitted advertisement, still being edited.',
+      'IN_PROGRESS': 'Campaign is in progress.',
       'PAYMENT_PENDING': 'Awaiting payment before review.',
       'IN_REVIEW': 'Being reviewed by the moderation team.',
       'UNDER_REVIEW': 'Being reviewed by the moderation team.',
       'SCHEDULED': 'Set to go live at a future date.',
       'PUBLISHED': 'Currently live and displaying content.',
       'COMPLETED': 'Ad campaign finished successfully.',
-      'BLOCKED': 'Stopped before completion or rejected.',
+      'BLOCKED': 'Campaign has been blocked or rejected.',
     };
     return statusDescriptions[status] || 'Status update pending';
   };
@@ -311,17 +328,48 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
   }, [campaignData]);
   
   
-  // Always show complete list without filtering
+  // Filter data based on active tab
   const listData = useMemo(() => {
     const data = campaignData || [];
-    console.log('data========================',data)
-    // console.log('📊 LIST DATA (no filtering):', {
-    //   showingCount: data.length,
-    //   itemIds: data.map((item) => item.id),
-    //   rawStatuses: data.map((item) => item.rawStatus),
-    // });
-    return data;
-  }, [campaignData]);
+    
+    console.log('📊 LIST DATA - BEFORE FILTERING:', {
+      totalItems: data.length,
+      activeTab,
+      allItemIds: data.map((item) => item.id),
+      allRawStatuses: data.map((item) => item.rawStatus),
+    });
+    
+    // If 'all' tab is selected, show all data
+    if (activeTab === 'all') {
+      console.log('📊 LIST DATA - Showing ALL items:', {
+        count: data.length,
+        itemIds: data.map((item) => item.id),
+      });
+      return data;
+    }
+    
+    // Filter by status based on active tab
+    const filtered = data.filter((item) => {
+      if (activeTab === 'IN_PROGRESS') {
+        return item.rawStatus === 'IN_PROGRESS';
+      }
+      if (activeTab === 'BLOCKED') {
+        return item.rawStatus === 'BLOCKED';
+      }
+      // For other tabs, match the rawStatus with the tab's status
+      return item.rawStatus === activeTab;
+    });
+    
+    console.log('📊 LIST DATA (filtered):', {
+      activeTab,
+      showingCount: filtered.length,
+      itemIds: filtered.map((item) => item.id),
+      rawStatuses: filtered.map((item) => item.rawStatus),
+      allStatusesInData: [...new Set(data.map((item) => item.rawStatus))],
+    });
+    
+    return filtered;
+  }, [campaignData, activeTab]);
 
   const renderStatusCard = ({ item, index }: { item: CampaignCard; index: number }) => {
     console.log(`🎨 RENDERING ITEM ${index + 1}:`, {
@@ -399,7 +447,6 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
 
     return (
       <StatusCard
-        key={item.id}
         id={item.id}
         title={item.title || 'Adryd Pole Sign Board ad'}
         status={item.status || 'Draft'}
@@ -413,6 +460,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         timelineProgress={timelineProgress}
         isExpanded={expandedCard === item.id}
         onPress={() => toggleCardExpansion(item.id)}
+        navigation={navigation}
         showCompanyDetail={hasCompanyInfo}
         companyDetail={hasCompanyInfo && originalAd?.company ? {
           name: originalAd.company.company_name || 'Company',
@@ -682,31 +730,43 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
 
         {/* Campaign Data */}
         {!loading && !error && (
-          <FlatList
-            style={styles.cardsContainer}
-            data={listData}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={[
-              styles.cardsContent,
-              listData.length === 0 && styles.emptyContent,
-            ]}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No campaigns found</Text>
-                <Text style={styles.emptySubtext}>
-                  Create your first campaign to get started
+          <>
+            {/* Debug Info - Remove in production */}
+            {__DEV__ && (
+              <View style={styles.debugInfo}>
+                <Text style={styles.debugText}>
+                  Total Items: {listData.length} | Tab: {activeTab}
                 </Text>
               </View>
-            }
-            onLayout={() => {
-              console.log('📱 FLATLIST RENDERED:', {
-                dataCount: listData.length,
-                itemIds: listData.map((item) => item.id),
-              });
-            }}
-            renderItem={renderStatusCard}
-          />
+            )}
+            <FlatList
+              style={styles.cardsContainer}
+              data={listData}
+              keyExtractor={(item, index) => `${item.id}-${index}`}
+              contentContainerStyle={[
+                styles.cardsContent,
+                listData.length === 0 && styles.emptyContent,
+              ]}
+              showsVerticalScrollIndicator={false}
+              removeClippedSubviews={false}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No campaigns found</Text>
+                  <Text style={styles.emptySubtext}>
+                    Create your first campaign to get started
+                  </Text>
+                </View>
+              }
+              onLayout={() => {
+                console.log('📱 FLATLIST RENDERED:', {
+                  dataCount: listData.length,
+                  itemIds: listData.map((item) => item.id),
+                  allData: listData,
+                });
+              }}
+              renderItem={renderStatusCard}
+            />
+          </>
         )}
       </View>
   );
@@ -1205,6 +1265,18 @@ const styles = StyleSheet.create({
     fontSize: wp(3.5),
     color: '#666',
     textAlign: 'center',
+  },
+  debugInfo: {
+    backgroundColor: '#FFE5F3',
+    padding: wp(2),
+    marginHorizontal: wp(5),
+    marginTop: hp(1),
+    borderRadius: wp(2),
+  },
+  debugText: {
+    fontSize: wp(3),
+    color: '#C539A5',
+    fontWeight: '600',
   },
 });
 

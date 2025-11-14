@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,12 @@ import {
   TouchableOpacity,
   Dimensions,
   Image,
+  Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { GreenTickIcon } from '../../../assets/images';
+import CustomButton from '../../../components/CustomButton';
+import { useGenerateUploadUrl } from '../hooks/hooks';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -47,7 +50,7 @@ export interface PaymentDetail {
 export interface StatusCardProps {
   id: number;
   title: string;
-  status: 'Active' | 'Review' | 'Payment Pending' | 'Draft' | 'Completed';
+  status: 'Active' | 'Review' | 'Payment Pending' | 'Draft' | 'Completed' | 'InProgress' | 'Blocked';
   statusColor?: string;
   adType?: string[];
   purchaseDuration?: string;
@@ -58,6 +61,7 @@ export interface StatusCardProps {
   timelineProgress?: number; // 0-100
   isExpanded?: boolean;
   onPress?: () => void;
+  navigation?: any; // Navigation prop for Draft status button
   // Expanded content props
   companyDetail?: CompanyDetail;
   campaignDetail?: CampaignDetail;
@@ -66,6 +70,7 @@ export interface StatusCardProps {
 }
 
 const StatusCard: React.FC<StatusCardProps> = ({
+  id,
   title,
   status = 'Active',
   statusColor = '#4CAF50',
@@ -78,17 +83,31 @@ const StatusCard: React.FC<StatusCardProps> = ({
   timelineProgress = 65,
   isExpanded = false,
   onPress,
+  navigation,
   companyDetail,
   campaignDetail,
   paymentDetail,
   showCompanyDetail = true,
 }) => {
+  const { mutateAsync: generateUploadUrl, isPending: isGeneratingUrl } = useGenerateUploadUrl();
+  const [isLoading, setIsLoading] = useState(false);
+  // Get campaign card background color based on status
+  const getCampaignCardBackground = () => {
+    if (status === 'InProgress') {
+      return '#F5E8FA'; // Light version of #ECBDF3
+    }
+    if (status === 'Blocked') {
+      return '#FCE8E8'; // Light version of #F25255
+    }
+    return '#F0F8F0'; // Default green tint for Active
+  };
+
   const renderCampaignCardBox = (isSolo = false) => (
     <View style={isSolo ? styles.campaignCardSoloContainer : undefined}>
       <View
         style={[
           styles.campaignCard,
-          { borderColor: statusColor, backgroundColor: '#F0F8F0' },
+          { borderColor: statusColor, backgroundColor: getCampaignCardBackground() },
           isSolo && styles.campaignCardSolo,
           isSolo && styles.campaignCardSoloBox,
         ]}
@@ -285,8 +304,8 @@ const StatusCard: React.FC<StatusCardProps> = ({
             </View>
           </View>
 
-          {/* Payment Summary Card */}
-          {paymentDetail && (
+          {/* Payment Summary Card - Hide for Draft status */}
+          {paymentDetail && status !== 'Draft' && (
             <View style={styles.paymentCard}>
               <View style={styles.paymentHeader}>
                 <View style={styles.paymentMethodSection}>
@@ -324,6 +343,59 @@ const StatusCard: React.FC<StatusCardProps> = ({
                 </Text>
               </View>
             </View>
+          )}
+
+          {/* Let's Continue Button - Only for Draft status and when card is expanded */}
+          {status === 'Draft' && (
+            <CustomButton
+              title="Let's Continue"
+              onPress={async () => {
+                if (!navigation) {
+                  Alert.alert('Error', 'Navigation is not available');
+                  return;
+                }
+
+                try {
+                  setIsLoading(true);
+                  console.log('🚀 [StatusCard] Generating upload URL for campaign:', id);
+                  
+                  // Generate a filename with timestamp
+                  const timestamp = Date.now();
+                  const filename = `${timestamp}-banner.png`;
+                  const contentType = 'image/png'; // Default, will be updated when file is selected
+                  
+                  // Call the upload-url API
+                  const uploadResponse = await generateUploadUrl({
+                    filename,
+                    contentType,
+                  });
+                  
+                  console.log('✅ [StatusCard] Upload URL generated:', uploadResponse);
+                  
+                  // Navigate to CampaignUploadFiles with the upload info
+                  navigation.navigate('CampaignUploadFiles', {
+                    campaignId: id.toString(),
+                    uploadUrl: uploadResponse.uploadUrl,
+                    publicUrl: uploadResponse.publicUrl,
+                    key: uploadResponse.key,
+                    flow: 'business', // Default flow, can be made configurable
+                  });
+                } catch (error: any) {
+                  console.error('❌ [StatusCard] Failed to generate upload URL:', error);
+                  Alert.alert(
+                    'Error',
+                    error?.message || 'Failed to generate upload URL. Please try again.'
+                  );
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+              variant="primary"
+              size="medium"
+              disabled={isLoading || isGeneratingUrl}
+              loading={isLoading || isGeneratingUrl}
+              buttonStyle={styles.continueButton}
+            />
           )}
         </View>
       )}
@@ -774,6 +846,10 @@ const styles = StyleSheet.create({
     fontSize: wp(3),
     color: '#666',
     fontWeight: '500',
+  },
+  continueButton: {
+    marginTop: hp(2),
+    width: '100%',
   },
 });
 

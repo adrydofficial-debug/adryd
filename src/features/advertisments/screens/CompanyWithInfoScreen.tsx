@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,14 @@ import {
   ScrollView,
   Platform,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
 import { useCampaign } from '../hooks/useCampaign';
+import { getAdvertisement } from '../api/api';
+import { CompanyData, AdvertisementData } from '../../../store/campaignStore';
 import  ProgressBar  from '../../../components/ProgressBar';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -45,8 +48,117 @@ const formatDate = (date: Date | string | undefined) => {
   });
 };
 
-const CompanyWithInfoScreen: React.FC<any> = ({ navigation }) => {
-  const { companyData, advertisementData } = useCampaign();
+const CompanyWithInfoScreen: React.FC<any> = ({ navigation, route }) => {
+  const { companyData, advertisementData, setCompanyData, setAdvertisementData } = useCampaign();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const campaignId = route?.params?.campaignId ? parseInt(route.params.campaignId, 10) : null;
+  
+  // Fetch advertisement data if not in store but campaignId is available
+  useEffect(() => {
+    const fetchAndPopulateData = async () => {
+      if (!campaignId) return;
+      
+      // If we already have data in store, don't fetch
+      if (advertisementData && companyData) {
+        console.log('✅ [CompanyWithInfoScreen] Data already in store, skipping fetch');
+        return;
+      }
+      
+      // If we have advertisement data but no company data, try to get company from advertisement
+      if (advertisementData && !companyData && campaignId) {
+        console.log('⚠️ [CompanyWithInfoScreen] Has advertisement data but no company data, fetching advertisement for company info');
+        setIsLoading(true);
+        try {
+          const response = await getAdvertisement(campaignId);
+          const ad = response as any;
+          
+          // Extract company data from advertisement
+          if (ad.company) {
+            const companyInfo: CompanyData = {
+              companyName: ad.company.company_name || 'N/A',
+              businessName: ad.company.category?.name || 'N/A',
+              businessCategory: ad.company.category?.name || 'N/A',
+              companyEmail: ad.company.email || 'N/A',
+              companyAddress: ad.company.address || 'N/A',
+              companyNTN: ad.company.company_ntn || 'N/A',
+              companyNumber: ad.company.contact_number || 'N/A',
+              logoUri: ad.company.logo_url || undefined,
+            };
+            setCompanyData(companyInfo);
+            console.log('✅ [CompanyWithInfoScreen] Company data populated from advertisement');
+          }
+        } catch (error) {
+          console.error('❌ [CompanyWithInfoScreen] Failed to fetch advertisement:', error);
+        } finally {
+          setIsLoading(false);
+        }
+        return;
+      }
+      
+      // If we don't have advertisement data, fetch it
+      if (!advertisementData && campaignId) {
+        console.log('🔄 [CompanyWithInfoScreen] No advertisement data in store, fetching from API...');
+        setIsLoading(true);
+        try {
+          const response = await getAdvertisement(campaignId);
+          const ad = response as any;
+          
+          // Map advertisement to store format
+          const booking = ad.bookings?.[0];
+          const media = ad.media?.[0];
+          
+          const adData: AdvertisementData = {
+            campaignName: ad.title || 'N/A',
+            description: ad.description || '',
+            location: ad.board?.title || ad.board?.slug?.replace(/-/g, ' ') || 'N/A',
+            selectedDays: booking 
+              ? [booking.start_at, booking.end_at].filter(Boolean)
+              : [],
+            startDate: booking?.start_at || ad.created_at,
+            endDate: booking?.end_at || ad.created_at,
+            category: ad.board?.category?.name || 'N/A',
+            type: ad.board?.category?.group?.name || 'N/A',
+            size: ad.board?.width && ad.board?.height 
+              ? `${ad.board.width}ft by ${ad.board.height}ft`
+              : 'N/A',
+            area: ad.board?.description || 'N/A',
+            previewImage: media?.url || ad.board?.media?.[0]?.url || undefined,
+            mediaUri: media?.url || ad.board?.media?.[0]?.url || undefined,
+            mediaType: media?.type || 'image/jpeg',
+            isVideo: media?.type?.toLowerCase().startsWith('video/') || false,
+            totalPayment: ad.total_payment || 0,
+            tax: ad.total_payment ? Math.round(ad.total_payment * 0.1) : 0,
+          };
+          
+          setAdvertisementData(adData);
+          console.log('✅ [CompanyWithInfoScreen] Advertisement data populated from API');
+          
+          // Also extract and set company data if available
+          if (ad.company) {
+            const companyInfo: CompanyData = {
+              companyName: ad.company.company_name || 'N/A',
+              businessName: ad.company.category?.name || 'N/A',
+              businessCategory: ad.company.category?.name || 'N/A',
+              companyEmail: ad.company.email || 'N/A',
+              companyAddress: ad.company.address || 'N/A',
+              companyNTN: ad.company.company_ntn || 'N/A',
+              companyNumber: ad.company.contact_number || 'N/A',
+              logoUri: ad.company.logo_url || undefined,
+            };
+            setCompanyData(companyInfo);
+            console.log('✅ [CompanyWithInfoScreen] Company data populated from advertisement');
+          }
+        } catch (error) {
+          console.error('❌ [CompanyWithInfoScreen] Failed to fetch advertisement:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    fetchAndPopulateData();
+  }, [campaignId, advertisementData, companyData, setAdvertisementData, setCompanyData]);
 
   const defaultCompanyImage =
     'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=400&q=80';
@@ -93,6 +205,24 @@ const CompanyWithInfoScreen: React.FC<any> = ({ navigation }) => {
     }
     return formatDate(advertisementData?.startDate);
   })();
+
+  // Show loading state while fetching data
+  if (isLoading) {
+    return (
+      <LinearGradient
+        colors={['#FFFFFF', '#FFF7FB']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.container}
+      >
+        <StatusBar barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#C539A5" />
+          <Text style={styles.loadingText}>Loading campaign data...</Text>
+        </View>
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient
@@ -570,6 +700,16 @@ flexDirection: 'row',
     width: '100%',
     borderRadius: wp(4),
     paddingVertical: hp(2.2),
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: hp(2),
+    fontSize: wp(4),
+    color: '#666',
   },
 });
 

@@ -197,6 +197,7 @@ export const useAdvertisements = (initialParams: AdvertisementQueryParams = {}) 
       console.log('💾 SETTING ADVERTISEMENTS STATE:', {
         count: allAdvertisements.length,
         ids: allAdvertisements.map((item: any) => item.id),
+        statuses: allAdvertisements.map((item: any) => item.status),
       });
       setAdvertisements(allAdvertisements);
       setPagination({
