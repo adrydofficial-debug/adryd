@@ -25,6 +25,7 @@ export interface ChangeAdvertisementStatusRequest {
 export interface GenerateUploadUrlRequest {
   filename: string;
   contentType: string;
+  advertisement_id?: number; // Optional: required for existing draft advertisements
 }
 
 // Temporary bookings (selected dates before submission)

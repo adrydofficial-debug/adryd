@@ -103,6 +103,11 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       lastItem: advertisementList[advertisementList.length - 1]?.id,
     });
   }, [advertisementList]);
+
+  // Always reset to "All" tab whenever the backend data changes
+  React.useEffect(() => {
+    setActiveTab('all');
+  }, [advertisementList]);
   
   
   const handleBottomTabPress = (tabName: string) => {
@@ -434,14 +439,69 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
           ? 10
           : 25;
 
-    const hasCompanyInfo = Boolean(
-      originalAd?.company &&
-        Object.values(originalAd.company).some(value => {
-          if (value === null || value === undefined) return false;
-          const text = String(value).trim();
-          return text.length > 0;
-        })
+    // Check if company exists - must have a valid company_id and company object with meaningful data
+    // If company_id is null/undefined/0, or company is null/undefined/empty, then no company was created
+    const company = originalAd?.company;
+    const companyId = originalAd?.company_id;
+    
+    // STRICT check: company must NOT be null, and must have valid data
+    // If user didn't add company data, company should be null and hasCompanyInfo will be false
+    // Also check for empty objects {} that might be returned by backend
+    
+    // First, check if company_id is invalid (null, undefined, 0, or falsy)
+    const hasValidCompanyId = Boolean(
+      companyId !== null &&
+      companyId !== undefined &&
+      companyId !== 0 &&
+      typeof companyId === 'number' &&
+      companyId > 0
     );
+    
+    // Second, check if company object exists and is not empty
+    const hasValidCompanyObject = Boolean(
+      company !== null &&
+      company !== undefined &&
+      typeof company === 'object' &&
+      !Array.isArray(company) &&
+      // Check if it's not an empty object {}
+      Object.keys(company).length > 0 &&
+      // Check company has a valid id
+      company.id !== null &&
+      company.id !== undefined &&
+      company.id !== 0 &&
+      typeof company.id === 'number' &&
+      company.id > 0 &&
+      // CRITICAL: company must have company_name (required field)
+      company.company_name !== null &&
+      company.company_name !== undefined &&
+      company.company_name !== '' &&
+      typeof company.company_name === 'string' &&
+      company.company_name.trim().length > 0
+    );
+    
+    // Both conditions must be true
+    const hasCompanyInfo = hasValidCompanyId && hasValidCompanyObject;
+
+    // Debug logging - ALWAYS log to help debug
+    console.log(`🔍 [CompaignStatus] Advertisement ${item.id} company check:`, {
+      advertisementId: item.id,
+      company_id: companyId,
+      company_id_type: typeof companyId,
+      company_id_value: companyId,
+      hasValidCompanyId,
+      hasCompanyObject: !!company,
+      companyObject: company,
+      companyObjectKeys: company ? Object.keys(company) : [],
+      companyObjectLength: company ? Object.keys(company).length : 0,
+      companyId: company?.id,
+      companyName: company?.company_name,
+      companyNameLength: company?.company_name?.length || 0,
+      isCompanyEmpty: company && Object.keys(company).length === 0,
+      hasValidCompanyObject,
+      hasCompanyInfo,
+      shouldShowCompany: hasCompanyInfo,
+      FINAL_DECISION: hasCompanyInfo ? 'SHOW COMPANY' : 'HIDE COMPANY - NO DATA',
+    });
 
     const primaryMediaUrl = item.boardMediaUrl;
 
@@ -462,13 +522,13 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         onPress={() => toggleCardExpansion(item.id)}
         navigation={navigation}
         showCompanyDetail={hasCompanyInfo}
-        companyDetail={hasCompanyInfo && originalAd?.company ? {
-          name: originalAd.company.company_name || 'Company',
-          business: originalAd.company.category?.name || 'Business',
-          location: originalAd.company.address || boardLocationName,
-          number: originalAd.company.contact_number || 'N/A',
-          ntn: originalAd.company.company_ntn || 'N/A',
-          address: originalAd.company.address || boardArea,
+        companyDetail={hasCompanyInfo && originalAd?.company && originalAd.company.company_name ? {
+          name: originalAd.company.company_name,
+          business: originalAd.company.category?.name || undefined,
+          location: originalAd.company.address || undefined,
+          number: originalAd.company.contact_number || undefined,
+          ntn: originalAd.company.company_ntn || undefined,
+          address: originalAd.company.address || undefined,
           logoUri: originalAd.company.logo_url || undefined,
         } : undefined}
         campaignDetail={{
@@ -732,13 +792,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         {!loading && !error && (
           <>
             {/* Debug Info - Remove in production */}
-            {__DEV__ && (
-              <View style={styles.debugInfo}>
-                <Text style={styles.debugText}>
-                  Total Items: {listData.length} | Tab: {activeTab}
-                </Text>
-              </View>
-            )}
+           
             <FlatList
               style={styles.cardsContainer}
               data={listData}

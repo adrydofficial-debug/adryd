@@ -108,7 +108,26 @@ export const changeAdvertisementStatus = async (
 export const generateUploadUrl = async (
   payload: GenerateUploadUrlRequest,
 ): Promise<AdvertisementUploadResponse> => {
+  // If advertisement_id is provided, use the ID in the URL path (for existing drafts)
+  if (payload.advertisement_id) {
+    const { advertisement_id, ...restPayload } = payload;
+    const endpoint = `${BASE}/${advertisement_id}/upload-url`;
+    console.log('🔵 [generateUploadUrl] Generating URL for existing advertisement:', {
+      advertisement_id,
+      endpoint,
+      payload: restPayload,
+    });
+    const { data } = await apiClient.post(endpoint, restPayload);
+    console.log('✅ [generateUploadUrl] Upload URL generated successfully');
+    return data;
+  }
+  // Otherwise use the general endpoint (for new advertisements)
+  console.log('🔵 [generateUploadUrl] Generating URL for new advertisement:', {
+    endpoint: `${BASE}/upload-url`,
+    payload,
+  });
   const { data } = await apiClient.post(`${BASE}/upload-url`, payload);
+  console.log('✅ [generateUploadUrl] Upload URL generated successfully');
   return data;
 };
 

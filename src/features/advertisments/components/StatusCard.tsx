@@ -99,6 +99,9 @@ const StatusCard: React.FC<StatusCardProps> = ({
     if (status === 'Blocked') {
       return '#FCE8E8'; // Light version of #F25255
     }
+    if (status === 'Draft') {
+      return '#F8F8F8'; // Light gray for Draft status
+    }
     return '#F0F8F0'; // Default green tint for Active
   };
 
@@ -255,7 +258,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                     )}
                   </View>
                   <Text style={styles.companyName}>
-                    {companyDetail.name || 'taxx Oil'}
+                    {companyDetail.name || 'N/A'}
                   </Text>
                   <Text style={styles.companySubLabel}>Your Company</Text>
                 </View>
@@ -271,14 +274,14 @@ const StatusCard: React.FC<StatusCardProps> = ({
                 {renderCampaignCardBox()}
               </View>
 
-              {/* Company Details Grid */}
+              {/* Company Details Grid - Only show if company data exists */}
               <View style={styles.detailsGrid}>
-                <DetailRow label="Name" value={companyDetail.name || 'TaxxOil'} />
-                <DetailRow label="Business" value={companyDetail.business || 'Motor Cars'} />
-                <DetailRow label="Location" value={companyDetail.location || 'Lahore'} />
-                <DetailRow label="Number" value={companyDetail.number || '03074076031'} />
-                <DetailRow label="NTN" value={companyDetail.ntn || '44111551416156'} />
-                <DetailRow label="Address" value={companyDetail.address || 'DHA Lahore Phase 4'} />
+                <DetailRow label="Name" value={companyDetail.name || 'N/A'} />
+                <DetailRow label="Business" value={companyDetail.business || 'N/A'} />
+                <DetailRow label="Location" value={companyDetail.location || 'N/A'} />
+                <DetailRow label="Number" value={companyDetail.number || 'N/A'} />
+                <DetailRow label="NTN" value={companyDetail.ntn || 'N/A'} />
+                <DetailRow label="Address" value={companyDetail.address || 'N/A'} />
               </View>
             </View>
           )}
@@ -364,10 +367,11 @@ const StatusCard: React.FC<StatusCardProps> = ({
                   const filename = `${timestamp}-banner.png`;
                   const contentType = 'image/png'; // Default, will be updated when file is selected
                   
-                  // Call the upload-url API
+                  // Call the upload-url API with advertisement ID for existing draft
                   const uploadResponse = await generateUploadUrl({
                     filename,
                     contentType,
+                    advertisement_id: id, // Include advertisement ID for existing drafts
                   });
                   
                   console.log('✅ [StatusCard] Upload URL generated:', uploadResponse);
@@ -382,9 +386,21 @@ const StatusCard: React.FC<StatusCardProps> = ({
                   });
                 } catch (error: any) {
                   console.error('❌ [StatusCard] Failed to generate upload URL:', error);
+                  console.error('❌ [StatusCard] Error details:', {
+                    message: error?.message,
+                    response: error?.response?.data,
+                    status: error?.response?.status,
+                    statusText: error?.response?.statusText,
+                  });
+                  
+                  const errorMessage = error?.response?.data?.message 
+                    || error?.response?.data?.error 
+                    || error?.message 
+                    || 'Failed to generate upload URL. Please try again.';
+                  
                   Alert.alert(
                     'Error',
-                    error?.message || 'Failed to generate upload URL. Please try again.'
+                    errorMessage
                   );
                 } finally {
                   setIsLoading(false);
