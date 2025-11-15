@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,11 +14,14 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
+  StatusBar,
+  Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import MapView from 'react-native-maps';
 import { useRateBoard } from '../hooks/useRateBoard';
+import { useBoardRatings } from '../hooks/useBoardRatings';
 import { useAuthStore } from '../../../store/authStore';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -31,7 +34,6 @@ const placeholder = Images.bannerBg;
 // import Line from '../../assets/icons/line.svg';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
-import CustomInput from '../../../components/CustomInput';
 import { useTranslation } from 'react-i18next';
 import { useFavoriteStatus, useToggleFavorite } from '../hooks/useFavorites';
 // Removed typed RootStack import to avoid cross-module typing dependency
@@ -139,12 +141,21 @@ const SingleBoardDetail: React.FC = () => {
   const { t } = useTranslation('boards');
   const navigation = useNavigation();
   const route = useRoute();
-  const { item } = (route.params as { item: any }) || { item: null };
+  const routeItem = (route.params as { item: any })?.item || null;
+  
+  const [item, setItem] = useState<any>(routeItem);
+  
   const user = useAuthStore(s => s.user);
   const queryClient = useQueryClient();
 
   const rawBoardId = Number(item?.id);
   const boardId = Number.isFinite(rawBoardId) && rawBoardId > 0 ? rawBoardId : undefined;
+  
+  useEffect(() => {
+    if (routeItem) {
+      setItem(routeItem);
+    }
+  }, [routeItem]);
 
   const [isFavorite, setIsFavorite] = useState<boolean>(() =>
     typeof item?.is_favorite === 'boolean' ? item.is_favorite : false,
@@ -159,9 +170,73 @@ const SingleBoardDetail: React.FC = () => {
   const isFavoritePending = isFavoriteLoading || toggleFavoriteMutation.isPending;
   const canToggleFavorite = typeof boardId === 'number' && boardId > 0;
   
+  // Fetch board ratings
+  const {
+    data: fetchedRatings,
+    refetch: refetchRatings,
+  } = useBoardRatings(boardId || 0, 1, 100); 
+  
+  useFocusEffect(
+    useCallback(() => {
+      if (boardId) {
+        console.log('SingleBoardDetail - Screen focused, refetching ratings for board:', boardId);
+        refetchRatings();
+      }
+    }, [boardId, refetchRatings])
+  );
+  
+  useEffect(() => {
+    if (!item) return;
+    
+    if (fetchedRatings && Array.isArray(fetchedRatings)) {
+      console.log('SingleBoardDetail - Merging fetched ratings:', fetchedRatings.length);
+      setItem((prevItem: any) => {
+        if (!prevItem) return prevItem;
+        
+        if (fetchedRatings.length > 0) {
+          const transformedRatings = fetchedRatings.map((rating: any) => ({
+            id: rating.id,
+            user_id: rating.user?.id,
+            board_id: prevItem.id,
+            rating: rating.stars || rating.rating || 0, 
+            comment: rating.comment || '',
+            created_at: rating.createdAt || rating.created_at || new Date().toISOString(),
+            user: {
+              id: rating.user?.id,
+              full_name: rating.user?.name || rating.user?.full_name || 'Anonymous',
+              avatar_url: rating.user?.avatar || rating.user?.avatar_url || null,
+            },
+          }));
+          
+          const mergedRatings = transformedRatings;
+          
+          const totalRatings = mergedRatings.length;
+          const sumRatings = mergedRatings.reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
+          const newAvgRating = totalRatings > 0 ? sumRatings / totalRatings : 0;
+          
+          return {
+            ...prevItem,
+            ratings: mergedRatings,
+            avg_rating: newAvgRating,
+            total_ratings: totalRatings,
+          };
+        } else {
+          // If no ratings found, ensure ratings array is empty
+          return {
+            ...prevItem,
+            ratings: [],
+            avg_rating: 0,
+            total_ratings: 0,
+          };
+        }
+      });
+    }
+  }, [fetchedRatings]);
+  
   // Debug log to help troubleshoot
   console.log('SingleBoardDetail - route.params:', route.params);
   console.log('SingleBoardDetail - item:', item);
+  console.log('SingleBoardDetail - fetchedRatings:', fetchedRatings?.length || 0);
   
   const extractMediaSources = (board: any) => {
     if (Array.isArray(board?.media) && board.media.length > 0) {
@@ -210,13 +285,20 @@ const SingleBoardDetail: React.FC = () => {
   const [billboard, setBillboard] = useState<BillboardData>(() => {
     if (item && typeof item === 'object') {
       const mediaSources = extractMediaSources(item);
+      const ratingValue = typeof (item as any)?.avg_rating === 'number' 
+        ? (item as any).avg_rating 
+        : (item.rating ?? 0);
+      const locationName = typeof (item as any)?.location === 'object' 
+        ? ((item as any).location?.name || 'Lahore Gulberg')
+        : (item.location || 'Lahore Gulberg');
+      
       return {
         title: item.title || 'Billboard Campaign Ad',
-        location: item.location || 'Lahore Gulberg',
+        location: locationName,
         subLocation: item.distance || 'Near 16 Km',
         size: item.size || '2ft x 4ft',
         about: item.description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-        rating: (item.rating ?? 0).toString(),
+        rating: ratingValue.toString(),
         imagesList: mediaSources.length > 0 ? mediaSources : [placeholder],
       };
     }
@@ -239,12 +321,15 @@ const SingleBoardDetail: React.FC = () => {
   
   // Update rating when item changes (only from API data)
   useEffect(() => {
-    const newRating = (item?.rating ?? 0).toString();
+    // Use avg_rating from API if available, otherwise fallback to rating
+    const newRating = typeof (item as any)?.avg_rating === 'number'
+      ? (item as any).avg_rating.toString()
+      : (item?.rating ?? 0).toString();
     setBillboard(prev => ({
       ...prev,
       rating: newRating,
     }));
-  }, [item?.rating]);
+  }, [(item as any)?.avg_rating, item?.rating]);
 
   useEffect(() => {
     if (typeof item?.is_favorite === 'boolean') {
@@ -306,7 +391,24 @@ const SingleBoardDetail: React.FC = () => {
     }
   };
 
+  // Calculate rating breakdown from actual ratings array
   const ratingBreakdown = useMemo<RatingBreakdownItem[]>(() => {
+    if (Array.isArray((item as any)?.ratings) && (item as any).ratings.length > 0) {
+      const counts = [0, 0, 0, 0, 0]; // [5-star, 4-star, 3-star, 2-star, 1-star]
+      (item as any).ratings.forEach((rating: any) => {
+        const starLevel = Number(rating?.rating) || 0;
+        if (starLevel >= 1 && starLevel <= 5) {
+          counts[5 - starLevel] += 1; // 5-star is index 0, 1-star is index 4
+        }
+      });
+      
+      return counts.map((count, index) => ({
+        label: `${5 - index}`,
+        count: count,
+      }));
+    }
+    
+    // Fallback to rating_breakdown if available
     if (Array.isArray((item as any)?.rating_breakdown)) {
       return (item as any).rating_breakdown
         .slice(0, 5)
@@ -315,20 +417,64 @@ const SingleBoardDetail: React.FC = () => {
           count: Number(entry?.count) || 0,
         }));
     }
+    
     return defaultRatingBreakdown;
   }, [item]);
 
-  const totalReviews = useMemo(
-    () => ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0),
-    [ratingBreakdown]
-  );
+  const totalReviews = useMemo(() => {
+    // Use total_ratings from API if available
+    if (typeof (item as any)?.total_ratings === 'number') {
+      return (item as any).total_ratings;
+    }
+    // Otherwise calculate from ratings array
+    if (Array.isArray((item as any)?.ratings)) {
+      return (item as any).ratings.length;
+    }
+    // Fallback to calculating from breakdown
+    return ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0);
+  }, [item, ratingBreakdown]);
 
   const averageRating = useMemo(() => {
+    // Use avg_rating from API if available
+    if (typeof (item as any)?.avg_rating === 'number') {
+      return (item as any).avg_rating;
+    }
+    // Fallback to calculating from ratings array
+    if (Array.isArray((item as any)?.ratings) && (item as any).ratings.length > 0) {
+      const sum = (item as any).ratings.reduce((acc: number, rating: any) => {
+        return acc + (Number(rating?.rating) || 0);
+      }, 0);
+      return sum / (item as any).ratings.length;
+    }
+    // Fallback to billboard.rating
     const parsedRating = parseFloat(billboard.rating);
     return Number.isFinite(parsedRating) ? parsedRating : 0;
-  }, [billboard.rating]);
+  }, [item, billboard.rating]);
 
   const reviews = useMemo<Review[]>(() => {
+    // Always use ratings array from API (this is the correct field name from the API response)
+    if (Array.isArray((item as any)?.ratings)) {
+      if ((item as any).ratings.length > 0) {
+        // Sort by created_at descending (most recent first)
+        const sortedRatings = [...(item as any).ratings].sort((a: any, b: any) => {
+          const dateA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA; // Descending order (newest first)
+        });
+        
+        return sortedRatings.map((rating: any, index: number) => ({
+          id: rating?.id?.toString() ?? `rating-${index}`,
+          name: rating?.user?.full_name || rating?.user_name || 'Anonymous',
+          comment: rating?.comment || '',
+          rating: Number(rating?.rating) || 0,
+          date: formatDateLabel(rating?.created_at),
+        }));
+      }
+      // Return empty array if ratings array exists but is empty
+      return [];
+    }
+    
+    // Fallback to reviews if ratings not available (for backward compatibility)
     if (Array.isArray((item as any)?.reviews) && (item as any).reviews.length > 0) {
       return (item as any).reviews.map((review: any, index: number) => ({
         id: review?.id?.toString() ?? `review-${index}`,
@@ -338,17 +484,23 @@ const SingleBoardDetail: React.FC = () => {
         date: formatDateLabel(review?.created_at),
       }));
     }
-    return defaultReviews;
+    
+    // Return empty array instead of defaultReviews to ensure dynamic behavior
+    return [];
   }, [item]);
 
   const infoItems = useMemo<InfoItem[]>(() => {
     const resolve = (value: string | number | null | undefined, fallback: string) =>
       value !== undefined && value !== null && String(value).trim().length > 0
-        ? String(value).trim()
+        ? String(value).trim()           
         : fallback;
 
+    // Handle nested category object from API
+    const categoryName = typeof (item as any)?.category === 'object'
+      ? ((item as any).category?.name || null)
+      : ((item as any)?.category_name ?? (item as any)?.category ?? (item as any)?.board_category);
     const resolvedCategory = resolve(
-      (item as any)?.category_name ?? (item as any)?.category ?? (item as any)?.board_category,
+      categoryName,
       t('defaultCategory', { defaultValue: 'Static' })
     );
 
@@ -452,15 +604,9 @@ const SingleBoardDetail: React.FC = () => {
         comment: ratingComment.trim() || undefined,
       });
 
-      // Update the local rating display immediately
-      setBillboard(prev => {
-        const updated = {
-          ...prev,
-          rating: userRating.toString(),
-        };
-        console.log('SingleBoardDetail - Updated local rating:', updated.rating);
-        return updated;
-      });
+      // Refetch ratings to get the updated list from server
+      console.log('SingleBoardDetail - Rating submitted, refetching ratings...');
+      await refetchRatings();
 
       // Alert.alert('Success', 'Rating submitted successfully!');
       closeRatingModal();
@@ -527,14 +673,14 @@ const SingleBoardDetail: React.FC = () => {
       <Text style={styles.ratingHint}>Tap the stars and leave a short comment about your experience.</Text>
 
       <View style={styles.commentRow}>
-        <CustomInput
+        <TextInput
           placeholder="Write a comment"
+          placeholderTextColor="#9CA3AF"
           value={ratingComment}
           onChangeText={setRatingComment}
           multiline={true}
           numberOfLines={3}
-          containerStyle={{ marginBottom: 0 }}
-          inputStyle={styles.commentInput}
+          style={styles.commentInput}
         />
         <TouchableOpacity
           style={[
@@ -726,7 +872,9 @@ const SingleBoardDetail: React.FC = () => {
                       </View>
                     </View>
                   </View>
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
+                  {review.comment ? (
+                    <Text style={styles.reviewComment}>{review.comment}</Text>
+                  ) : null}
                 </View>
               ))
             )}
@@ -762,6 +910,10 @@ const SingleBoardDetail: React.FC = () => {
 
 export default SingleBoardDetail;
 
+// Calculate status bar height for top padding
+const statusBarHeight = StatusBar.currentHeight || (Platform.OS === 'ios' ? 44 : 24);
+const heroTopBarPaddingTop = statusBarHeight + 10;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -773,12 +925,13 @@ const styles = StyleSheet.create({
   heroSection: {
     width: '100%',
     height: height * 0.43,
-    paddingHorizontal: 18,
-    paddingTop: 10,
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   heroImageWrapper: {
-    flex: 1,
-    borderRadius: 32,
+    width: '100%',
+    height: '100%',
+    borderRadius: 30,
     overflow: 'hidden',
     backgroundColor: '#E5E7EB',
   },
@@ -796,7 +949,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 18,
-    paddingTop: 20,
+    paddingTop: heroTopBarPaddingTop, // Status bar height + safe padding
   },
   heroBackButton: {
     width: 44,
@@ -835,7 +988,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 32,
+    bottom: 5,
     alignItems: 'center',
   },
   thumbnailStrip: {
@@ -843,9 +996,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.96)',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderRadius: 24,
+    paddingHorizontal: 2,
+    paddingVertical: 4,
+    borderRadius: 12,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.12,
@@ -855,10 +1008,10 @@ const styles = StyleSheet.create({
   },
   thumbnailButton: {
     width: 56,
-    height: 48,
-    borderRadius: 16,
+    height: 56,
+    borderRadius: 12,
     overflow: 'hidden',
-    marginHorizontal: 5,
+    marginHorizontal: 3,
     borderWidth: 1,
     borderColor: 'transparent',
     backgroundColor: '#FFFFFF',
@@ -1076,9 +1229,9 @@ const styles = StyleSheet.create({
   },
   commentRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: '#F9FAFB',
-    borderRadius: 20,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     marginTop: 18,
@@ -1086,24 +1239,30 @@ const styles = StyleSheet.create({
   },
   commentInput: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     fontSize: 14,
-    minHeight: 64,
+    minHeight: 48,
     maxHeight: 120,
     color: '#111827',
     textAlignVertical: 'top',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    marginRight: 8,
+    marginBottom: 0,
   },
   sendButton: {
     width: 48,
     height: 48,
-    borderRadius: 16,
-    backgroundColor: '#C539A5',
+    borderRadius: 12,
+    backgroundColor: '#9CA3AF',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 0,
   },
   sendButtonDisabled: {
     backgroundColor: '#D1D5DB',
+    opacity: 0.6,
   },
   ratingSummaryRow: {
     flexDirection: 'row',
