@@ -23,6 +23,8 @@ import SearchLocation from '../../features/locations/screens/SearchLocation';
 import ContactSupportScreen from '../../components/ContactSupportScreen';
 import ChooseOptionScreen from '../../features/advertisments/screens/ChooseOptionScreen';
 import CompanywithoutInfoScreen from '../../features/advertisments/screens/CompanywithoutInfoScreen';
+import TermsAndConditions from '../../features/profile/screens/TermsAndConditions';
+import HelpFAQsScreen from '../../features/profile/screens/HelpFAQsScreen';
 
 // 🔹 Define navigation param types
 export type AppStackParamList = {
@@ -49,10 +51,14 @@ export type AppStackParamList = {
   ChooseOptionScreen: undefined;
   ContactSupportScreen: undefined;
   CompanywithoutInfoScreen: { campaignId: string };
+  TermsAndConditions: undefined;
+  HelpFAQsScreen: undefined;
 };
 const Stack = createNativeStackNavigator<AppStackParamList>();
-const AppNavigator = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+
+const AppNavigator = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
      <Stack.Screen name="BottomTab" component={BottomTab} /> 
     <Stack.Screen name="CompanyListScreen" component={CompanyListScreen} />
     <Stack.Screen name="CreateCompanyScreen" component={CreateCompanyScreen} />
@@ -83,8 +89,11 @@ const AppNavigator = () => (
     <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
     <Stack.Screen name="Notifications" component={GetAllNotification} />
     <Stack.Screen name="SearchLocation" component={SearchLocation} />
+    <Stack.Screen name="TermsAndConditions" component={TermsAndConditions} />
+    <Stack.Screen name="HelpFAQsScreen" component={HelpFAQsScreen} />
    
   </Stack.Navigator>
-);
+  );
+};
 
 export default AppNavigator;

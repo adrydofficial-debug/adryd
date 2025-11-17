@@ -203,9 +203,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     verifyOtpMutation.mutate(
       { phone, otp },
       {
-        onSuccess: () => {
+        onSuccess: (user) => {
           setShowOtpModal(false);
-          navigation.navigate('BottomTab'); // redirect to BottomTab with bottom tabs
+          // User is automatically set in auth store by useVerifyOtp hook
+          // App will navigate to main app automatically
         },
         onError: err => {
           console.warn('OTP verify error:', err);

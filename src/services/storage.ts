@@ -83,3 +83,44 @@ export async function clearAuth(): Promise<void> {
     }
   }
 }
+
+// Terms and Conditions Agreement
+const TERMS_AGREED_KEY = 'terms_agreed';
+
+export async function setTermsAgreed(agreed: boolean): Promise<void> {
+  try {
+    await storage.setItem(TERMS_AGREED_KEY, JSON.stringify(agreed));
+    console.log('✅ Terms agreement saved');
+  } catch (err) {
+    console.log('❌ Error saving terms agreement:', err);
+    try {
+      await AsyncStorage.setItem(TERMS_AGREED_KEY, JSON.stringify(agreed));
+      console.log('📥 Saved terms agreement using AsyncStorage fallback');
+    } catch (fallbackErr) {
+      console.log('❌ Error saving terms agreement with fallback:', fallbackErr);
+    }
+  }
+}
+
+export async function getTermsAgreed(): Promise<boolean> {
+  try {
+    const data = await storage.getItem(TERMS_AGREED_KEY);
+    if (!data) {
+      return false;
+    }
+    return JSON.parse(data) as boolean;
+  } catch (err) {
+    console.log('❌ Error reading terms agreement:', err);
+    try {
+      const data = await AsyncStorage.getItem(TERMS_AGREED_KEY);
+      if (!data) {
+        return false;
+      }
+      console.log('📤 Retrieved terms agreement using AsyncStorage fallback');
+      return JSON.parse(data) as boolean;
+    } catch (fallbackErr) {
+      console.log('❌ Error reading terms agreement with fallback:', fallbackErr);
+      return false;
+    }
+  }
+}
