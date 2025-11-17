@@ -159,7 +159,7 @@ export const useLogout = () => {
 
 export const useVerifyOtp = () => {
   const setUser = useAuthStore(s => s.setUser);
-
+  
   return useMutation({
     mutationFn: async ({ phone, otp }: { phone: string; otp: string }) => {
       const { data, error } = await supabase.auth.verifyOtp({
@@ -170,8 +170,10 @@ export const useVerifyOtp = () => {
       if (error) throw error;
       return data.user;
     },
-    onSuccess: user => {
-      if (user) setUser(user);
+    onSuccess: (user) => {
+      if (user) {
+        setUser(user);
+      }
     },
   });
 };
