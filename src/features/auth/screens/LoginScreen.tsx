@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Formik, FormikHelpers } from 'formik';
 import React, { useRef, useState } from 'react';
 import Loader from '../../../components/Loader';
+import Loader from '../../../components/Loader';
 import {
   ActivityIndicator,
   Dimensions,

@@ -1,25 +1,26 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { Formik } from 'formik';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
   Dimensions,
+  I18nManager,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
-  I18nManager,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Yup from 'yup';
-import { useTranslation } from 'react-i18next';
-import { useFocusEffect } from '@react-navigation/native';
+import BackButton from '../../../components/BackButton';
+import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
+import NoInternet from '../../../components/NoInternet';
 import OTPModal from '../../../components/OTPModal';
+import i18n from '../../../i18n';
 import { supabase } from '../../../services/supabase';
 import { useRegister, useVerifyOtp } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
@@ -40,7 +41,6 @@ const hp = (percentage: number) => (height * percentage) / 100;
 interface RegisterFormValues {
   username: string;
   password: string;
-  companyName: string;
   phoneNumber: string;
 }
 
@@ -63,7 +63,6 @@ interface PasswordValidation {
 // ----------------------
 const validationSchema = Yup.object().shape({
   username: Yup.string().required('Username is required'),
-  companyName: Yup.string().required('Company name is required'),
   password: Yup.string()
     .matches(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
@@ -85,7 +84,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState('');
@@ -160,7 +158,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     if (cleaned.length <= 13) setFieldValue('phoneNumber', cleaned);
   };
 
-  const handleRegister = async (values: RegisterFormValues, formikHelpers: any) => {
+  const handleRegister = async (
+    values: RegisterFormValues,
+    formikHelpers: any,
+  ) => {
     setValidationAttempted(true);
     setApiError(false);
 
@@ -171,7 +172,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     if (Object.keys(errors).length > 0) {
       formikHelpers.setTouched({
         username: true,
-        companyName: true,
         phoneNumber: true,
         password: true,
       });
@@ -182,6 +182,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     setIsLoading(true);
 
     const payload = {
+      fullName: values.username,
       phone: values.phoneNumber,
       password: values.password,
     };
@@ -243,9 +244,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             <Text style={styles.title} key={`title-${languageKey}-${currentLanguage}`}>{t('register.title', { lng: currentLanguage })}</Text>
             <Text style={styles.subtitle} key={`subtitle-${languageKey}-${currentLanguage}`}>
               {t('register.subtitle.start', { lng: currentLanguage })}{' '}
-              <Text style={styles.highlight}>{t('register.subtitle.highlight1', { lng: currentLanguage })}</Text>{' '}
+              <Text style={styles.highlight}>
+                {t('register.subtitle.highlight1', { lng: currentLanguage })}
+              </Text>{' '}
               {t('register.subtitle.middle', { lng: currentLanguage })}{' '}
-              <Text style={styles.highlight}>{t('register.subtitle.highlight2', { lng: currentLanguage })}</Text>
+              <Text style={styles.highlight}>
+                {t('register.subtitle.highlight2', { lng: currentLanguage })}
+              </Text>
               {t('register.subtitle.end', { lng: currentLanguage })}
             </Text>
 
@@ -253,7 +258,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               initialValues={{
                 username: '',
                 password: '',
-                companyName: '',
                 phoneNumber: '+92',
               }}
               validationSchema={validationSchema}
@@ -271,10 +275,14 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 setFieldValue,
               }) => {
                 // Helper to determine if field should show pink border
-                const shouldShowError = (fieldName: keyof RegisterFormValues) => {
+                const shouldShowError = (
+                  fieldName: keyof RegisterFormValues,
+                ) => {
                   if (!validationAttempted && !touched[fieldName]) return false;
-                  const isEmpty = !values[fieldName] || values[fieldName].trim() === '';
-                  const hasValidationError = touched[fieldName] && errors[fieldName];
+                  const isEmpty =
+                    !values[fieldName] || values[fieldName].trim() === '';
+                  const hasValidationError =
+                    touched[fieldName] && errors[fieldName];
                   return isEmpty || hasValidationError;
                 };
 
@@ -293,23 +301,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     />
 
                     <CustomInput
-                      label={t('register.companyName', { lng: currentLanguage })}
-                      placeholder={t('register.companyName', { lng: currentLanguage })}
-                      value={values.companyName}
-                      onChangeText={handleChange('companyName')}
-                      onBlur={handleBlur('companyName')}
-                      focused={focusedField === 'companyName'}
-                      onFocus={() => setFocusedField('companyName')}
-                      error={shouldShowError('companyName') || apiError}
-                      showErrorText={false}
-                    />
-
-                    <CustomInput
                       label={t('login.phoneNumber', { lng: currentLanguage })}
                       placeholder="3XXXXXXXXX"
                       isPhoneNumber={true}
                       value={values.phoneNumber}
-                      onChangeText={text => handlePhoneChange(text, setFieldValue)}
+                      onChangeText={text =>
+                        handlePhoneChange(text, setFieldValue)
+                      }
                       onBlur={handleBlur('phoneNumber')}
                       onFocus={() => setFocusedField('phoneNumber')}
                       focused={focusedField === 'phoneNumber'}
@@ -320,7 +318,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     {/* Password */}
                     <CustomInput
                       label={t('register.password', { lng: currentLanguage })}
-                      placeholder={t('register.password', { lng: currentLanguage })}
+                      placeholder={t('register.password', {
+                        lng: currentLanguage,
+                      })}
                       isPassword={true}
                       value={values.password}
                       onChangeText={text => {
@@ -343,17 +343,33 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                     />
 
                   </>
-                )
+                );
               }}
             </Formik>
 
             <View style={styles.grayLine} />
-            <View style={[styles.footer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-              <Text style={styles.footerText} key={`footer-${languageKey}-${currentLanguage}`}>{t('register.already', { lng: currentLanguage })} </Text>
+            <View
+              style={[
+                styles.footer,
+                { flexDirection: isRTL ? 'row-reverse' : 'row' },
+              ]}
+            >
+              <Text
+                style={styles.footerText}
+                key={`footer-${languageKey}-${currentLanguage}`}
+              >
+                {t('register.already', { lng: currentLanguage })}{' '}
+              </Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate('LoginScreen')}
               >
-                <Text style={styles.loginLink} key={`login-link-${languageKey}-${currentLanguage}`}> {t('login.title', { lng: currentLanguage })}</Text>
+                <Text
+                  style={styles.loginLink}
+                  key={`login-link-${languageKey}-${currentLanguage}`}
+                >
+                  {' '}
+                  {t('login.title', { lng: currentLanguage })}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -431,7 +447,11 @@ const styles = StyleSheet.create({
   },
   passwordContainer: { marginBottom: hp(2) },
   inputLabel: { fontSize: 14, color: '#595959', marginBottom: 8 },
-  passwordInputContainer: { flexDirection: 'row', alignItems: 'center', position: 'relative' },
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
   passwordInput: {
     borderWidth: 1,
     borderColor: '#e2d1d1',
