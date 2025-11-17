@@ -72,7 +72,7 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
   onFocus,
   secureTextEntry = false,
   keyboardType = 'default',
-  placeholderTextColor = '#aaa',
+  placeholderTextColor = '#70737D',
   containerStyle,
   inputStyle,
   labelStyle,
@@ -226,28 +226,28 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
 
 const styles = StyleSheet.create({
   inputContainer: {
-    marginBottom: hp(0.1),
+    marginBottom: hp(2),
   },
   label: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '400',
-    color: '#595959',
-    marginBottom: 8,
+    color: '#18181B',
+    marginBottom: 5,
   },
   inputWrapper: {
     position: 'relative',
     width: '100%',
   },
   input: {
-    width: '100%',
-    height: hp(6),
+    width: "100%",
+    height: hp(7),
     backgroundColor: '#fff',
-    borderRadius: wp(3),
+    borderRadius: wp(4),
     paddingHorizontal: wp(4),
     fontSize: 12,
     borderWidth: 1,
-    borderColor: '#e2d1d1',
-    color: '#000',
+    borderColor: '#E5E7EB',
+    color: '#18181B',
     marginBottom: hp(1),
   },
   inputWithToggle: {
@@ -270,22 +270,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2d1d1',
-    borderRadius: wp(3),
+    borderColor: '#E5E7EB',
+    borderRadius: wp(4),
     backgroundColor: '#fff',
-    height: hp(6),
+    height: hp(7),
     marginBottom: hp(1),
+    
   },
   phonePrefix: {
     fontSize: 12,
-    color: '#999',
+    color: '#70737D',
     paddingHorizontal: wp(4),
     paddingVertical: hp(1.5),
     borderRightWidth: 1,
-    borderRightColor: '#e2d1d1',
+    borderRightColor: '#E5E7EB',
+  
   },
   phonePrefixFocused: {
-    color: '#000',
+    color: '#70737D',
+  
   },
   phoneInput: {
     flex: 1,
@@ -295,20 +298,20 @@ const styles = StyleSheet.create({
     paddingVertical: hp(1.5),
   },
   inputError: {
-    borderColor: '#ff4444',
-    borderWidth: 1.5,
+    borderColor: '#E61215',
+    borderWidth: 0.5,
   },
   inputFocused: {
-    borderColor: '#c539a5ff',
+    borderColor: '#18181B',
     borderWidth: 0.5,
   },
   phoneInputWrapperError: {
-    borderColor: '#ff4444',
-    borderWidth: 1.5,
+    borderColor: '#E61215',
+    borderWidth: 0.5,
   },
   phoneInputWrapperFocused: {
-    borderColor: '#C539A5',
-    borderWidth: 0.7,
+    borderColor: '#18181B',
+    borderWidth: 0.5,
   },
   errorText: {
     color: '#ff4444',

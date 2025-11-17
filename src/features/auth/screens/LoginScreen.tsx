@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Formik, FormikHelpers } from 'formik';
 import React, { useRef, useState } from 'react';
+import Loader from '../../../components/Loader';
 import {
   ActivityIndicator,
   Dimensions,
@@ -26,6 +27,7 @@ import { useAuthStore } from '../../../store/authStore';
 import { AuthStackParamList } from '../AuthNavigator';
 import { useLogin } from '../hooks/useAuth';
 import { LoginCredentials } from '../types';
+import CustomButton from '../../../components/CustomButton';
 
 const { width, height } = Dimensions.get('window');
 const wp = (p: number) => (width * p) / 100;
@@ -112,7 +114,7 @@ const LoginScreen: React.FC = () => {
 
   return (
     <LinearGradient
-      colors={['#F5F5F5', '#F5F5F5']}
+      colors={['#F8F8F8', '#F8F8F8']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={styles.container}
@@ -133,7 +135,7 @@ const LoginScreen: React.FC = () => {
               </TouchableOpacity>
               <Text style={styles.subtitle}>
                 {t('login.subtitle')}{' '}
-                <Text style={styles.highlight}>{t('login.highlight')}</Text> {t('login.subtitleEnd')}
+                <Text style={styles.highlight}>{t('login.highlight')}</Text> {"\n"}{t('login.subtitleEnd')}
               </Text>
             </View>
             <Formik<LoginCredentials>
@@ -205,28 +207,17 @@ const LoginScreen: React.FC = () => {
                   </TouchableOpacity>
 
                   {/* Login button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.loginButton,
-                      loginMutation.isPending && styles.disabledButton,
-                    ]}
-                    onPress={() => handleSubmit()}
-                    disabled={loginMutation.isPending}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.buttonContent}>
-                      {loginMutation.isPending && (
-                        <ActivityIndicator
-                          size="small"
-                          color="#fff"
-                          style={styles.loader}
-                        />
-                      )}
-                      <Text style={styles.buttonText}>
-                        {loginMutation.isPending ? t('login.loggingIn') : t('login.cta')}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
+
+                  <CustomButton
+                    title={t('login.cta')}
+                    onPress={handleSubmit}
+                    loading={loginMutation.isPending}
+                    buttonStyle={{ alignSelf: 'center' , width:161,height:50}}
+                        variant="primary"
+                      size="medium"
+                  />
+                  ...
+                  {loginMutation.isPending && <Loader />}
                 </>
               )}
             </Formik>
@@ -245,7 +236,7 @@ const LoginScreen: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-     
+
       <NoInternet />
     </LinearGradient>
   );
@@ -261,55 +252,39 @@ const styles = StyleSheet.create({
     paddingBottom: hp(25),
     minHeight: height + hp(10),
   },
-  header: { marginTop: hp(15), marginBottom: hp(4) },
+  header: { marginTop: hp(15), marginBottom: hp(4.5) },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: '#C539A5',
-    marginBottom: hp(0.1),
+    marginBottom: hp(1),
   },
   subtitle: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#444',
+    color: '#000000',
     lineHeight: hp(2.2),
   },
   highlight: { color: '#C539A5', fontWeight: '900' },
-  forgotPasswordContainer: { alignItems: 'flex-end', marginBottom: hp(2) },
+  forgotPasswordContainer: { alignItems: 'flex-end', marginBottom: hp(5) },
   forgotPasswordText: {
-    fontSize: wp(3.5),
+    fontSize: 10,
     color: '#4F4F4F',
-    fontWeight: '500',
+    fontWeight: '400',
     textDecorationLine: 'underline',
   },
-  loginButton: {
-    marginBottom: hp(3),
-    backgroundColor: '#C539A5',
-    borderRadius: wp(3),
-    paddingVertical: hp(1.8),
-    paddingHorizontal: wp(8),
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-  },
-  disabledButton: { backgroundColor: '#ccc', elevation: 0 },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   loader: { marginRight: wp(2) },
-  buttonText: { color: '#fff', fontSize: wp(4.5), fontWeight: 'bold' },
-  grayLine: { height: 1, backgroundColor: '#e2d1d1', marginVertical: hp(2) },
+  buttonText: { color: '#fff', fontSize: wp(3.1), fontWeight: 'bold' },
+  grayLine: { height: 1, backgroundColor: '#E5E7EB',  marginTop: hp(4), width:220, justifyContent:'center', alignSelf:'center', },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: hp(2),
+    marginTop: hp(3),
     marginBottom: hp(5),
   },
-  footerText: { fontSize: wp(3.8), color: '#444' },
+  footerText: { fontSize: 12, color: '#18181B' },
   registerLink: {
-    fontSize: wp(3.8),
+    fontSize: 12,
     color: '#C539A5',
     fontWeight: 'bold',
     textDecorationLine: 'underline',

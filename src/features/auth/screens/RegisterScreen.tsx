@@ -25,6 +25,7 @@ import { useRegister, useVerifyOtp } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
 import i18n from '../../../i18n';
+import CustomButton from '../../../components/CustomButton';
 
 // ----------------------
 // Helpers
@@ -95,7 +96,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     hasNumber: false,
     hasSpecial: false,
   });
-  
+
   // Track current language to force re-renders
   const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
   // Track RTL state to force layout re-render
@@ -123,7 +124,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       i18n.off('languageChanged', handleLanguageChange);
     };
   }, [i18nInstance.language]);
-  
+
   // Update language key when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -132,7 +133,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
       setIsRTL(rtlLangs.has(lang));
       setLanguageKey(prev => prev + 1);
-      return () => {};
+      return () => { };
     }, [i18nInstance.language])
   );
 
@@ -165,7 +166,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
     // Validate all fields
     const errors = await formikHelpers.validateForm();
-    
+
     // If there are validation errors, don't proceed
     if (Object.keys(errors).length > 0) {
       formikHelpers.setTouched({
@@ -205,8 +206,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       {
         onSuccess: () => {
           setShowOtpModal(false);
-          navigation.navigate('BottomTab'); // redirect to BottomTab with bottom tabs
+          navigation.navigate("BottomTab");
         },
+
         onError: err => {
           console.warn('OTP verify error:', err);
         },
@@ -226,7 +228,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   // JSX
   // ----------------------
   return (
-    <LinearGradient colors={['#FFF4FD', '#fef3f9']} style={styles.container}>
+    <LinearGradient colors={['#F8F8F8', '#F8F8F8']} style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -236,7 +238,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <BackButton/>
+          <BackButton />
           <View style={styles.mainContainer} key={`main-${isRTL}-${languageKey}`}>
             <Text style={styles.title} key={`title-${languageKey}-${currentLanguage}`}>{t('register.title', { lng: currentLanguage })}</Text>
             <Text style={styles.subtitle} key={`subtitle-${languageKey}-${currentLanguage}`}>
@@ -279,8 +281,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                 return (
                   <>
                     <CustomInput
-                      label={t('register.username', { lng: currentLanguage })}
-                      placeholder={t('register.username', { lng: currentLanguage })}
+                      label={t('Full Name', { lng: currentLanguage })}
+                      placeholder={t('Name', { lng: currentLanguage })}
                       value={values.username}
                       onChangeText={handleChange('username')}
                       onBlur={handleBlur('username')}
@@ -331,29 +333,15 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                       error={shouldShowError('password') || (errors.password && touched.password)}
                     />
 
-                    <TouchableOpacity
-                      style={[
-                        styles.registerButton,
-                        isLoading && styles.disabledButton,
-                      ]}
-                      onPress={() => {
-                        handleSubmit();
-                      }}
-                      disabled={isLoading}
-                    >
-                      <View style={styles.buttonContent}>
-                        {isLoading && (
-                          <ActivityIndicator
-                            size="small"
-                            color="#fff"
-                            style={styles.loader}
-                          />
-                        )}
-                        <Text style={styles.buttonText} key={`button-${languageKey}-${currentLanguage}`}>
-                          {isLoading ? t('register.registering', { lng: currentLanguage }) : t('register.cta', { lng: currentLanguage })}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
+                    <CustomButton
+                      title={isLoading ? t('register.registering', { lng: currentLanguage }) : t('register.cta', { lng: currentLanguage })}
+                      onPress={handleSubmit}
+                      loading={isLoading}
+                      buttonStyle={{ alignSelf: 'center', width: 161, height: 50,marginTop:hp(2) }}
+                      variant="primary"
+                      size="medium"
+                    />
+
                   </>
                 )
               }}
@@ -380,7 +368,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         onVerify={handleVerifyOtp}
         onResend={handleResendOtp}
       />
-       <NoInternet />
+      <NoInternet />
     </LinearGradient>
   );
 };
@@ -411,34 +399,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#C539A5',
     marginTop: hp(2),
+    marginBottom: hp(1),
   },
   subtitle: {
     fontSize: 14,
-    color: '#444',
-    marginBottom: hp(3),
+    color: '#000000',
+    fontWeight: "400",
+    marginBottom: hp(4.5),
     lineHeight: hp(2.2),
   },
   highlight: { color: '#C539A5', fontWeight: 'bold' },
-  registerButton: {
-    backgroundColor: '#C539A5',
-    paddingVertical: hp(1.6),
-    borderRadius: wp(3),
-    alignItems: 'center',
-    marginTop: hp(3),
-  },
   disabledButton: { opacity: 0.7 },
   buttonContent: { flexDirection: 'row', alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: wp(4), fontWeight: 'bold' },
   loader: { marginRight: wp(2) },
   grayLine: {
     height: 1,
-    backgroundColor: '#e2d1d1',
+    backgroundColor: '#E5E7EB',
+    width: 220,
+    justifyContent: 'center',
+    alignSelf: 'center',
     marginTop: hp(4),
   },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: hp(3) },
-  footerText: { color: '#444', fontSize: wp(3.8) },
+  footerText: { color: '#444', fontSize: 12 },
   loginLink: {
     color: '#C539A5',
+    fontSize: 12,
     fontWeight: 'bold',
     textDecorationLine: 'underline',
   },
@@ -457,7 +444,7 @@ const styles = StyleSheet.create({
     // padding will be set dynamically based on RTL/LTR
   },
   inputError: { borderColor: '#C539A5', borderWidth: 0.6 },
-  eyeIconContainer: { 
+  eyeIconContainer: {
     position: 'absolute',
     padding: wp(2),
     zIndex: 1,
