@@ -14,15 +14,16 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { Toast } from 'react-native-toast-message/lib/src/Toast';
 import * as Yup from 'yup';
+import BackButton from '../../../components/BackButton';
+import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
+import NoInternet from '../../../components/NoInternet';
 import OTPModal from '../../../components/OTPModal';
 import i18n from '../../../i18n';
 import { supabase } from '../../../services/supabase';
 import { useRegister, useVerifyOtp } from '../hooks/useAuth';
-import BackButton from '../../../components/BackButton';
-import NoInternet from '../../../components/NoInternet';
-import CustomButton from '../../../components/CustomButton';
 
 // ----------------------
 // Helpers
@@ -127,8 +128,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
       setIsRTL(rtlLangs.has(lang));
       setLanguageKey(prev => prev + 1);
-      return () => { };
-    }, [i18nInstance.language])
+      return () => {};
+    }, [i18nInstance.language]),
   );
 
   // ----------------------
@@ -192,7 +193,22 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       onError: err => {
         console.warn('Register error:', err);
         setIsLoading(false);
-        setApiError(true);
+
+        let message = 'Something went wrong.';
+
+        if (
+          typeof err?.message === 'string' &&
+          err.message.includes('identities is empty')
+        ) {
+          message = 'This phone number is already registered but not verified.';
+        }
+
+        Toast.show({
+          type: 'error',
+          text1: 'Registration Failed',
+          text2: message,
+          position: 'bottom',
+        });
       },
     });
   };
@@ -201,9 +217,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     verifyOtpMutation.mutate(
       { phone, otp },
       {
-        onSuccess: (user) => {
+        onSuccess: () => {
           setShowOtpModal(false);
-          navigation.navigate("BottomTab");
+          navigation.navigate('BottomTab');
         },
 
         onError: err => {
@@ -236,9 +252,20 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           keyboardShouldPersistTaps="handled"
         >
           <BackButton />
-          <View style={styles.mainContainer} key={`main-${isRTL}-${languageKey}`}>
-            <Text style={styles.title} key={`title-${languageKey}-${currentLanguage}`}>{t('register.title', { lng: currentLanguage })}</Text>
-            <Text style={styles.subtitle} key={`subtitle-${languageKey}-${currentLanguage}`}>
+          <View
+            style={styles.mainContainer}
+            key={`main-${isRTL}-${languageKey}`}
+          >
+            <Text
+              style={styles.title}
+              key={`title-${languageKey}-${currentLanguage}`}
+            >
+              {t('register.title', { lng: currentLanguage })}
+            </Text>
+            <Text
+              style={styles.subtitle}
+              key={`subtitle-${languageKey}-${currentLanguage}`}
+            >
               {t('register.subtitle.start', { lng: currentLanguage })}{' '}
               <Text style={styles.highlight}>
                 {t('register.subtitle.highlight1', { lng: currentLanguage })}
@@ -326,18 +353,29 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                       onBlur={handleBlur('password')}
                       onFocus={() => setFocusedField('password')}
                       focused={focusedField === 'password'}
-                      error={shouldShowError('password') || (errors.password && touched.password)}
+                      error={
+                        shouldShowError('password') ||
+                        (errors.password && touched.password)
+                      }
                     />
 
                     <CustomButton
-                      title={isLoading ? t('register.registering', { lng: currentLanguage }) : t('register.cta', { lng: currentLanguage })}
+                      title={
+                        isLoading
+                          ? t('register.registering', { lng: currentLanguage })
+                          : t('register.cta', { lng: currentLanguage })
+                      }
                       onPress={handleSubmit}
                       loading={isLoading}
-                      buttonStyle={{ alignSelf: 'center', width: 161, height: 50,marginTop:hp(2) }}
+                      buttonStyle={{
+                        alignSelf: 'center',
+                        width: 161,
+                        height: 50,
+                        marginTop: hp(2),
+                      }}
                       variant="primary"
                       size="medium"
                     />
-
                   </>
                 );
               }}
@@ -416,7 +454,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#000000',
-    fontWeight: "400",
+    fontWeight: '400',
     marginBottom: hp(4.5),
     lineHeight: hp(2.2),
   },
