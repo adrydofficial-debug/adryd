@@ -28,7 +28,7 @@ import CompanywithoutInfoScreen from '../../features/advertisments/screens/Compa
 export type AppStackParamList = {
   BottomTab: undefined;
   CompaignStatus: undefined;
-  AdvertismentCreateScreen: { flow?: 'individual' | 'business' };
+  AdvertismentCreateScreen: { flow?: 'individual' | 'business'; companyId?: number };
   CampaignUploadFiles: { uploadUrl: string; flow?: 'individual' | 'business' };
   CurrentLocation: undefined;
   HomeScreen: undefined;

@@ -22,6 +22,7 @@ export const Images = {
   bannerTwo: require('./BannerTwo.png'),
   homeBanner: require('./HomeBanner.png'),
   texxolOil: require('./texxolOil.png'),
+  greenTick:require('./greenTick.png'),
 };
 
 /* SVG exports */
