@@ -15,17 +15,13 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import * as Yup from 'yup';
-import BackButton from '../../../components/BackButton';
-import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
-import NoInternet from '../../../components/NoInternet';
 import OTPModal from '../../../components/OTPModal';
 import i18n from '../../../i18n';
 import { supabase } from '../../../services/supabase';
 import { useRegister, useVerifyOtp } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
-import i18n from '../../../i18n';
 import CustomButton from '../../../components/CustomButton';
 
 // ----------------------
