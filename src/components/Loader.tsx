@@ -1,23 +1,23 @@
-
 import React, { useRef, useEffect } from "react";
-import { View, Animated, StyleSheet, ViewStyle } from "react-native";
+import { View, Animated, StyleSheet } from "react-native";
+import { BlurView } from "@react-native-community/blur";
 
 interface LoaderProps {
-  size?: number; // full container size
-  circleSize?: number; // each circle size
-  color?: string; // color of border and filled circle
+  size?: number;
+  circleSize?: number;
+  color?: string;
+  duration?: number;
   top?: number;
   left?: number;
-  duration?: number; // time to swap positions
 }
 
 const Loader: React.FC<LoaderProps> = ({
   size = 32,
   circleSize = 16,
   color = "#C539A5",
-  top = 350,
-  left = 160,
   duration = 1000,
+  top = 406,
+  left = 150,
 }) => {
   const anim = useRef(new Animated.Value(0)).current;
 
@@ -25,13 +25,13 @@ const Loader: React.FC<LoaderProps> = ({
     Animated.loop(
       Animated.sequence([
         Animated.timing(anim, {
-          toValue: circleSize, // swap right
-          duration: duration,
+          toValue: circleSize,
+          duration,
           useNativeDriver: false,
         }),
         Animated.timing(anim, {
-          toValue: 0, // swap back left
-          duration: duration,
+          toValue: 0,
+          duration,
           useNativeDriver: false,
         }),
       ])
@@ -39,33 +39,34 @@ const Loader: React.FC<LoaderProps> = ({
   }, [anim, circleSize, duration]);
 
   return (
-    <View style={[styles.loaderContainer, { width: size, height: size, top, left }]}>
-      <Animated.View
-        style={[
-          styles.circleOutlined,
-          {
-            width: circleSize,
-            height: circleSize,
-            borderRadius: circleSize / 2,
-            borderColor: color,
-            left: anim,
-            top: (size - circleSize) / 2,
-          },
-        ]}
-      />
-      <Animated.View
-        style={[
-          styles.circleFilled,
-          {
-            width: circleSize,
-            height: circleSize,
-            borderRadius: circleSize / 2,
-            backgroundColor: color,
-            left: Animated.subtract(circleSize, anim),
-            top: (size - circleSize) / 2,
-          },
-        ]}
-      />
+    <View style={styles.overlay}>
+      <BlurView style={styles.blurBackground} blurType="light" blurAmount={10} />
+      <View style={[styles.loaderContainer, { width: size, height: size, top, left }]}>
+        <Animated.View
+          style={[
+            styles.circleOutlined,
+            {
+              width: circleSize,
+              height: circleSize,
+              borderRadius: circleSize / 2,
+              borderColor: color,
+              left: anim,
+            },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.circleFilled,
+            {
+              width: circleSize,
+              height: circleSize,
+              borderRadius: circleSize / 2,
+              backgroundColor: color,
+              left: Animated.subtract(circleSize, anim),
+            },
+          ]}
+        />
+      </View>
     </View>
   );
 };
@@ -73,8 +74,16 @@ const Loader: React.FC<LoaderProps> = ({
 export default Loader;
 
 const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999,
+  },
+  blurBackground: {
+    ...StyleSheet.absoluteFillObject,
+  },
   loaderContainer: {
     position: "absolute",
+    opacity: 1, // ✅ keep visible
   },
   circleOutlined: {
     position: "absolute",

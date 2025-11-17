@@ -4,7 +4,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-  Text,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Svg, { Path } from 'react-native-svg';
@@ -18,6 +18,7 @@ import {
   GrayMsgIcon,
   PinkProfileIcon,
   GrayProfileIcon,
+  Images,
 } from '../../assets/images';
 import HomeScreen from '../../features/boards/screens/HomeScreen';
 import CompaignStatus from '../../features/advertisments/screens/CompaignStatus';
@@ -96,7 +97,11 @@ const BottomTab: React.FC<BottomTabProps> = () => {
           onPress={() => handleTabPress(tab.name)}
           activeOpacity={0.8}
         >
-          <IconComponent width={24} height={24} />
+          <Image 
+            source={Images.addPlaceholder} 
+            style={styles.addIconImage}
+            resizeMode="contain"
+          />
         </TouchableOpacity>
       );
     }
@@ -116,7 +121,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
   const renderCurvedBar = () => {
     const centerX = width / 2;
   const fabRadius = 35;
-  const barHeight = 70;
+  const barHeight = 88;
   const curveDepth = 28;
   const sideGap = 20;
     const r = fabRadius + sideGap;
@@ -192,7 +197,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 100,
+    height: 88,
     zIndex: 1000,
     overflow: 'visible',
     elevation: 30,
@@ -247,6 +252,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     marginBottom: -20,
     zIndex: 0,
+    gap: 40,
   },
   rightTabs: {
     flexDirection: 'row',
@@ -255,9 +261,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     marginBottom: -20,
     zIndex: 0,
+    gap: 40,
   },
   centerSpace: {
-    width: 90,
+    width: 70,
     height: 90,
   },
   tabButton: {
@@ -265,12 +272,11 @@ const styles = StyleSheet.create({
     height: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 5,
   },
   fabButton: {
     position: 'absolute',
-    bottom: 50,
-    left: width / 2 - 34,
+    bottom: 67,
+    left: width / 2 - 35,
     width: 70,
     height: 70,
     borderRadius: 35,
@@ -286,6 +292,10 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 99999,
     zIndex: 99999,
+  },
+  addIconImage: {
+    width: 24,
+    height: 24,
   },
 });
 
