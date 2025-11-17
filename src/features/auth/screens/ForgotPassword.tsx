@@ -2,6 +2,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Formik, FormikHelpers } from 'formik';
 import React, { useState, useEffect, useCallback } from 'react';
+import PrimaryButton from '../../../components/PrimaryButton';
 import {
   ActivityIndicator,
   Alert,
@@ -63,7 +64,7 @@ const ForgotPassword: React.FC = () => {
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   // Track current language to force re-renders
   const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
   // Track RTL state to force layout re-render
@@ -91,7 +92,7 @@ const ForgotPassword: React.FC = () => {
       i18n.off('languageChanged', handleLanguageChange);
     };
   }, [i18nInstance.language]);
-  
+
   // Update language key when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -114,7 +115,7 @@ const ForgotPassword: React.FC = () => {
     setValidationAttempted(true);
 
     const errors = await formikHelpers.validateForm();
-    
+
     if (Object.keys(errors).length > 0) {
       formikHelpers.setTouched({
         phoneNumber: true,
@@ -137,7 +138,7 @@ const ForgotPassword: React.FC = () => {
         onError: (err: any) => {
           formikHelpers.setSubmitting(false);
           console.warn('Forgot Password error:', err);
-         
+
         },
       },
     );
@@ -186,7 +187,7 @@ const ForgotPassword: React.FC = () => {
 
   return (
     <LinearGradient
-      colors={['#ffffff', '#ffffff']}
+      colors={['#F8F8F8', '#F8F8F8']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={styles.container}
@@ -220,7 +221,7 @@ const ForgotPassword: React.FC = () => {
                 newPassword: '',
                 confirmPassword: '',
 
-              phoneNumber: '+923236102030',
+                phoneNumber: '+923236102030',
                 newPassword: '6AJ$kk3m9',
                 confirmPassword: '6AJ$kk3m9',
               }}
@@ -296,35 +297,22 @@ const ForgotPassword: React.FC = () => {
                       error={shouldShowError('confirmPassword')}
                     />
 
-                    <TouchableOpacity
-                      style={[
-                        styles.submitButton,
-                        (isSubmitting || forgotPassword.isPending) &&
-                          styles.disabledButton,
-                      ]}
+                    <PrimaryButton
+                      title={
+                        isSubmitting || forgotPassword.isPending
+                          ? t('forgot.sending', { lng: currentLanguage })
+                          : t('forgot.cta', { lng: currentLanguage })
+                      }
                       onPress={formikSubmit as any}
-                      disabled={isSubmitting || forgotPassword.isPending}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.buttonContent}>
-                        {(isSubmitting || forgotPassword.isPending) && (
-                          <ActivityIndicator
-                            size="small"
-                            color="#fff"
-                            style={styles.loader}
-                          />
-                        )}
-                        <Text style={styles.buttonText} key={`button-${languageKey}-${currentLanguage}`}>
-                          {isSubmitting || forgotPassword.isPending
-                            ? t('forgot.sending', { lng: currentLanguage })
-                            : t('forgot.cta', { lng: currentLanguage })}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
+                      loading={isSubmitting || forgotPassword.isPending}
+                      buttonStyle={{ alignSelf: 'center', width: 161, height: 50, marginTop: hp(2) }}
+                    />
+
                   </>
                 )
               }}
             </Formik>
+             <View style={styles.grayLine} />
 
             <View style={[styles.footer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               <Text style={styles.footerText} key={`footer-${languageKey}-${currentLanguage}`}>{t('forgot.remember', { lng: currentLanguage })} </Text>
@@ -345,7 +333,7 @@ const ForgotPassword: React.FC = () => {
         onResend={handleResendOTP}
         phoneNumber={phoneNumber}
       />
-       <NoInternet />
+      <NoInternet />
     </LinearGradient>
   );
 };
@@ -360,54 +348,39 @@ const styles = StyleSheet.create({
     paddingBottom: hp(25),
     minHeight: height + hp(10),
   },
-  header: { marginTop: hp(5), marginBottom: hp(4) },
+  header: { marginTop: hp(5), marginBottom: hp(4.5) },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     color: '#C539A5',
-    marginBottom: hp(0.1),
+   marginBottom: hp(1),
   },
   subtitle: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#444',
+    color: '#000000',
     lineHeight: hp(2.2),
-  },
-  submitButton: {
-    marginTop: hp(3),
-    marginBottom: hp(4),
-    backgroundColor: '#C539A5',
-    borderRadius: wp(3),
-    paddingVertical: hp(1.8),
-    paddingHorizontal: wp(8),
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
   },
   disabledButton: {
     backgroundColor: '#ccc',
     elevation: 0,
   },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   loader: { marginRight: wp(2) },
   buttonText: {
     color: '#fff',
-    fontSize: wp(4.5),
+    fontSize: wp(3.1),
     fontWeight: 'bold',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: hp(4),
+    marginTop: hp(3),
     marginBottom: hp(5),
   },
-  footerText: { fontSize: wp(3.8), color: '#444' },
+  grayLine: { height: 1, backgroundColor: '#E5E7EB',  marginTop: hp(4), width:220, justifyContent:'center', alignSelf:'center', },
+  footerText: { fontSize: 12, color: '#18181B' },
   loginLink: {
-    fontSize: wp(3.8),
+    fontSize: 12,
     color: '#C539A5',
     fontWeight: 'bold',
     textDecorationLine: 'underline',
@@ -427,7 +400,7 @@ const styles = StyleSheet.create({
     // padding will be set dynamically based on RTL/LTR
   },
   inputError: { borderColor: '#C539A5', borderWidth: 0.6 },
-  eyeIconContainer: { 
+  eyeIconContainer: {
     position: 'absolute',
     padding: wp(2),
     zIndex: 1,

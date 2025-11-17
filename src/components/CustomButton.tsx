@@ -140,7 +140,7 @@ const CustomButton: React.FC<CustomButtonProps> = ({
     if (variant === 'primary' && !disabled && !loading) {
       return (
         <LinearGradient
-          colors={gradientColors || ['#C539A5', '#E91E63']}
+          colors={gradientColors || ['#C539A5', '#C539A5']}
           start={{x: 0, y: 0}}
           end={{x: 1, y: 0}}
           style={[getButtonStyle(), buttonStyle]}>
