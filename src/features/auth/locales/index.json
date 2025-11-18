@@ -11,16 +11,37 @@
       "cta": "Login",
       "loggingIn": "Logging in...",
       "noAccount": "Don't have an account?",
-      "register": "Register"
+      "register": "Register",
+      "errors": {
+        "phoneNumber": "Please correct phone number",
+        "password": "Your password incorrect"
+      },
+      "passwordRequirements": {
+        "minChars": "Minimum characters 8",
+        "uppercase": "One uppercase character",
+        "lowercase": "One lowercase character",
+        "number": "One number"
+      }
     },
     "forgot": {
-      "title": "Forgot Password",
+      "title": "Reset Password",
       "subtitle": "Enter your phone number and new password. We'll send you an OTP on WhatsApp to confirm the reset.",
       "newPassword": "New Password",
       "confirmPassword": "Confirm Password",
       "sending": "Sending...",
       "cta": "Continue",
-      "remember": "Remember your password?"
+      "remember": "Remember your password?",
+      "errors": {
+        "phoneNumber": "Please correct phone number",
+        "newPassword": "Password must be at least 8 characters",
+        "confirmPassword": "Passwords do not match"
+      },
+      "passwordRequirements": {
+        "minChars": "Minimum characters 8",
+        "uppercase": "One uppercase character",
+        "lowercase": "One lowercase character",
+        "number": "One number"
+      }
     },
     "register": {
       "title": "Register",
@@ -36,7 +57,18 @@
       "password": "Password",
       "registering": "Registering...",
       "cta": "Register",
-      "already": "Already have an account?"
+      "already": "Already have an account?",
+      "errors": {
+        "username": "Username is required",
+        "password": "Password must meet all requirements",
+        "phoneNumber": "Please correct phone number"
+      },
+      "passwordRequirements": {
+        "minChars": "Minimum characters 8",
+        "uppercase": "One uppercase character",
+        "lowercase": "One lowercase character",
+        "number": "One number"
+      }
     },
     "reset": {
       "title": "Reset Password",
@@ -59,7 +91,17 @@
       "cta": "لاگ اِن",
       "loggingIn": "لاگ اِن ہو رہے ہیں...",
       "noAccount": "اکاؤنٹ نہیں ہے؟",
-      "register": "رجسٹر کریں"
+      "register": "رجسٹر کریں",
+      "errors": {
+        "phoneNumber": "براہ کرم صحیح نمبر درج کریں",
+        "password": "آپ کا پاس ورڈ غلط ہے"
+      },
+      "passwordRequirements": {
+        "minChars": "کم از کم 8 حروف",
+        "uppercase": "ایک بڑا حرف",
+        "lowercase": "ایک چھوٹا حرف",
+        "number": "ایک نمبر"
+      }
     },
     "forgot": {
       "title": "پاس ورڈ بھول گئے",
@@ -68,7 +110,18 @@
       "confirmPassword": "پاس ورڈ کی تصدیق کریں",
       "sending": "بھیجا جا رہا ہے...",
       "cta": "جاری رکھیں",
-      "remember": "پاس ورڈ یاد ہے؟"
+      "remember": "پاس ورڈ یاد ہے؟",
+      "errors": {
+        "phoneNumber": "براہ کرم صحیح نمبر درج کریں",
+        "newPassword": "پاس ورڈ کم از کم 8 حروف کا ہونا چاہیے",
+        "confirmPassword": "پاس ورڈز میل نہیں کھاتے"
+      },
+      "passwordRequirements": {
+        "minChars": "کم از کم 8 حروف",
+        "uppercase": "ایک بڑا حرف",
+        "lowercase": "ایک چھوٹا حرف",
+        "number": "ایک نمبر"
+      }
     },
     "register": {
       "title": "رجسٹر کریں",
@@ -84,7 +137,18 @@
       "password": "پاس ورڈ",
       "registering": "رجسٹر کیا جا رہا ہے...",
       "cta": "رجسٹر کریں",
-      "already": "کیا آپ کا پہلے سے اکاؤنٹ ہے؟"
+      "already": "کیا آپ کا پہلے سے اکاؤنٹ ہے؟",
+      "errors": {
+        "username": "یوزرنیم درکار ہے",
+        "password": "پاس ورڈ تمام تقاضوں کو پورا کرنا چاہیے",
+        "phoneNumber": "براہ کرم صحیح نمبر درج کریں"
+      },
+      "passwordRequirements": {
+        "minChars": "کم از کم 8 حروف",
+        "uppercase": "ایک بڑا حرف",
+        "lowercase": "ایک چھوٹا حرف",
+        "number": "ایک نمبر"
+      }
     },
     "reset": {
       "title": "پاس ورڈ ری سیٹ کریں",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,20 +9,27 @@ import {
   StatusBar,
   Dimensions,
   Platform,
+  Animated,
+  Easing,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import BackButton from '../../../components/BackButton';
+import PrimaryButton from '../../../components/PrimaryButton';
 import { getTermsAgreed, setTermsAgreed } from '../../../services/storage';
+import { useAuthStore } from '../../../store/authStore';
 
 const { width, height } = Dimensions.get('window');
+const wp = (percentage: number) => (width * percentage) / 100;
+const hp = (percentage: number) => (height * percentage) / 100;
 
 interface TermsAndConditionsProps {
   route?: {
     params?: {
       fromAuth?: boolean;
       user?: any;
+      navigateTo?: string;
     };
   };
 }
@@ -32,49 +39,175 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
   const route = useRoute();
   const params = (route.params as any) || {};
   const fromAuth = params.fromAuth || false;
+  const navigateTo = params.navigateTo;
+  const pendingUser = params.user; // User from registration OTP verification
+  const setUser = useAuthStore(s => s.setUser);
 
   const [hasAgreed, setHasAgreed] = useState<boolean>(false);
   const [showHelloBanner, setShowHelloBanner] = useState<boolean>(false);
   const [isChecked, setIsChecked] = useState<boolean>(false);
+  
+  // Refs
+  const scrollViewRef = useRef<ScrollView>(null);
+  
+  // Animation values
+  const checkboxScale = useRef(new Animated.Value(1)).current;
+  const checkboxOpacity = useRef(new Animated.Value(0)).current;
+  const buttonScale = useRef(new Animated.Value(1)).current;
+  const buttonOpacity = useRef(new Animated.Value(0)).current;
+  const buttonTranslateY = useRef(new Animated.Value(100)).current; // Start from bottom
 
   useEffect(() => {
     checkTermsAgreement();
   }, []);
+
+  useEffect(() => {
+    // Animate button container appearance (but keep button hidden until checkbox is checked)
+    if (showHelloBanner) {
+      Animated.timing(buttonOpacity, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showHelloBanner]);
 
   const checkTermsAgreement = async () => {
     try {
       const agreed = await getTermsAgreed();
       setHasAgreed(agreed);
       setShowHelloBanner(!agreed || fromAuth);
-      setIsChecked(agreed);
+      // Always start with checkbox unchecked
+      setIsChecked(false);
     } catch (error) {
       console.error('Error checking terms agreement:', error);
       setShowHelloBanner(true);
+      setIsChecked(false);
     }
   };
 
   const handleCheckboxToggle = () => {
-    setIsChecked(!isChecked);
+    const newCheckedState = !isChecked;
+    setIsChecked(newCheckedState);
+
+    // Animate checkbox
+    Animated.sequence([
+      Animated.parallel([
+        Animated.spring(checkboxScale, {
+          toValue: 0.8,
+          useNativeDriver: true,
+          tension: 300,
+          friction: 10,
+        }),
+        Animated.timing(checkboxOpacity, {
+          toValue: newCheckedState ? 1 : 0,
+          duration: 200,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.spring(checkboxScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 300,
+        friction: 10,
+      }),
+    ]).start();
+
+    // Animate button from bottom when checked
+    if (newCheckedState) {
+      // Scroll to bottom to show the button
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+      
+      Animated.parallel([
+        Animated.spring(buttonTranslateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 8,
+        }),
+        Animated.timing(buttonScale, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Hide button when unchecked
+      Animated.parallel([
+        Animated.timing(buttonTranslateY, {
+          toValue: 100,
+          duration: 250,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(buttonScale, {
+          toValue: 0.8,
+          duration: 250,
+          easing: Easing.in(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
   };
 
-  const handleContinue = async () => {
+  const handleAgree = async () => {
     if (!isChecked) {
       return; // Don't proceed if checkbox is not checked
     }
-    try {
-      await setTermsAgreed(true);
-      setHasAgreed(true);
-      setShowHelloBanner(false);
-      
-      // Just go back after accepting terms
-      navigation.goBack();
-    } catch (error) {
-      console.error('Error saving terms agreement:', error);
-    }
-  };
 
-  const handleDisagree = () => {
-    navigation.goBack();
+    // Animate button press
+    Animated.sequence([
+      Animated.timing(buttonScale, {
+        toValue: 0.95,
+        duration: 100,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonScale, {
+        toValue: 1,
+        duration: 100,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start(async () => {
+      try {
+        await setTermsAgreed(true);
+        setHasAgreed(true);
+        setShowHelloBanner(false);
+        
+        // Navigate based on where we came from
+        setTimeout(() => {
+          if (navigateTo && pendingUser) {
+            // If we have a pending user from registration, set it first
+            // This will cause the app to switch from AuthNavigator to AppNavigator
+            setUser(pendingUser);
+            
+            // Use a small delay to ensure the navigator has switched
+            setTimeout(() => {
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: navigateTo }],
+                })
+              );
+            }, 100);
+          } else if (navigateTo) {
+            // If we have a navigation target but no pending user, just navigate
+            (navigation as any).navigate(navigateTo);
+          } else {
+            // Otherwise, just go back
+            navigation.goBack();
+          }
+        }, 300);
+      } catch (error) {
+        console.error('Error saving terms agreement:', error);
+      }
+    });
   };
 
   return (
@@ -90,266 +223,284 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
 
       {/* Hello Banner - Only shown if user hasn't agreed */}
       {showHelloBanner && (
-        <LinearGradient
-          colors={['#FFF4FD', '#FEF3F9', '#FFFFFF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.helloBanner}
-        >
-          <View style={styles.helloIconContainer}>
-            <Ionicons name="document-text" size={28} color="#C539A5" />
-          </View>
+        <View style={styles.helloBanner}>
           <Text style={styles.helloTitle}>Hello</Text>
           <Text style={styles.helloSubtitle}>
-            Before you create an account, please read and accept our Terms and Conditions.
+            Before you create an account, please read and accept our Terms and Condition.
           </Text>
-        </LinearGradient>
+        </View>
       )}
 
       {/* Terms Content */}
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
       >
         <View style={styles.contentContainer}>
-          <View style={styles.titleContainer}>
-            <View style={styles.titleIconContainer}>
-              <Ionicons name="shield-checkmark" size={32} color="#C539A5" />
-            </View>
-            <Text style={styles.title}>Terms and Conditions</Text>
-          </View>
+          <Text style={styles.title}>Terms and Conditions</Text>
           <View style={styles.lastUpdateContainer}>
-            <Ionicons name="time-outline" size={14} color="#999999" />
             <Text style={styles.lastUpdate}>Last update: Yesterday</Text>
           </View>
-          <View style={styles.divider} />
 
           <View style={styles.termsContent}>
-            <Text style={styles.paragraph}>
-              Welcome to ADRYD Marketing Co.
+            <Text style={styles.introText}>
+              Welcome to ADRYD Marketing Co. ("ADRYD," "we," "our," or "us"). These Terms and
+              Conditions ("Terms") govern your access to and use of our website{' '}
+              <Text style={styles.link}>https://adryd.app</Text>, our mobile application, and all
+              related services (collectively referred to as the "Platform").
             </Text>
-            <Text style={styles.paragraph}>
-              These Terms and Conditions ("Terms") govern your access and use of our website{' '}
-              <Text style={styles.link}>https://adryd.app</Text>, mobile application, and related services
-              (collectively referred to as the "Service").
-            </Text>
-            <Text style={styles.paragraph}>
-              Please read them carefully before accessing or using our service: Ammar Hameed
-            </Text>
-
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>1</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Company Information</Text>
-            </View>
-            <Text style={styles.paragraph}>
-              ADRYD Marketing Co. is a registered business in Pakistan under Registration No. 3520028592305.
-            </Text>
-            <Text style={styles.paragraph}>
-              Registered Office: Lahore, Pakistan.
-            </Text>
-            <Text style={styles.paragraph}>
-              All operations comply with applicable Pakistani laws, including digital advertising and e-commerce regulations.
+            <Text style={styles.introText}>
+              By using ADRYD, you agree to these Terms. Please read them carefully before accessing
+              or using our services.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>2</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Acceptance of Terms</Text>
-            </View>
+            {/* Section 1 */}
+            <Text style={styles.sectionTitle}>1. Company Information</Text>
+            <Text style={styles.paragraph}>
+              ADRYD Marketing Co. is a registered business in Pakistan under Registration No.{' '}
+              <Text style={styles.boldText}>3520028592305</Text>.
+            </Text>
+            <Text style={styles.paragraph}>Registered Office: Lahore, Pakistan.</Text>
+            <Text style={styles.paragraph}>
+              All operations comply with applicable Pakistani laws, including digital advertising and
+              e-commerce regulations.
+            </Text>
+
+            {/* Section 2 */}
+            <Text style={styles.sectionTitle}>2. Acceptance of Terms</Text>
             <Text style={styles.paragraph}>
               By accessing or using ADRYD's website, app, or services, you confirm that you:
             </Text>
-            <Text style={styles.paragraph}>
-              • Are at least 18 years of age or have parental/guardian consent
+            <Text style={styles.bulletPoint}>• Are at least 18 years old,</Text>
+            <Text style={styles.bulletPoint}>• Agree to comply with these Terms, and</Text>
+            <Text style={styles.bulletPoint}>
+              • Provide accurate and truthful information when using our services.
             </Text>
             <Text style={styles.paragraph}>
-              • Have the legal capacity to enter into binding agreements
-            </Text>
-            <Text style={styles.paragraph}>
-              • Will comply with all applicable laws and regulations
-            </Text>
-            <Text style={styles.paragraph}>
-              • Will provide accurate and truthful information
+              If you disagree with any part of these Terms, please discontinue using our Platform.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>3</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Minors</Text>
-            </View>
+            {/* Section 3 */}
+            <Text style={styles.sectionTitle}>3. Services Provided</Text>
             <Text style={styles.paragraph}>
-              Minors or people below 18 years old are not allowed to use this Website.
+              ADRYD offers branding, marketing, and advertising solutions — including but not
+              limited to:
+            </Text>
+            <Text style={styles.bulletPoint}>• Outdoor and digital advertising campaigns,</Text>
+            <Text style={styles.bulletPoint}>• Brand strategy and creative design,</Text>
+            <Text style={styles.bulletPoint}>• Business marketing consultancy, and</Text>
+            <Text style={styles.bulletPoint}>
+              • Technology-driven media placement through our app.
+            </Text>
+            <Text style={styles.paragraph}>
+              We reserve the right to modify, suspend, or discontinue any service at our discretion,
+              without prior notice.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>4</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Intellectual Property Rights</Text>
-            </View>
+            {/* Section 4 */}
+            <Text style={styles.sectionTitle}>4. User Accounts</Text>
             <Text style={styles.paragraph}>
-              Other than the content you own, under these Terms, ADRYD Marketing Co. and/or its licensors own all the intellectual property rights and materials contained in this Website.
+              To access certain services, you may need to register an account.
             </Text>
-            <Text style={styles.paragraph}>
-              These Terms will be applied fully and affect to your use of this Website. By using this Website, you agreed to accept all terms and conditions written in here.
+            <Text style={styles.bulletPoint}>
+              • You are responsible for maintaining the confidentiality of your login details.
             </Text>
-
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>5</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Restrictions</Text>
-            </View>
-            <Text style={styles.paragraph}>
-              You are specifically restricted from all of the following:
+            <Text style={styles.bulletPoint}>
+              • You agree to notify ADRYD immediately of any unauthorized use of your account.
             </Text>
-            <Text style={styles.paragraph}>
-              • Publishing any Website material in any other media
-            </Text>
-            <Text style={styles.paragraph}>
-              • Selling, sublicensing and/or otherwise commercializing any Website material
-            </Text>
-            <Text style={styles.paragraph}>
-              • Publicly performing and/or showing any Website material
-            </Text>
-            <Text style={styles.paragraph}>
-              • Using this Website in any way that is or may be damaging to this Website
-            </Text>
-            <Text style={styles.paragraph}>
-              • Using this Website in any way that impacts user access to this Website
+            <Text style={styles.bulletPoint}>
+              • ADRYD reserves the right to suspend or terminate accounts for fraudulent or unlawful
+              activity.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>6</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Your Content</Text>
-            </View>
-            <Text style={styles.paragraph}>
-              In these Terms and Conditions, "Your Content" shall mean any audio, video text, images or other material you choose to display on this Website. By displaying Your Content, you grant ADRYD Marketing Co. a non-exclusive, worldwide irrevocable, sub-licensable license to use, reproduce, adapt, publish, translate and distribute it in any and all media.
+            {/* Section 5 */}
+            <Text style={styles.sectionTitle}>5. Payments and Refunds</Text>
+            <Text style={styles.bulletPoint}>
+              • All payments are made in Pakistani Rupees (PKR) in compliance with the State Bank of
+              Pakistan.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Service fees and advertising costs are non-refundable once work begins.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Refunds (if applicable) are processed only when ADRYD fails to deliver the agreed
+              service due to internal issues.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>7</Text>
-              </View>
-              <Text style={styles.sectionTitle}>No Warranties</Text>
-            </View>
+            {/* Section 6 */}
+            <Text style={styles.sectionTitle}>6. Intellectual Property Rights</Text>
             <Text style={styles.paragraph}>
-              This Website is provided "as is," with all faults, and ADRYD Marketing Co. express no representations or warranties, of any kind related to this Website or the materials contained on this Website.
+              All content, branding, visuals, code, and data on ADRYD are intellectual property of
+              ADRYD Marketing Co.
+            </Text>
+            <Text style={styles.paragraph}>
+              Users may not copy, reproduce, or distribute any content without written consent from
+              ADRYD.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>8</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Limitation of Liability</Text>
-            </View>
+            {/* Section 7 */}
+            <Text style={styles.sectionTitle}>7. User Conduct</Text>
+            <Text style={styles.paragraph}>Users agree not to:</Text>
+            <Text style={styles.bulletPoint}>
+              • Upload or share false, illegal, or misleading information,
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Attempt unauthorized access to ADRYD systems, or
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Violate any applicable Pakistani laws, including the Prevention of Electronic Crimes
+              Act (PECA) 2016.
+            </Text>
             <Text style={styles.paragraph}>
-              In no event shall ADRYD Marketing Co., nor any of its officers, directors and employees, shall be held liable for anything arising out of or in any way connected with your use of this Website whether such liability is under contract.
+              Any violation may lead to account termination or legal action.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>9</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Indemnification</Text>
-            </View>
+            {/* Section 8 */}
+            <Text style={styles.sectionTitle}>8. Data and Privacy</Text>
             <Text style={styles.paragraph}>
-              You hereby indemnify to the fullest extent ADRYD Marketing Co. from and against any and/or all liabilities, costs, demands, causes of action, damages and expenses arising in any way related to your breach of any of the provisions of these Terms.
+              Your privacy is important to us. ADRYD collects only necessary data to operate its
+              services, in line with Pakistan's Personal Data Protection Bill.
+            </Text>
+            <Text style={styles.paragraph}>
+              Please review our Privacy Policy to learn more about how your information is collected
+              and used.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>10</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Severability</Text>
-            </View>
+            {/* Section 9 */}
+            <Text style={styles.sectionTitle}>9. Limitation of Liability</Text>
+            <Text style={styles.paragraph}>ADRYD is not liable for:</Text>
+            <Text style={styles.bulletPoint}>• Any loss of profits or business opportunities,</Text>
+            <Text style={styles.bulletPoint}>
+              • Errors or interruptions in services caused by third parties, or
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Unauthorized access or data breaches beyond our control.
+            </Text>
             <Text style={styles.paragraph}>
-              If any provision of these Terms is found to be invalid under any applicable law, such provisions shall be deleted without affecting the remaining provisions herein.
+              Our liability shall not exceed the total amount paid by you for the service in
+              question.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>11</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Variation of Terms</Text>
-            </View>
+            {/* Section 10 */}
+            <Text style={styles.sectionTitle}>10. Indemnification</Text>
             <Text style={styles.paragraph}>
-              ADRYD Marketing Co. is permitted to revise these Terms at any time as it sees fit, and by using this Website you are expected to review these Terms on a regular basis.
+              You agree to indemnify and hold ADRYD, its directors, employees, and affiliates
+              harmless against any claims, losses, or damages arising from your misuse of the
+              Platform or violation of these Terms.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>12</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Assignment</Text>
-            </View>
+            {/* Section 11 */}
+            <Text style={styles.sectionTitle}>11. Third-Party Links</Text>
             <Text style={styles.paragraph}>
-              ADRYD Marketing Co. is allowed to assign, transfer, and subcontract its rights and/or obligations under these Terms without any notification. However, you are not allowed to assign, transfer, or subcontract any of your rights and/or obligations under these Terms.
+              Our Platform may contain links to external sites for convenience. ADRYD does not
+              endorse or take responsibility for third-party content or services.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>13</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Entire Agreement</Text>
-            </View>
+            {/* Section 12 */}
+            <Text style={styles.sectionTitle}>12. Governing Law and Jurisdiction</Text>
+            <Text style={styles.paragraph}>These Terms are governed by the laws of Pakistan.</Text>
             <Text style={styles.paragraph}>
-              These Terms constitute the entire agreement between ADRYD Marketing Co. and you in relation to your use of this Website, and supersede all prior agreements and understandings.
+              All disputes shall fall under the exclusive jurisdiction of the courts in Lahore,
+              Pakistan.
             </Text>
 
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionNumber}>
-                <Text style={styles.sectionNumberText}>14</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Governing Law & Jurisdiction</Text>
-            </View>
+            {/* Section 13 */}
+            <Text style={styles.sectionTitle}>13. Modifications to Terms</Text>
             <Text style={styles.paragraph}>
-              These Terms will be governed by and interpreted in accordance with the laws of Pakistan, and you submit to the non-exclusive jurisdiction of the state and federal courts located in Pakistan for the resolution of any disputes.
+              ADRYD reserves the right to modify or update these Terms at any time. The updated
+              version will be posted on our website. Continued use of our services after any change
+              means you accept the revised Terms.
             </Text>
+
+            {/* Section 14 */}
+            <Text style={styles.sectionTitle}>14. Refund Policy</Text>
+            <Text style={styles.bulletPoint}>
+              • If your advertisement is approved and its advertising has started, no refund will be
+              issued under any circumstances.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • If your advertisement is not approved yet and you cancel the ad before approval,
+              your payment will be refunded within 7 to 10 business days.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • Refunds will be made through the same payment method used during the transaction.
+            </Text>
+            <Text style={styles.bulletPoint}>
+              • ADRYD reserves the right to withhold refunds if a user violates any of our Terms
+              or submits fraudulent activity.
+            </Text>
+
+            {/* Section 15 */}
+            <Text style={styles.sectionTitle}>15. Contact Us</Text>
+            <Text style={styles.paragraph}>
+              For any questions regarding these Terms, please contact:
+            </Text>
+            <Text style={styles.bulletPoint}>📧 support@adryd.app</Text>
+            <Text style={styles.bulletPoint}>📍 ADRYD Marketing Co., Lahore, Pakistan</Text>
           </View>
         </View>
       </ScrollView>
 
-      {/* Checkbox and Continue Button - Only shown if user hasn't agreed or from auth */}
+      {/* Checkbox and Agree Button - Only shown if user hasn't agreed or from auth */}
       {showHelloBanner && (
-        <View style={styles.buttonContainer}>
+        <Animated.View
+          style={[
+            styles.buttonContainer,
+            {
+              opacity: buttonOpacity,
+            },
+          ]}
+        >
           <TouchableOpacity
             style={styles.checkboxContainer}
             onPress={handleCheckboxToggle}
             activeOpacity={0.7}
           >
-            <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
-              {isChecked && (
-                <Ionicons name="checkmark" size={20} color="#FFFFFF" style={styles.checkmarkIcon} />
-              )}
-            </View>
-            <Text style={styles.checkboxText}>I agree with terms and conditions</Text>
+            <Animated.View
+              style={[
+                styles.checkbox,
+                isChecked && styles.checkboxChecked,
+                {
+                  transform: [{ scale: checkboxScale }],
+                },
+              ]}
+            >
+              <Animated.View
+                style={{
+                  opacity: checkboxOpacity,
+                }}
+              >
+                {isChecked && (
+                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                )}
+              </Animated.View>
+            </Animated.View>
+            <Text style={[
+              styles.checkboxText,
+              { color: isChecked ? '#18181B' : '#70737D' }
+            ]}>
+              These Terms will be applied fully and affect
+            </Text>
           </TouchableOpacity>
           
-          <LinearGradient
-            colors={isChecked ? ['#C539A5', '#E91E63'] : ['#D0D0D0', '#D0D0D0']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.continueButton, !isChecked && styles.continueButtonDisabled]}
+          <Animated.View
+            style={{
+              transform: [
+                { translateY: buttonTranslateY },
+                { scale: buttonScale },
+              ],
+            }}
           >
-            <TouchableOpacity
-              onPress={handleContinue}
-              activeOpacity={0.8}
+            <PrimaryButton
+              title="Agree"
+              onPress={handleAgree}
               disabled={!isChecked}
-              style={styles.continueButtonTouchable}
-            >
-              <Text style={styles.continueButtonText}>Continue</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FFFFFF" style={styles.continueIcon} />
-            </TouchableOpacity>
-          </LinearGradient>
-        </View>
+              buttonStyle={styles.agreeButton}
+            />
+          </Animated.View>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
@@ -358,139 +509,108 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F8F8',
   },
   header: {
-    paddingHorizontal: width * 0.04,
-    paddingTop: Platform.OS === 'ios' ? 0 : height * 0.02,
+    paddingHorizontal: wp(4),
+    paddingTop: Platform.OS === 'ios' ? 0 : hp(2),
     zIndex: 10,
   },
   helloBanner: {
-    marginHorizontal: width * 0.04,
-    marginTop: height * 0.015,
-    marginBottom: height * 0.02,
-    padding: width * 0.06,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(197, 57, 165, 0.15)',
-    shadowColor: '#C539A5',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-    overflow: 'hidden',
-  },
-  helloIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(197, 57, 165, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+    marginLeft: 17, 
+    marginTop: hp(1.5),
+    marginBottom: hp(2),
+    padding: 15, 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 17, 
+    borderWidth: 0.7, 
+    borderColor: '#E5E7EB', 
+    width: Math.min(356, width - 34), 
+    minHeight: 79,
+    alignSelf: 'flex-start',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 17.1,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   helloTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    marginBottom: 12,
-    letterSpacing: 0.5,
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 6.11, 
   },
   helloSubtitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#555555',
-    lineHeight: 24,
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#000000',
+    lineHeight: 20,
   },
   scrollView: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
   scrollContent: {
-    paddingBottom: height * 0.2,
+    paddingBottom: hp(20),
   },
   contentContainer: {
-    paddingHorizontal: width * 0.04,
-    paddingTop: height * 0.02,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  titleIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(197, 57, 165, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
+    paddingHorizontal: wp(4),
+    paddingTop: hp(2),
   },
   title: {
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '700',
     color: '#000000',
-    flex: 1,
-    letterSpacing: 0.3,
+    marginBottom: hp(1),
   },
   lastUpdateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: hp(2),
   },
   lastUpdate: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '400',
     color: '#999999',
-    marginLeft: 6,
-    fontStyle: 'italic',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E8E8E8',
-    marginBottom: 24,
   },
   termsContent: {
-    marginBottom: 20,
+    marginBottom: hp(2),
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 32,
-    marginBottom: 16,
-  },
-  sectionNumber: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#C539A5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  sectionNumberText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  introText: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#000000',
+    lineHeight: 22,
+    marginBottom: hp(2),
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#1A1A1A',
-    flex: 1,
-    letterSpacing: 0.3,
+    color: '#000000',
+    marginTop: hp(2.5),
+    marginBottom: hp(1),
   },
   paragraph: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '400',
-    color: '#444444',
-    lineHeight: 26,
-    marginBottom: 20,
-    letterSpacing: 0.1,
+    color: '#000000',
+    lineHeight: 22,
+    marginBottom: hp(1.5),
+  },
+  bulletPoint: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#000000',
+    lineHeight: 22,
+    marginBottom: hp(0.8),
+    marginLeft: wp(2),
+  },
+  boldText: {
+    fontWeight: '700',
   },
   link: {
     color: '#C539A5',
@@ -501,95 +621,48 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: width * 0.04,
-    paddingBottom: Platform.OS === 'ios' ? height * 0.03 : height * 0.04,
-    paddingTop: 24,
+    paddingHorizontal: wp(4),
+    paddingBottom: Platform.OS === 'ios' ? hp(3) : hp(4),
+    paddingTop: hp(2),
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -4,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 12,
+    borderTopColor: '#E5E7EB',
+    overflow: 'hidden',
   },
   checkboxContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    alignItems: 'flex-start',
+    marginBottom: hp(2),
+    paddingVertical: hp(0.5),
   },
   checkbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 2.5,
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1.5,
     borderColor: '#C539A5',
     backgroundColor: '#FFFFFF',
-    marginRight: 16,
+    marginRight: wp(2),
+    marginTop: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#C539A5',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
   checkboxChecked: {
     backgroundColor: '#C539A5',
     borderColor: '#C539A5',
   },
-  checkmarkIcon: {
-    fontWeight: 'bold',
-  },
   checkboxText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#000000',
     flex: 1,
-    letterSpacing: 0.2,
+    lineHeight: 18,
+    marginTop: 2,
   },
-  continueButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#C539A5',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  continueButtonDisabled: {
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  continueButtonTouchable: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-  },
-  continueButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.8,
-    marginRight: 8,
-  },
-  continueIcon: {
-    marginLeft: 4,
+  agreeButton: {
+    alignSelf: 'center',
+    width: '50%',
   },
 });
 
 export default TermsAndConditions;
-
