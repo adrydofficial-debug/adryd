@@ -8,13 +8,18 @@ import {
   Easing,
   I18nManager,
   Image,
+  Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import {
   CompanySvg,
@@ -26,12 +31,14 @@ import {
   LogoutIcon,
   SecurityIcon,
   TermsIcon,
+  Images,
 } from '../assets/images';
 import { deleteFcmToken } from '../features/fcmtoken/api/api';
 import { useProfile } from '../features/profile/hooks/useProfile';
 import i18n from '../i18n';
 import { saveLanguage } from '../services/languageStorage';
 import { useAuthStore } from '../store/authStore';
+import { useDrawerStore } from '../store/drawerStore';
 type DrawerItem = {
   id: number;
   title: string;
@@ -55,7 +62,7 @@ type DrawerComponentProps = {
 };
 
 const { width, height } = Dimensions.get('window');
-const DRAWER_WIDTH = Math.min(width * 0.82, 340);
+const DRAWER_WIDTH = width; // Fullscreen drawer
 // Push the drawer slightly beyond its width to avoid any visible sliver in RTL/layout transitions
 const OFFSCREEN_X = DRAWER_WIDTH + 40;
 
@@ -69,6 +76,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
   const { data: profile } = useProfile(visible);
   const { user } = useAuthStore();
   const logout = useAuthStore(s => s.logout);
+  const setIsVisible = useDrawerStore(s => s.setIsVisible);
   const translateX = useRef(new Animated.Value(-OFFSCREEN_X)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ur'>(
@@ -113,6 +121,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
   };
 
   useEffect(() => {
+    setIsVisible(visible);
     if (visible) {
       Animated.parallel([
         Animated.timing(translateX, {
@@ -144,7 +153,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
         }),
       ]).start();
     }
-  }, [visible, translateX, backdropOpacity]);
+  }, [visible, translateX, backdropOpacity, setIsVisible]);
 
   const menuItems: DrawerItem[] = [
     {
@@ -304,30 +313,76 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
   );
 
   return (
-    <View
-      pointerEvents={visible ? 'auto' : 'none'}
-      style={[StyleSheet.absoluteFill, { direction: 'ltr' } as any]}
-    >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <Animated.View
-          style={[styles.backdrop, { opacity: backdropOpacity }]}
-        />
-      </TouchableWithoutFeedback>
+    <>
+      {visible && (
+        <View
+          pointerEvents={visible ? 'auto' : 'none'}
+          style={[StyleSheet.absoluteFill, { direction: 'ltr', zIndex: 9999 } as any]}
+        >
+          <TouchableWithoutFeedback onPress={onClose}>
+            <Animated.View
+              style={[styles.backdrop, { opacity: backdropOpacity, zIndex: 9998 }]}
+            />
+          </TouchableWithoutFeedback>
 
-      <Animated.View
-        style={[
-          styles.drawer,
-          {
-            transform: [{ translateX }],
-            // Force drawer to always be on the left, even in RTL mode
-            left: 0,
-            right: undefined,
-            zIndex: visible ? 1 : -1,
-          },
-        ]}
-      >
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.profileCard}>
+          <Animated.View
+            style={[
+              styles.drawerWrapper,
+              {
+                transform: [{ translateX }],
+                // Force drawer to always be on the left, even in RTL mode
+                left: 0,
+                right: undefined,
+                zIndex: visible ? 10000 : -1,
+              },
+            ]}
+          >
+            <View style={styles.drawer}>
+              {/* Android Shadow - Right Side Only */}
+              {Platform.OS === 'android' && (
+                <LinearGradient
+                  colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.1)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.androidShadow}
+                  pointerEvents="none"
+                />
+              )}
+              <SafeAreaView style={styles.safeArea} edges={['top']}>
+              {/* Header with Back Arrow and Help Icon */}
+              <View style={styles.headerContainer}>
+                <TouchableOpacity
+                  style={styles.headerButton}
+                  onPress={onClose}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="chevron-back" size={28} color="#70737D" />
+                </TouchableOpacity>
+                <View style={styles.headerSpacer} />
+                <TouchableOpacity
+                  style={styles.headerButton}
+                  onPress={() => {
+                    onClose();
+                    try {
+                      navigation.navigate('HelpFAQsScreen' as never);
+                      console.log('✅ Navigation to HelpFAQsScreen successful');
+                    } catch (error) {
+                      console.error('❌ Navigation error:', error);
+                    }
+                  }}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="help-circle-outline" size={24} color="#3D3D3D" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+              >
+                <View style={styles.profileCard}>
             <View style={styles.profileImageContainer}>
               <View style={styles.profileImage}>
                 {profile?.avatar_url || user?.user_metadata?.avatar_url ? (
@@ -355,7 +410,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
               </View>
             </View>
             <View style={styles.profileCenter}>
-              <Text style={styles.profileName}>
+              <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
                 {profile?.full_name ||
                   user?.user_metadata?.full_name ||
                   user?.user_metadata?.name ||
@@ -363,8 +418,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
                   user?.email?.split('@')[0] ||
                   'User'}
               </Text>
-              <Text style={styles.profilePhone}>
-                {profile?.phone || t('drawer.noPhone')}
+              <Text style={styles.profileID} numberOfLines={1} ellipsizeMode="middle">
+                ID {user?.id || profile?.id || 'N/A'}
               </Text>
             </View>
             <TouchableOpacity
@@ -379,13 +434,34 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
                   console.error('❌ Navigation error:', error);
                 }
               }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <EditSquareIcon width={22} height={22} />
+              <Image 
+                source={Images.editSquare} 
+                style={styles.editIconImage}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
             {/* <TouchableOpacity style={styles.editButton} activeOpacity={0.7}>
               <Text style={styles.editIcon}>✏️</Text>
             </TouchableOpacity> */}
           </View>
+
+          {/* Referral Banner */}
+          <TouchableOpacity
+            style={styles.referralBanner}
+            onPress={() => {
+              const inviteItem = menuItems.find(item => item.icon === 'invite');
+              inviteItem?.onPress?.();
+            }}
+            activeOpacity={0.8}
+          >
+            <Image 
+              source={Images.bannerSetting} 
+              style={styles.referralBannerImage}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
 
           <View style={styles.menuCard}>
             {menuItems.map(i => renderMenuItem(i, true))}
@@ -478,10 +554,14 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: height * 0.05 }} />
-        </ScrollView>
-      </Animated.View>
-    </View>
+                <View style={{ height: Platform.OS === 'ios' ? 40 : 50 }} />
+              </ScrollView>
+              </SafeAreaView>
+            </View>
+          </Animated.View>
+        </View>
+      )}
+    </>
   );
 };
 
@@ -489,34 +569,84 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000',
+    zIndex: 9998,
   },
-  drawer: {
+  drawerWrapper: {
     position: 'absolute',
     top: 0,
     bottom: 0,
     left: 0,
-    right: undefined,
+    right: 0,
+    width: DRAWER_WIDTH,
+    overflow: 'hidden',
+  },
+  drawer: {
+    flex: 1,
     width: DRAWER_WIDTH,
     backgroundColor: '#FFFFFF',
-    // paddingTop: 16,
-    paddingBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    paddingTop: 0,
+    paddingBottom: 0,
+    // Shadow only on the right side (where drawer opens from) - iOS
+    ...(Platform.OS === 'ios' && {
+      shadowColor: '#000',
+      shadowOffset: { width: -2, height: 0 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+    }),
+    // No elevation for Android to prevent bottom shadow
+    elevation: 0,
+    borderLeftWidth: 2,
+    borderRightWidth: 2,
+    borderLeftColor: '#FFD700',
+    borderRightColor: '#FFD700',
     // Force drawer to always open from left, ignore RTL
     ...({ writingDirection: 'ltr' } as any),
   },
+  androidShadow: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 0,
+    width: 10,
+    zIndex: 1,
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    zIndex: 2,
+  },
+  headerContainer: {
+    paddingHorizontal: width * 0.04,
+    paddingTop: Platform.OS === 'ios' ? 8 : 16,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerSpacer: {
+    flex: 1,
+  },
   profileCard: {
-    backgroundColor: '#BF349E',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: width * 0.04,
     marginBottom: 14,
-    borderRadius: 16,
-    padding: width * 0.04,
+    borderRadius: 15,
+    padding: 13,
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 30,
+    marginTop: 10,
+    borderWidth: 0.7,
+    borderColor: '#E5E7EB',
   },
   profileImageContainer: {
     width: width * 0.15,
@@ -525,20 +655,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderWidth: 0,
     marginRight: 12,
   },
   profileImage: {
-    width: width * 0.12,
-    height: width * 0.12,
-    borderRadius: width * 0.06,
-    backgroundColor: '#9C27B0',
+    width: width * 0.15,
+    height: width * 0.15,
+    borderRadius: width * 0.075,
+    backgroundColor: '#E8D5F2',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    overflow: 'hidden',
   },
   profileImageText: {
-    color: '#FFFFFF',
+    color: '#C539A5',
     fontSize: 14,
     fontWeight: 'bold',
   },
@@ -547,37 +679,47 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: width * 0.06,
   },
-  profileCenter: { flex: 1 },
+  profileCenter: { 
+    flex: 1,
+    marginRight: 12,
+    minWidth: 0, // Allow flex to shrink properly
+    flexShrink: 1, // Allow it to shrink if needed
+  },
   profileName: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: '#3D3D3D',
+    fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  profilePhone: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    opacity: 0.9,
+  profileID: {
+    color: '#9E9E9E',
+    fontSize: 13,
+    lineHeight: 18,
   },
   editButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 10,
+    marginLeft: 8,
+    flexShrink: 0, // Prevent button from shrinking
+    backgroundColor: 'transparent',
   },
   editIcon: { fontSize: 14 },
+  editIconImage: {
+    width: 22,
+    height: 22,
+  },
   menuCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: width * 0.04,
     marginBottom: 10,
-    borderRadius: 12,
+    borderRadius: 15,
     paddingVertical: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    borderWidth: 0.7,
+    borderColor: '#E5E7EB',
   },
   menuItem: {
     flexDirection: 'row',
@@ -639,6 +781,28 @@ const styles = StyleSheet.create({
   },
   languageOptionTextActive: {
     color: '#FFFFFF',
+  },
+  referralBanner: {
+    marginHorizontal: width * 0.04,
+    marginBottom: -6,
+    marginTop: -18,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  referralBannerImage: {
+    width: width * 1,
+    height: undefined,
+    aspectRatio: 3.2, 
+    borderRadius: 16,
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  scrollContent: {
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    flexGrow: 1,
   },
 });
 

@@ -24,6 +24,7 @@ import HomeScreen from '../../features/boards/screens/HomeScreen';
 import CompaignStatus from '../../features/advertisments/screens/CompaignStatus';
 import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen';
 import UpdateProfile from '../../features/profile/screens/UpdateProfile';
+import { useDrawerStore } from '../../store/drawerStore';
 const { width, height } = Dimensions.get('window');
 type TabName = 'Home' | 'Boards' | 'Add' | 'Chat' | 'Profile';
 interface BottomTabProps {
@@ -32,6 +33,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
   const navigation = useNavigation();
   const route = useRoute() as any;
   const [activeTab, setActiveTab] = useState<TabName>('Home');
+  const isDrawerVisible = useDrawerStore(s => s.isVisible);
 
   React.useEffect(() => {
     const desiredTab = route?.params?.tab as TabName | undefined;
@@ -158,9 +160,10 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       </View>
       
       {/* Bottom Tab Navigation */}
-      <View style={styles.bottomTabContainer}>
-        {/* Curved Navigation Bar Background */}
-        {renderCurvedBar()}
+      {!isDrawerVisible && (
+        <View style={styles.bottomTabContainer}>
+          {/* Curved Navigation Bar Background */}
+          {renderCurvedBar()}
         
         {/* Navigation Content */}
         <View style={styles.navigationContent}>
@@ -178,7 +181,8 @@ const BottomTab: React.FC<BottomTabProps> = () => {
           </View>
         </View>
         {renderTab(tabs[2], 2)}
-      </View>
+        </View>
+      )}
     </View>
   );
 };

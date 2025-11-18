@@ -421,7 +421,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   scroll: { flex: 1, backgroundColor: '#fff' },
-  scrollContent: { paddingTop: 0, paddingBottom: 24 },
+  scrollContent: { paddingTop: 0, paddingBottom: 120 },
   fixedHeader: {
     width,
     paddingTop: height * 0.04,
@@ -442,9 +442,10 @@ const styles = StyleSheet.create({
   avatar: {
     width: width * 0.13,
     height: width * 0.13,
-    borderRadius: width * 0.065,
-    borderWidth: 1,
-    borderColor: '#fff',
+    borderRadius: width * 0.085,
+    borderWidth: 0.7,
+    borderColor: '#E5E7EB',
+    
   },
   avatarPlaceholder: {
     backgroundColor: '#FDE7FB',
