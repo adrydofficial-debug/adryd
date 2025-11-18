@@ -88,7 +88,7 @@ const CampaignTabs: React.FC<CampaignTabsProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
+    paddingVertical: 5,
     borderBottomWidth: 1,
     borderBottomColor: '#ECECEC',
   },
