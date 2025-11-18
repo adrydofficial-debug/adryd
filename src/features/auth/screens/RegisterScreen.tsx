@@ -16,13 +16,15 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import * as Yup from 'yup';
 import CustomInput from '../../../components/CustomInput';
+import PasswordRequirements from '../../../components/PasswordRequirements';
 import OTPModal from '../../../components/OTPModal';
 import i18n from '../../../i18n';
 import { supabase } from '../../../services/supabase';
 import { useRegister, useVerifyOtp } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
-import CustomButton from '../../../components/CustomButton';
+import PrimaryButton from '../../../components/PrimaryButton';
+import Loader from '../../../components/Loader';
 
 // ----------------------
 // Helpers
@@ -54,21 +56,7 @@ interface PasswordValidation {
   hasSpecial: boolean;
 }
 
-// ----------------------
-// Validation Schema
-// ----------------------
-const validationSchema = Yup.object().shape({
-  username: Yup.string().required('Username is required'),
-  password: Yup.string()
-    .matches(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
-      'Must include uppercase, lowercase, number, and special character',
-    )
-    .required('Password is required'),
-  phoneNumber: Yup.string()
-    .matches(/^\+92\d{10}$/, 'Invalid phone number')
-    .required('Phone number is required'),
-});
+// Validation schema will be created inside component to access translations
 
 // ----------------------
 // Component
@@ -76,7 +64,23 @@ const validationSchema = Yup.object().shape({
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const { t, i18n: i18nInstance } = useTranslation('auth');
   const registerMutation = useRegister();
-  const verifyOtpMutation = useVerifyOtp();
+
+  // Validation schema with translated error messages
+  const validationSchema = React.useMemo(() => {
+    const currentLang = i18nInstance.language;
+    return Yup.object().shape({
+      username: Yup.string().required(t('register.errors.username', { lng: currentLang }) || 'Username is required'),
+      password: Yup.string()
+        .required(t('register.errors.password', { lng: currentLang }) || 'Password is required')
+        .min(8, t('register.errors.password', { lng: currentLang }) || 'Password must be at least 8 characters')
+        .matches(/[A-Z]/, t('register.errors.password', { lng: currentLang }) || 'Password must contain uppercase')
+        .matches(/[a-z]/, t('register.errors.password', { lng: currentLang }) || 'Password must contain lowercase')
+        .matches(/[0-9]/, t('register.errors.password', { lng: currentLang }) || 'Password must contain number'),
+      phoneNumber: Yup.string()
+        .matches(/^\+92\d{10}$/, t('register.errors.phoneNumber', { lng: currentLang }) || 'Invalid phone number')
+        .required(t('register.errors.phoneNumber', { lng: currentLang }) || 'Phone number is required'),
+    });
+  }, [t, i18nInstance.language]);
 
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -197,20 +201,35 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     });
   };
 
-  const handleVerifyOtp = (otp: string) => {
-    verifyOtpMutation.mutate(
-      { phone, otp },
-      {
-        onSuccess: (user) => {
-          setShowOtpModal(false);
-          navigation.navigate("BottomTab");
-        },
+  const handleVerifyOtp = async (otp: string) => {
+    try {
+      // Verify OTP but don't set user yet - we'll do that after terms agreement
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone,
+        token: otp,
+        type: 'sms',
+      });
+      
+      if (error) {
+        console.warn('OTP verify error:', error);
+        return;
+      }
 
-        onError: err => {
-          console.warn('OTP verify error:', err);
-        },
-      },
-    );
+      // OTP verified successfully, now show Terms and Conditions
+      setShowOtpModal(false);
+      
+      // Store the user temporarily - we'll set it in store after terms agreement
+      const verifiedUser = data.user;
+      
+      // Navigate to Terms and Conditions first, then to BottomTab after agreement
+      (navigation as any).navigate('TermsAndConditions', {
+        fromAuth: true,
+        navigateTo: 'BottomTab',
+        user: verifiedUser, // Pass user so Terms screen can set it after agreement
+      });
+    } catch (err) {
+      console.warn('OTP verify error:', err);
+    }
   };
 
   const handleResendOtp = async () => {
@@ -308,36 +327,49 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                       onFocus={() => setFocusedField('phoneNumber')}
                       focused={focusedField === 'phoneNumber'}
                       error={shouldShowError('phoneNumber') || apiError}
+                      errorMessage={
+                        shouldShowError('phoneNumber')
+                          ? t('register.errors.phoneNumber', { lng: currentLanguage })
+                          : undefined
+                      }
                       showErrorText={false}
                     />
 
                     {/* Password */}
-                    <CustomInput
-                      label={t('register.password', { lng: currentLanguage })}
-                      placeholder={t('register.password', {
-                        lng: currentLanguage,
-                      })}
-                      isPassword={true}
-                      value={values.password}
-                      onChangeText={text => {
-                        handleChange('password')(text);
-                        validatePassword(text);
-                      }}
-                      onBlur={handleBlur('password')}
-                      onFocus={() => setFocusedField('password')}
-                      focused={focusedField === 'password'}
-                      error={shouldShowError('password') || (errors.password && touched.password)}
-                    />
+                    <View>
+                      <CustomInput
+                        label={t('register.password', { lng: currentLanguage })}
+                        placeholder={t('register.password', {
+                          lng: currentLanguage,
+                        })}
+                        isPassword={true}
+                        value={values.password}
+                        onChangeText={text => {
+                          handleChange('password')(text);
+                          validatePassword(text);
+                        }}
+                        onBlur={handleBlur('password')}
+                        onFocus={() => setFocusedField('password')}
+                        focused={focusedField === 'password'}
+                        error={shouldShowError('password') || (errors.password && touched.password)}
+                        errorMessage={
+                          shouldShowError('password')
+                            ? t('register.errors.password', { lng: currentLanguage })
+                            : undefined
+                        }
+                      />
+                      {focusedField === 'password' && (
+                        <PasswordRequirements password={values.password} namespace="register" />
+                      )}
+                    </View>
 
-                    <CustomButton
+                    <PrimaryButton
                       title={isLoading ? t('register.registering', { lng: currentLanguage }) : t('register.cta', { lng: currentLanguage })}
                       onPress={handleSubmit}
                       loading={isLoading}
-                      buttonStyle={{ alignSelf: 'center', width: 161, height: 50,marginTop:hp(2) }}
-                      variant="primary"
-                      size="medium"
+                      buttonStyle={{ alignSelf: 'center', width: 161, height: 50, marginTop: hp(2) }}
                     />
-
+                    {(isLoading || registerMutation.isPending) && <Loader />}
                   </>
                 );
               }}

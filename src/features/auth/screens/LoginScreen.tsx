@@ -33,13 +33,7 @@ const { width, height } = Dimensions.get('window');
 const wp = (p: number) => (width * p) / 100;
 const hp = (p: number) => (height * p) / 100;
 
-// ✅ Yup validation
-const loginValidationSchema = Yup.object().shape({
-  phoneNumber: Yup.string()
-    .required('')
-    .matches(/^\+92[0-9]{10}$/, ''),
-  password: Yup.string().required(''),
-});
+// ✅ Yup validation - will be created inside component to access translations
 
 const LoginScreen: React.FC = () => {
   const navigation =
@@ -52,6 +46,14 @@ const LoginScreen: React.FC = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const passwordRef = useRef<TextInput>(null);
+
+  // ✅ Yup validation schema
+  const loginValidationSchema = Yup.object().shape({
+    phoneNumber: Yup.string()
+      .required(t('login.errors.phoneNumber'))
+      .matches(/^\+92[0-9]{10}$/, t('login.errors.phoneNumber')),
+    password: Yup.string().required(t('login.errors.password')),
+  });
 
   const handleFocus = (field: string) => setFocusedField(field);
   const handleBlur = (field: string, formikBlur: (f: string) => void) => {
@@ -171,6 +173,11 @@ const LoginScreen: React.FC = () => {
                     error={
                       (touched.phoneNumber && (errors.phoneNumber !== undefined || !values.phoneNumber || values.phoneNumber === '+92' || values.phoneNumber.length < 13)) || apiError
                     }
+                    errorMessage={
+                      (touched.phoneNumber && (errors.phoneNumber || (!values.phoneNumber || values.phoneNumber === '+92' || values.phoneNumber.length < 13))) 
+                        ? t('login.errors.phoneNumber') 
+                        : undefined
+                    }
                     showErrorText={false}
                     returnKeyType="next"
                     blurOnSubmit={false}
@@ -192,6 +199,11 @@ const LoginScreen: React.FC = () => {
                     focused={focusedField === 'password'}
                     error={
                       (touched.password && (errors.password !== undefined || !values.password || values.password.trim() === '')) || apiError
+                    }
+                    errorMessage={
+                      ((touched.password && (errors.password || !values.password || values.password.trim() === '')) || apiError)
+                        ? t('login.errors.password')
+                        : undefined
                     }
                     returnKeyType="done"
                   />

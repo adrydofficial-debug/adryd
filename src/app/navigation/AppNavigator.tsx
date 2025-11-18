@@ -51,7 +51,7 @@ export type AppStackParamList = {
   ChooseOptionScreen: undefined;
   ContactSupportScreen: undefined;
   CompanywithoutInfoScreen: { campaignId: string };
-  TermsAndConditions: undefined;
+  TermsAndConditions: { fromAuth?: boolean; navigateTo?: string } | undefined;
   HelpFAQsScreen: undefined;
 };
 const Stack = createNativeStackNavigator<AppStackParamList>();

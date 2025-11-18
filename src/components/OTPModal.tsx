@@ -35,6 +35,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
   const [isResending, setIsResending] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const inputRefs = useRef<TextInput[]>([]);
 
   useEffect(() => {
@@ -44,6 +45,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
       setIsResending(false);
       setErrorMessage('');
       setResendCooldown(60); // 60 seconds cooldown
+      setFocusedIndex(null);
     }
   }, [visible]);
 
@@ -178,12 +180,14 @@ const OTPModal: React.FC<OTPModalProps> = ({
                 onKeyPress={({ nativeEvent }) =>
                   handleKeyPress(nativeEvent.key, index)
                 }
+                onFocus={() => setFocusedIndex(index)}
+                onBlur={() => setFocusedIndex(null)}
                 keyboardType="number-pad"
                 maxLength={1}
                 selectTextOnFocus
                 textAlign="center"
-                placeholder="-"
-                placeholderTextColor="#999"
+                placeholder=""
+                placeholderTextColor="transparent"
               />
             ))}
           </View>
@@ -270,7 +274,7 @@ const styles = StyleSheet.create({
     marginBottom: height * 0.01,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#18181B',
     textAlign: 'center',
     lineHeight: width * 0.04,
@@ -290,6 +294,10 @@ const styles = StyleSheet.create({
     fontSize: width * 0.03,
     fontWeight: 'bold',
     marginHorizontal: width * 0.01,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   otpInputEmpty: {
     backgroundColor: 'white',
