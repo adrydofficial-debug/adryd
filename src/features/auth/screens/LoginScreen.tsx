@@ -3,9 +3,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Formik, FormikHelpers } from 'formik';
 import React, { useRef, useState } from 'react';
-import Loader from '../../../components/Loader';
+import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
   Dimensions,
   KeyboardAvoidingView,
   Platform,
@@ -17,17 +16,15 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useTranslation } from 'react-i18next';
 import * as Yup from 'yup';
 import CustomInput from '../../../components/CustomInput';
-import DrawerComponent from '../../../components/DrawerComponent';
+import Loader from '../../../components/Loader';
 import NoInternet from '../../../components/NoInternet';
+import PrimaryButton from '../../../components/PrimaryButton';
 import { useAuthStore } from '../../../store/authStore';
 import { AuthStackParamList } from '../AuthNavigator';
 import { useLogin } from '../hooks/useAuth';
 import { LoginCredentials } from '../types';
-import PrimaryButton from '../../../components/PrimaryButton';
 
 const { width, height } = Dimensions.get('window');
 const wp = (p: number) => (width * p) / 100;
@@ -44,7 +41,7 @@ const LoginScreen: React.FC = () => {
 
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [setDrawerVisible] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   // ✅ Yup validation schema
@@ -132,9 +129,9 @@ const LoginScreen: React.FC = () => {
         >
           <View style={styles.mainContainer}>
             <View style={styles.header}>
-              <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.7}>
+              {/* <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.7}> */}
                 <Text style={styles.title}>{t('login.title')}</Text>
-              </TouchableOpacity>
+              {/* </TouchableOpacity> */}
               <Text style={styles.subtitle}>
                 {t('login.subtitle')}{' '}
                 <Text style={styles.highlight}>{t('login.highlight')}</Text> {"\n"}{t('login.subtitleEnd')}

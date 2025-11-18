@@ -16,19 +16,16 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import { Toast } from 'react-native-toast-message/lib/src/Toast';
 import * as Yup from 'yup';
-import PasswordRequirements from '../../../components/PasswordRequirements';
 import BackButton from '../../../components/BackButton';
-import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
+import Loader from '../../../components/Loader';
+import NoInternet from '../../../components/NoInternet';
 import OTPModal from '../../../components/OTPModal';
+import PasswordRequirements from '../../../components/PasswordRequirements';
+import PrimaryButton from '../../../components/PrimaryButton';
 import i18n from '../../../i18n';
 import { supabase } from '../../../services/supabase';
-import { useRegister, useVerifyOtp } from '../hooks/useAuth';
-import BackButton from '../../../components/BackButton';
-import NoInternet from '../../../components/NoInternet';
-import CustomButton from '../../../components/CustomButton';
-import PrimaryButton from '../../../components/PrimaryButton';
-import Loader from '../../../components/Loader';
+import { useRegister } from '../hooks/useAuth';
 
 // ----------------------
 // Helpers
@@ -73,16 +70,45 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const validationSchema = React.useMemo(() => {
     const currentLang = i18nInstance.language;
     return Yup.object().shape({
-      username: Yup.string().required(t('register.errors.username', { lng: currentLang }) || 'Username is required'),
+      username: Yup.string().required(
+        t('register.errors.username', { lng: currentLang }) ||
+          'Username is required',
+      ),
       password: Yup.string()
-        .required(t('register.errors.password', { lng: currentLang }) || 'Password is required')
-        .min(8, t('register.errors.password', { lng: currentLang }) || 'Password must be at least 8 characters')
-        .matches(/[A-Z]/, t('register.errors.password', { lng: currentLang }) || 'Password must contain uppercase')
-        .matches(/[a-z]/, t('register.errors.password', { lng: currentLang }) || 'Password must contain lowercase')
-        .matches(/[0-9]/, t('register.errors.password', { lng: currentLang }) || 'Password must contain number'),
+        .required(
+          t('register.errors.password', { lng: currentLang }) ||
+            'Password is required',
+        )
+        .min(
+          8,
+          t('register.errors.password', { lng: currentLang }) ||
+            'Password must be at least 8 characters',
+        )
+        .matches(
+          /[A-Z]/,
+          t('register.errors.password', { lng: currentLang }) ||
+            'Password must contain uppercase',
+        )
+        .matches(
+          /[a-z]/,
+          t('register.errors.password', { lng: currentLang }) ||
+            'Password must contain lowercase',
+        )
+        .matches(
+          /[0-9]/,
+          t('register.errors.password', { lng: currentLang }) ||
+            'Password must contain number',
+        ),
       phoneNumber: Yup.string()
-        .matches(/^\+92\d{10}$/, t('register.errors.phoneNumber', { lng: currentLang }) || 'Invalid phone number')
-        .required(t('register.errors.phoneNumber', { lng: currentLang }) || 'Phone number is required'),
+        .matches(
+          /^\+92\d{10}$/,
+          t('register.errors.phoneNumber', { lng: currentLang }) ||
+            'Invalid phone number',
+        )
+        .required(
+          t('register.errors.phoneNumber', { lng: currentLang }) ||
+            'Phone number is required',
+        ),
     });
   }, [t, i18nInstance.language]);
 
@@ -207,7 +233,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           typeof err?.message === 'string' &&
           err.message.includes('identities is empty')
         ) {
-          message = 'This phone number is already registered but not verified.';
+          message = 'This phone number is already registered.';
         }
 
         Toast.show({
@@ -220,7 +246,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     });
   };
 
-    const handleVerifyOtp = async (otp: string) => {
+  const handleVerifyOtp = async (otp: string) => {
     try {
       // Verify OTP but don't set user yet - we'll do that after terms agreement
       const { data, error } = await supabase.auth.verifyOtp({
@@ -228,7 +254,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         token: otp,
         type: 'sms',
       });
-      
+
       if (error) {
         console.warn('OTP verify error:', error);
         return;
@@ -236,10 +262,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
       // OTP verified successfully, now show Terms and Conditions
       setShowOtpModal(false);
-      
+
       // Store the user temporarily - we'll set it in store after terms agreement
       const verifiedUser = data.user;
-      
+
       // Navigate to Terms and Conditions first, then to BottomTab after agreement
       (navigation as any).navigate('TermsAndConditions', {
         fromAuth: true,
@@ -359,13 +385,15 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                       error={shouldShowError('phoneNumber') || apiError}
                       errorMessage={
                         shouldShowError('phoneNumber')
-                          ? t('register.errors.phoneNumber', { lng: currentLanguage })
+                          ? t('register.errors.phoneNumber', {
+                              lng: currentLanguage,
+                            })
                           : undefined
                       }
                       showErrorText={false}
                     />
 
-                                        {/* Password */}
+                    {/* Password */}
                     <View>
                       <CustomInput
                         label={t('register.password', { lng: currentLanguage })}
@@ -381,23 +409,40 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                         onBlur={handleBlur('password')}
                         onFocus={() => setFocusedField('password')}
                         focused={focusedField === 'password'}
-                        error={shouldShowError('password') || (errors.password && touched.password)}
+                        error={
+                          shouldShowError('password') ||
+                          (errors.password && touched.password)
+                        }
                         errorMessage={
                           shouldShowError('password')
-                            ? t('register.errors.password', { lng: currentLanguage })
+                            ? t('register.errors.password', {
+                                lng: currentLanguage,
+                              })
                             : undefined
                         }
                       />
                       {focusedField === 'password' && (
-                        <PasswordRequirements password={values.password} namespace="register" />
+                        <PasswordRequirements
+                          password={values.password}
+                          namespace="register"
+                        />
                       )}
                     </View>
 
                     <PrimaryButton
-                      title={isLoading ? t('register.registering', { lng: currentLanguage }) : t('register.cta', { lng: currentLanguage })}
+                      title={
+                        isLoading
+                          ? t('register.registering', { lng: currentLanguage })
+                          : t('register.cta', { lng: currentLanguage })
+                      }
                       onPress={handleSubmit}
                       loading={isLoading}
-                      buttonStyle={{ alignSelf: 'center', width: 161, height: 50, marginTop: hp(2) }}
+                      buttonStyle={{
+                        alignSelf: 'center',
+                        width: 161,
+                        height: 50,
+                        marginTop: hp(2),
+                      }}
                     />
                     {(isLoading || registerMutation.isPending) && <Loader />}
                   </>
