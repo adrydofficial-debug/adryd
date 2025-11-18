@@ -49,6 +49,7 @@ interface CustomInputProps {
 
   focused?: boolean;
   showErrorText?: boolean;
+  errorMessage?: string;
   // 🔹 Forward Enter-related props
   returnKeyType?: TextInputProps['returnKeyType'];
   blurOnSubmit?: boolean;
@@ -79,6 +80,7 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
   error,
   focused = false,
   showErrorText = false,
+  errorMessage,
   returnKeyType,
   blurOnSubmit,
   onSubmitEditing,
@@ -151,6 +153,7 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
           style={[
             styles.phoneInputWrapper,
             error ? styles.phoneInputWrapperError : undefined,
+            error ? styles.phoneInputWrapperWithError : undefined,
             (isFocused || focused) && !error ? styles.phoneInputWrapperFocused : undefined,
           ]}
         >
@@ -166,7 +169,11 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
             onChangeText={handlePhoneChange}
             onBlur={handleBlur}
             onFocus={handleFocus}
-            style={[styles.phoneInput, inputStyle]}
+            style={[
+              styles.phoneInput,
+              (isFocused || focused) ? styles.phoneInputFocused : styles.phoneInputUnfocused,
+              inputStyle
+            ]}
             keyboardType="phone-pad"
             placeholderTextColor={placeholderTextColor}
             returnKeyType={returnKeyType}
@@ -188,6 +195,7 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
               shouldShowPasswordToggle && styles.inputWithToggle,
               inputStyle,
               error ? styles.inputError : undefined,
+              error ? styles.inputWithError : undefined,
               (isFocused || focused) ? styles.inputFocused : undefined,
               multiline && styles.inputMultiline,
             ]}
@@ -217,8 +225,15 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
         </View>
       )}
 
-      {error && showErrorText && typeof error === 'string' && (
-        <Text style={styles.errorText}>{error}</Text>
+      {error && (
+        <>
+          {showErrorText && typeof error === 'string' && (
+            <Text style={styles.errorText}>{error}</Text>
+          )}
+          {errorMessage && (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          )}
+        </>
       )}
     </View>
   );
@@ -250,6 +265,9 @@ const styles = StyleSheet.create({
     color: '#18181B',
     marginBottom: hp(1),
   },
+  inputWithError: {
+    marginBottom: 0,
+  },
   inputWithToggle: {
     paddingRight: wp(12), // Make room for password toggle icon
   },
@@ -275,7 +293,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     height: hp(7),
     marginBottom: hp(1),
-    
+  },
+  phoneInputWrapperWithError: {
+    marginBottom: 0,
   },
   phonePrefix: {
     fontSize: 12,
@@ -293,9 +313,14 @@ const styles = StyleSheet.create({
   phoneInput: {
     flex: 1,
     fontSize: 12,
-    color: '#000',
     paddingHorizontal: wp(4),
     paddingVertical: hp(1.5),
+  },
+  phoneInputFocused: {
+    color: '#18181B',
+  },
+  phoneInputUnfocused: {
+    color: '#70737D',
   },
   inputError: {
     borderColor: '#E61215',
@@ -314,10 +339,10 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
   },
   errorText: {
-    color: '#ff4444',
-    fontSize: wp(3.2),
-    marginTop: hp(0.12),
-    marginBottom: hp(0.2),
+    color: '#E61215',
+    fontSize: 10,
+    marginTop: 5,
+    marginLeft: wp(1),
   },
 });
 

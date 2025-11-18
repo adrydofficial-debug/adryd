@@ -22,6 +22,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Yup from 'yup';
 import { useTranslation } from 'react-i18next';
 import CustomInput from '../../../components/CustomInput';
+import PasswordRequirements from '../../../components/PasswordRequirements';
 import OTPModal from '../../../components/OTPModal';
 import { AuthStackParamList } from '../AuthNavigator';
 import {
@@ -31,22 +32,13 @@ import {
 } from '../hooks/useAuth';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
+import Loader from '../../../components/Loader';
 import i18n from '../../../i18n';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
 
-const validationSchema = Yup.object().shape({
-  phoneNumber: Yup.string()
-    .required('')
-    .matches(/^\+92[0-9]{10}$/, 'Phone number must be in format +92XXXXXXXXXX'),
-  newPassword: Yup.string()
-    .required('')
-    .min(6, ''),
-  confirmPassword: Yup.string()
-    .oneOf([Yup.ref('newPassword')], '')
-    .required(''),
-});
+// Validation schema will be created inside component to access translations
 
 const ForgotPassword: React.FC = () => {
   const navigation =
@@ -56,6 +48,22 @@ const ForgotPassword: React.FC = () => {
   const forgotPassword = useForgotPassword();
   const resetPassword = useResetPassword();
   const login = useLogin();
+
+  // Validation schema with translated error messages
+  const validationSchema = Yup.object().shape({
+    phoneNumber: Yup.string()
+      .required(t('forgot.errors.phoneNumber'))
+      .matches(/^\+92[0-9]{10}$/, t('forgot.errors.phoneNumber')),
+    newPassword: Yup.string()
+      .required(t('forgot.errors.newPassword'))
+      .min(8, t('forgot.errors.newPassword'))
+      .matches(/[A-Z]/, t('forgot.errors.newPassword'))
+      .matches(/[a-z]/, t('forgot.errors.newPassword'))
+      .matches(/[0-9]/, t('forgot.errors.newPassword')),
+    confirmPassword: Yup.string()
+      .oneOf([Yup.ref('newPassword')], t('forgot.errors.confirmPassword'))
+      .required(t('forgot.errors.confirmPassword')),
+  });
 
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -216,14 +224,9 @@ const ForgotPassword: React.FC = () => {
 
             <Formik
               initialValues={{
-
                 phoneNumber: '+92',
                 newPassword: '',
                 confirmPassword: '',
-
-                phoneNumber: '+923236102030',
-                newPassword: '6AJ$kk3m9',
-                confirmPassword: '6AJ$kk3m9',
               }}
               validationSchema={validationSchema}
               onSubmit={(values, formikHelpers) => {
@@ -268,21 +271,36 @@ const ForgotPassword: React.FC = () => {
                       onFocus={() => setFocusedField('phoneNumber')}
                       focused={focusedField === 'phoneNumber'}
                       error={shouldShowError('phoneNumber')}
+                      errorMessage={
+                        shouldShowError('phoneNumber') 
+                          ? t('forgot.errors.phoneNumber', { lng: currentLanguage })
+                          : undefined
+                      }
                       showErrorText={false}
                     />
 
                     {/* New Password */}
-                    <CustomInput
-                      label={t('forgot.newPassword', { lng: currentLanguage })}
-                      placeholder={t('forgot.newPassword', { lng: currentLanguage })}
-                      isPassword={true}
-                      value={values.newPassword}
-                      onChangeText={handleChange('newPassword')}
-                      onBlur={() => handleBlur('newPassword')}
-                      onFocus={() => setFocusedField('newPassword')}
-                      focused={focusedField === 'newPassword'}
-                      error={shouldShowError('newPassword')}
-                    />
+                    <View>
+                      <CustomInput
+                        label={t('forgot.newPassword', { lng: currentLanguage })}
+                        placeholder={t('forgot.newPassword', { lng: currentLanguage })}
+                        isPassword={true}
+                        value={values.newPassword}
+                        onChangeText={handleChange('newPassword')}
+                        onBlur={() => handleBlur('newPassword')}
+                        onFocus={() => setFocusedField('newPassword')}
+                        focused={focusedField === 'newPassword'}
+                        error={shouldShowError('newPassword')}
+                        errorMessage={
+                          shouldShowError('newPassword')
+                            ? t('forgot.errors.newPassword', { lng: currentLanguage })
+                            : undefined
+                        }
+                      />
+                      {focusedField === 'newPassword' && (
+                        <PasswordRequirements password={values.newPassword} namespace="forgot" />
+                      )}
+                    </View>
 
                     {/* Confirm Password */}
                     <CustomInput
@@ -295,6 +313,11 @@ const ForgotPassword: React.FC = () => {
                       onFocus={() => setFocusedField('confirmPassword')}
                       focused={focusedField === 'confirmPassword'}
                       error={shouldShowError('confirmPassword')}
+                      errorMessage={
+                        shouldShowError('confirmPassword')
+                          ? t('forgot.errors.confirmPassword', { lng: currentLanguage })
+                          : undefined
+                      }
                     />
 
                     <PrimaryButton
@@ -307,7 +330,7 @@ const ForgotPassword: React.FC = () => {
                       loading={isSubmitting || forgotPassword.isPending}
                       buttonStyle={{ alignSelf: 'center', width: 161, height: 50, marginTop: hp(2) }}
                     />
-
+                    {(isSubmitting || forgotPassword.isPending || resetPassword.isPending || login.isPending) && <Loader />}
                   </>
                 )
               }}
