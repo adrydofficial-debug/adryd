@@ -157,7 +157,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
           <View style={styles.header}>
             <Text style={styles.title}>OTP</Text>
             <Text style={styles.subtitle}>
-              We have sent an OTP code to your WhatsApp for verification.
+     Your OTP code is on its way to your WhatsApp, please enter it here.
             </Text>
           </View>
 
@@ -203,12 +203,14 @@ const OTPModal: React.FC<OTPModalProps> = ({
             disabled={resendCooldown > 0 || isResending}
             activeOpacity={0.7}
           >
+            <Text style={{fontSize:11,fontWeight:"400"}}>Didn’t get your code?</Text>
             <Text style={styles.resendButtonText}>
+            
               {isResending
                 ? 'Sending...'
                 : resendCooldown > 0
-                ? `Resend OTP (${resendCooldown}s)`
-                : 'Resend OTP'}
+                ? `Resend (${resendCooldown}s)`
+                : 'Resend '}
             </Text>
           </TouchableOpacity>
 
@@ -262,21 +264,21 @@ const styles = StyleSheet.create({
   },
   header: { alignItems: 'center', marginBottom: height * 0.03 },
   title: {
-    fontSize: width * 0.08,
-    fontWeight: 'bold',
-    color: '#C539A5',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#C12C9F',
     marginBottom: height * 0.01,
   },
   subtitle: {
-    fontSize: width * 0.04,
-    color: '#333',
+    fontSize: 12,
+    color: '#18181B',
     textAlign: 'center',
-    lineHeight: width * 0.05,
+    lineHeight: width * 0.04,
   },
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: height * 0.03,
+    marginBottom: height * 0.01,
     paddingHorizontal: width * 0.02,
   },
   otpInput: {
@@ -285,7 +287,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: width * 0.02,
     textAlign: 'center',
-    fontSize: width * 0.04,
+    fontSize: width * 0.03,
     fontWeight: 'bold',
     marginHorizontal: width * 0.01,
   },
@@ -295,22 +297,19 @@ const styles = StyleSheet.create({
     color: '#999',
   },
   otpInputFilled: {
-    backgroundColor: '#FFE4F1',
-    borderColor: '#FF69B4',
-    color: '#FF69B4',
+    backgroundColor: '#F2BCE9',
+    borderColor: '#C539A5',
+    color: '#C12C9F',
+    justifyContent:"center",
+    alignItems:"center",
   },
   verifyButton: {
-    backgroundColor: '#C12C9F',
+    backgroundColor: '#C539A5',
     paddingVertical: height * 0.02,
     paddingHorizontal: width * 0.15,
     borderRadius: width * 0.03,
     alignItems: 'center',
     width: '100%',
-    shadowColor: '#FF69B4',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   verifyButtonDisabled: {
     backgroundColor: '#ccc',
@@ -319,7 +318,7 @@ const styles = StyleSheet.create({
   },
   verifyButtonText: {
     color: 'white',
-    fontSize: width * 0.045,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   closeButton: {
@@ -329,7 +328,7 @@ const styles = StyleSheet.create({
     width: width * 0.08,
     height: width * 0.08,
     borderRadius: width * 0.04,
-    backgroundColor: '#ddd',
+    // backgroundColor: '#ddd',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -348,20 +347,22 @@ const styles = StyleSheet.create({
     marginBottom: height * 0.01,
   },
   resendButton: {
-    marginTop: height * 0.02,
+    // marginTop: height * 0.02,
     marginBottom: height * 0.02,
     paddingVertical: height * 0.015,
     paddingHorizontal: width * 0.1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection:'row',
+    gap:3,
   },
   resendButtonDisabled: {
-    opacity: 0.5,
+    // opacity: 0.5,
   },
   resendButtonText: {
-    color: '#C539A5',
-    fontSize: width * 0.04,
-    fontWeight: '600',
+    color: '#C539a5',
+    fontSize: 12,
+    fontWeight: '900',
     textDecorationLine: 'underline',
   },
 });

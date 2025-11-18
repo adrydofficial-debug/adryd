@@ -24,7 +24,7 @@ interface BackButtonProps {
   iconColor?: string;
 }
 
-const BackButton: React.FC<BackButtonProps> = ({ style, iconColor = '#000' }) => {
+const BackButton: React.FC<BackButtonProps> = ({ style, iconColor = '#70737D' }) => {
   const navigation = useNavigation<NavigationProp>();
 
   const handleBackPress = () => {
@@ -66,10 +66,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     width: width * 0.10,     // 10% of screen width
     height: width * 0.10,    // keep square shape
-    borderRadius: width * 0.05,
+    borderRadius: width * 0.07,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: height * 0.04, // 5% of screen height
+    borderWidth:0.7,
+    borderColor:"#E5E7EB",
   },
 });
 

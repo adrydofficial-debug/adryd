@@ -4,7 +4,7 @@ import { supabase } from '../../../services/supabase';
 import { useAuthStore } from '../../../store/authStore';
 
 // -----------------------------
-// 1️⃣ Register (Phone + Password, Supabase handles OTP internally)
+// 1️⃣ Register (Phone + Password + fullName → full_name)
 // -----------------------------
 export const useRegister = () => {
   const qc = useQueryClient();
@@ -13,19 +13,26 @@ export const useRegister = () => {
     mutationFn: async ({
       phone,
       password,
+      fullName,
     }: {
       phone: string;
       password: string;
+      fullName: string;
     }) => {
       const { data, error } = await supabase.auth.signUp({
         phone,
         password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
       });
+
       if (error) throw error;
-      return data.user; // Supabase sends OTP automatically
+      return data.user;
     },
     onSuccess: () => {
-      // don't set user yet, OTP pending
       qc.clear();
     },
   });
@@ -58,13 +65,17 @@ export const useLogin = () => {
 
       console.log('✅ [Login] Sign in successful!');
       console.log('👤 [Login] User ID:', data.user?.id);
-      
+
       // Get session to check token
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
       if (sessionData?.session?.access_token) {
-        const tokenPreview = sessionData.session.access_token.substring(0, 20) + '...';
+        const tokenPreview =
+          sessionData.session.access_token.substring(0, 20) + '...';
         console.log('🔑 [Login] Access token available:', tokenPreview);
-        console.log('✅ [Login] Token will be added to API requests automatically');
+        console.log(
+          '✅ [Login] Token will be added to API requests automatically',
+        );
       } else {
         console.warn('⚠️ [Login] No access token in session after login');
         if (sessionError) {
@@ -96,7 +107,10 @@ export const useForgotPassword = () => {
       console.log('📱 [useForgotPassword] Sending OTP to phone:', phone);
       const { error } = await supabase.auth.signInWithOtp({ phone });
       if (error) {
-        console.error('❌ [useForgotPassword] Error sending OTP:', error.message);
+        console.error(
+          '❌ [useForgotPassword] Error sending OTP:',
+          error.message,
+        );
         throw error;
       }
       console.log('✅ [useForgotPassword] OTP sent successfully');
@@ -159,7 +173,7 @@ export const useLogout = () => {
 
 export const useVerifyOtp = () => {
   const setUser = useAuthStore(s => s.setUser);
-
+  
   return useMutation({
     mutationFn: async ({ phone, otp }: { phone: string; otp: string }) => {
       const { data, error } = await supabase.auth.verifyOtp({
@@ -170,8 +184,10 @@ export const useVerifyOtp = () => {
       if (error) throw error;
       return data.user;
     },
-    onSuccess: user => {
-      if (user) setUser(user);
+    onSuccess: (user) => {
+      if (user) {
+        setUser(user);
+      }
     },
   });
 };

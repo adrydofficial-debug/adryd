@@ -163,16 +163,59 @@ const SearchLocation: React.FC = () => {
     setAreaHistory([]);
   };
 
-  // Filter options from API
-  const filterOptions: FilterOption[] = useMemo(() => {
-    if (!boardFiltersData?.filters) {
+  // Special filters (See All, Recommended)
+  const specialFilters: FilterOption[] = useMemo(() => {
+    return [
+      { id: 'see-all', name: 'See All', category: 'special' },
+      { id: 'recommended', name: 'Recommended', category: 'special' },
+    ];
+  }, []);
+
+  // Filter options from API - organized by groups
+  const filterGroups = useMemo(() => {
+    if (!boardFiltersData?.groups) {
       return [];
     }
-    return boardFiltersData.filters.map(filter => ({
-      id: filter.slug,
-      name: filter.name,
+    return boardFiltersData.groups.map(group => ({
+      id: group.slug,
+      name: group.name,
+      slug: group.slug,
+      categories: (group.categories || []).map(cat => ({
+        id: cat.slug,
+        name: cat.name,
+        slug: cat.slug,
+        groupSlug: group.slug,
+      })),
     }));
   }, [boardFiltersData]);
+
+  // Flat list of all filter options (for backward compatibility)
+  const filterOptions: FilterOption[] = useMemo(() => {
+    const allOptions: FilterOption[] = [];
+    
+    // Add special filters
+    allOptions.push(...specialFilters);
+    
+    // Add group and category filters
+    filterGroups.forEach(group => {
+      // Add group itself
+      allOptions.push({
+        id: group.slug,
+        name: group.name,
+        category: 'group',
+      });
+      // Add categories
+      group.categories.forEach(cat => {
+        allOptions.push({
+          id: cat.slug,
+          name: cat.name,
+          category: 'category',
+        });
+      });
+    });
+    
+    return allOptions;
+  }, [specialFilters, filterGroups]);
 
   const filterOptionsMap = useMemo(() => {
     const map = new Map<string, FilterOption>();
@@ -197,18 +240,49 @@ const SearchLocation: React.FC = () => {
     );
   }, [searchQuery, filterOptions]);
 
-  // Toggle filter selection
-  const toggleFilter = (filterId: string) => {
+  // Get all child category slugs for a group
+  const getGroupChildSlugs = useCallback((groupSlug: string): string[] => {
+    const group = filterGroups.find(g => g.slug === groupSlug);
+    if (!group) return [];
+    return group.categories.map(cat => cat.slug);
+  }, [filterGroups]);
+
+  // Check if all children of a group are selected
+  const areAllChildrenSelected = useCallback((groupSlug: string): boolean => {
+    const childSlugs = getGroupChildSlugs(groupSlug);
+    if (childSlugs.length === 0) return false;
+    return childSlugs.every(slug => draftSelectedFilters.has(slug));
+  }, [draftSelectedFilters, getGroupChildSlugs]);
+
+  // Toggle filter selection (with parent-child logic)
+  const toggleFilter = useCallback((filterId: string, isGroup: boolean = false) => {
     setDraftSelectedFilters(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(filterId)) {
-        newSet.delete(filterId);
+      
+      if (isGroup) {
+        // If it's a group, toggle all its children
+        const childSlugs = getGroupChildSlugs(filterId);
+        const allSelected = childSlugs.length > 0 && childSlugs.every(slug => prev.has(slug));
+        
+        if (allSelected) {
+          // Deselect all children
+          childSlugs.forEach(slug => newSet.delete(slug));
+        } else {
+          // Select all children
+          childSlugs.forEach(slug => newSet.add(slug));
+        }
       } else {
-        newSet.add(filterId);
+        // Regular toggle for individual filters
+        if (newSet.has(filterId)) {
+          newSet.delete(filterId);
+        } else {
+          newSet.add(filterId);
+        }
       }
+      
       return newSet;
     });
-  };
+  }, [getGroupChildSlugs]);
 
   // Reset all filters
   const resetAllFilters = () => {
@@ -344,7 +418,6 @@ const SearchLocation: React.FC = () => {
         ...prev.slice(0, 2), // Keep only last 3 items
       ]);
     }
-
     // Automatically trigger filter API call with the new location
     // Use draft values directly since state updates are async
     const locationIdToUse = draftSelectedLocationId;
@@ -366,10 +439,21 @@ const SearchLocation: React.FC = () => {
         max_price: DEFAULT_MAX_PRICE,
       };
 
-      // Scenario 1: Filter by slug (board type filters)
-      if (sortedIds.length > 0) {
-        payload.slug = sortedIds;
-        payload.slugs = sortedIds; // Some backends expect both
+      // Filter out special filter IDs and group slugs - only send category slugs
+      const validCategorySlugs = sortedIds.filter(id => {
+        // Exclude special filters (they don't have real slugs)
+        if (id === 'see-all' || id === 'recommended') {
+          return false;
+        }
+        // Exclude group slugs - only include category slugs
+        const isGroupSlug = filterGroups.some(g => g.slug === id);
+        return !isGroupSlug;
+      });
+
+      // Scenario 1: Filter by slug (board type filters) - only category slugs
+      if (validCategorySlugs.length > 0) {
+        payload.slug = validCategorySlugs;
+        payload.slugs = validCategorySlugs; // Some backends expect both
       }
 
       // Scenario 2: Filter by location/city
@@ -397,8 +481,9 @@ const SearchLocation: React.FC = () => {
           total,
           limit,
         });
-        setAppliedFilters(new Set(sortedIds));
-        setAppliedFilterOrder(sortedIds);
+        // Store only valid category slugs in applied filters
+        setAppliedFilters(new Set(validCategorySlugs));
+        setAppliedFilterOrder(validCategorySlugs);
         setAppliedSearchQuery(trimmedSearch);
       } catch (error) {
         console.error('[SearchLocation] Failed to apply filters:', error);
@@ -415,6 +500,7 @@ const SearchLocation: React.FC = () => {
     runFilterRequest,
     convertBoardToBoardItem,
     isLocationExplicitlySelected,
+    filterGroups,
   ]);
 
   const handleApplyFilters = useCallback(async () => {
@@ -424,6 +510,17 @@ const SearchLocation: React.FC = () => {
 
     const trimmedSearch = searchQuery.trim();
     const sortedIds = sortedDraftFilterIds;
+    
+    // Filter out special filter IDs and group slugs - only send category slugs
+    const validCategorySlugs = sortedIds.filter(id => {
+      // Exclude special filters (they don't have real slugs)
+      if (id === 'see-all' || id === 'recommended') {
+        return false;
+      }
+      // Exclude group slugs - only include category slugs
+      const isGroupSlug = filterGroups.some(g => g.slug === id);
+      return !isGroupSlug;
+    });
     
     // Build payload based on what filters are selected
     const payload: FilterBoardsParams = {
@@ -437,10 +534,10 @@ const SearchLocation: React.FC = () => {
       max_price: DEFAULT_MAX_PRICE,
     };
 
-    // Scenario 1: Filter by slug (board type filters)
-    if (sortedIds.length > 0) {
-      payload.slug = sortedIds;
-      payload.slugs = sortedIds; // Some backends expect both
+    // Scenario 1: Filter by slug (board type filters) - only category slugs
+    if (validCategorySlugs.length > 0) {
+      payload.slug = validCategorySlugs;
+      payload.slugs = validCategorySlugs; // Some backends expect both
     }
 
     // Scenario 2: Filter by location/city
@@ -470,8 +567,9 @@ const SearchLocation: React.FC = () => {
         total,
         limit,
       });
-      setAppliedFilters(new Set(sortedIds));
-      setAppliedFilterOrder(sortedIds);
+      // Store only valid category slugs in applied filters
+      setAppliedFilters(new Set(validCategorySlugs));
+      setAppliedFilterOrder(validCategorySlugs);
       setAppliedSearchQuery(trimmedSearch);
     } catch (error) {
       console.error('[SearchLocation] Failed to apply filters:', error);
@@ -486,6 +584,7 @@ const SearchLocation: React.FC = () => {
     selectedLocationId,
     selectedCityId,
     isLocationExplicitlySelected,
+    filterGroups,
   ]);
 
   return (
@@ -654,43 +753,154 @@ const SearchLocation: React.FC = () => {
                       <Text style={styles.retryFiltersButtonText}>Retry</Text>
                     </TouchableOpacity>
                   </View>
-                ) : filteredOptions.length === 0 ? (
-                  <Text style={styles.noOptionsText}>
-                    No filters match your search.
-                  </Text>
                 ) : (
-                  filteredOptions.map(option => {
-                    const isSelected = draftSelectedFilters.has(option.id);
-                    return (
-                      <TouchableOpacity
-                        key={option.id}
-                        style={[
-                          styles.filterOption,
-                          isSelected && styles.filterOptionSelected,
-                        ]}
-                        onPress={() => toggleFilter(option.id)}
-                      >
-                        <View
-                          style={[
-                            styles.checkbox,
-                            isSelected && styles.checkboxSelected,
-                          ]}
-                        >
-                          {isSelected && (
-                            <Ionicons name="checkmark" size={12} color="#fff" />
-                          )}
-                        </View>
-                        <Text
-                          style={[
-                            styles.filterOptionText,
-                            isSelected && styles.filterOptionTextSelected,
-                          ]}
-                        >
-                          {option.name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })
+                  <>
+                    {/* Special Filters Section */}
+                    {specialFilters
+                      .filter(option => 
+                        !searchQuery.trim() || 
+                        option.name.toLowerCase().includes(searchQuery.toLowerCase())
+                      )
+                      .map(option => {
+                        const isSelected = draftSelectedFilters.has(option.id);
+                        return (
+                          <TouchableOpacity
+                            key={option.id}
+                            style={[
+                              styles.filterOption,
+                              isSelected && styles.filterOptionSelected,
+                            ]}
+                            onPress={() => toggleFilter(option.id, false)}
+                          >
+                            <View
+                              style={[
+                                styles.checkbox,
+                                isSelected && styles.checkboxSelected,
+                              ]}
+                            >
+                              {isSelected && (
+                                <Ionicons name="checkmark" size={12} color="#fff" />
+                              )}
+                            </View>
+                            <Text
+                              style={[
+                                styles.filterOptionText,
+                                isSelected && styles.filterOptionTextSelected,
+                              ]}
+                            >
+                              {option.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+
+                    {/* Group Filters Section */}
+                    {filterGroups
+                      .filter(group => 
+                        !searchQuery.trim() || 
+                        group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        group.categories.some(cat => 
+                          cat.name.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                      )
+                      .map(group => {
+                        const allChildrenSelected = areAllChildrenSelected(group.slug);
+                        const hasSomeChildrenSelected = group.categories.some(cat => 
+                          draftSelectedFilters.has(cat.slug)
+                        );
+                        const isGroupIndeterminate = hasSomeChildrenSelected && !allChildrenSelected;
+                        
+                        return (
+                          <View key={group.slug} style={styles.filterGroupContainer}>
+                            {/* Group Header */}
+                            <TouchableOpacity
+                              style={[
+                                styles.filterOption,
+                                styles.filterGroupHeader,
+                                (allChildrenSelected || isGroupIndeterminate) && styles.filterOptionSelected,
+                              ]}
+                              onPress={() => toggleFilter(group.slug, true)}
+                            >
+                              <View
+                                style={[
+                                  styles.checkbox,
+                                  (allChildrenSelected || isGroupIndeterminate) && styles.checkboxSelected,
+                                ]}
+                              >
+                                {(allChildrenSelected || isGroupIndeterminate) && (
+                                  <Ionicons 
+                                    name={isGroupIndeterminate ? "remove" : "checkmark"} 
+                                    size={12} 
+                                    color="#fff" 
+                                  />
+                                )}
+                              </View>
+                              <Text
+                                style={[
+                                  styles.filterOptionText,
+                                  (allChildrenSelected || isGroupIndeterminate) && styles.filterOptionTextSelected,
+                                ]}
+                              >
+                                {group.name}
+                              </Text>
+                            </TouchableOpacity>
+
+                            {/* Group Categories (Children) */}
+                            {group.categories
+                              .filter(cat => 
+                                !searchQuery.trim() || 
+                                cat.name.toLowerCase().includes(searchQuery.toLowerCase())
+                              )
+                              .map(category => {
+                                const isSelected = draftSelectedFilters.has(category.slug);
+                                return (
+                                  <TouchableOpacity
+                                    key={category.slug}
+                                    style={[
+                                      styles.filterOption,
+                                      styles.filterCategoryItem,
+                                      isSelected && styles.filterOptionSelected,
+                                    ]}
+                                    onPress={() => toggleFilter(category.slug, false)}
+                                  >
+                                    <View
+                                      style={[
+                                        styles.checkbox,
+                                        isSelected && styles.checkboxSelected,
+                                      ]}
+                                    >
+                                      {isSelected && (
+                                        <Ionicons name="checkmark" size={12} color="#fff" />
+                                      )}
+                                    </View>
+                                    <View/>
+                                    <Text
+                                      style={[
+                                        styles.filterOptionText,
+                                        isSelected && styles.filterOptionTextSelected,
+                                      ]}
+                                    >
+                                      {category.name}
+                                    </Text>
+                                  </TouchableOpacity>
+                                );
+                              })}
+                          </View>
+                        );
+                      })}
+
+                    {/* Show message if no filters match search */}
+                    {searchQuery.trim() && 
+                     specialFilters.every(opt => !opt.name.toLowerCase().includes(searchQuery.toLowerCase())) &&
+                     filterGroups.every(group => 
+                       !group.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+                       !group.categories.some(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                     ) && (
+                      <Text style={styles.noOptionsText}>
+                        No filters match your search.
+                      </Text>
+                    )}
+                  </>
                 )}
               </View>
             </View>
@@ -1443,6 +1653,17 @@ const styles = StyleSheet.create({
     borderWidth: 0.7,
     borderColor: '#E5E7EB',
   },
+  filterGroupContainer: {
+    marginBottom: 0,
+  },
+  filterGroupHeader: {
+    backgroundColor: '#F5F5F5',
+  },
+  filterCategoryItem: {
+    paddingLeft: 12, 
+    backgroundColor: '#FAFAFA',
+    marginTop: 0,
+  },
   filterOptionSelected: {
     backgroundColor: '#FCE7F3',
     borderColor: '#F2BCE9',
@@ -1466,6 +1687,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#70737D',
     fontWeight: '400',
+    lineHeight: 20,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   filterOptionTextSelected: {
     color: '#000',

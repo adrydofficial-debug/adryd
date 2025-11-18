@@ -212,14 +212,30 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
     {
       id: 6,
       title: t('drawer.help'),
-      onPress: () => {},
+      onPress: () => {
+        onClose();
+        try {
+          navigation.navigate('HelpFAQsScreen' as never);
+          console.log('✅ Navigation to HelpFAQsScreen successful');
+        } catch (error) {
+          console.error('❌ Navigation error:', error);
+        }
+      },
       //  color: '#607D8B',
       icon: 'help',
     },
     {
       id: 7,
       title: t('drawer.terms'),
-      onPress: () => {},
+      onPress: () => {
+        onClose();
+        try {
+          navigation.navigate('TermsAndConditions' as never);
+          console.log('✅ Navigation to TermsAndConditions successful');
+        } catch (error) {
+          console.error('❌ Navigation error:', error);
+        }
+      },
       //  color: '#795548',
       icon: 'terms',
     },

@@ -116,7 +116,6 @@ const styles = StyleSheet.create({
     height: 326,
     backgroundColor: "#fff",
     borderRadius: 25,
-    borderWidth: 1,
     borderColor: "#E5E7EB",
     paddingTop: 41,
     paddingRight: 86,
@@ -134,13 +133,13 @@ const styles = StyleSheet.create({
     fontSize: 20.33,
     fontWeight: "700" as "700",
     color: "#C12C9F",
-    marginTop: 10,
+    marginTop: 6,
   },
   subtitle: {
     fontSize: 12,
     color: "#000000",
     textAlign: "center" as "center",
-    marginVertical: 9,
+   
   },
   button: {
     width: 179,
@@ -151,6 +150,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#C539A5",
     justifyContent: "center",
     alignItems: "center",
+    marginTop:6,
   },
   buttonText: {
     color: "#FFFFFF",
