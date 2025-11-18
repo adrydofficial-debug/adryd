@@ -127,6 +127,23 @@ export const useForgotPassword = () => {
   });
 };
 
+
+// -----------------------------
+// 2️⃣ Update Password
+// -----------------------------
+export const useUpdatePassword = () => {
+  return useMutation({
+    mutationFn: async ({ newPassword }: { newPassword: string }) => {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+      return { message: 'Password updated successfully' };
+    },
+  });
+};
+
 // -----------------------------
 // 4️⃣ Reset Password (Verify OTP + Update Password)
 // -----------------------------
