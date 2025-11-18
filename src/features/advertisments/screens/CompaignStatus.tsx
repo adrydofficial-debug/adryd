@@ -16,6 +16,7 @@ import BottomTab from '../../../app/navigation/BottomTab';
 import { useAdvertisements } from '../hooks/useAdvertisements';
 import CampaignTabs, { CampaignTab } from '../components/CampaignTabs';
 import StatusCard from '../components/StatusCard';
+import { SUPABASE_URL } from '../../../config';
 import { AdvertisementStatus } from '../domain/entities';
 import BackButton from '../../../components/BackButton';
 
@@ -66,7 +67,15 @@ interface CampaignCard {
   title: string;
   location: string;
   date: string;
-  status: 'Active' | 'Review' | 'Blocked' | 'Recent History';
+  status:
+    | 'Publish'
+    | 'Schedule'
+    | 'Review'
+    | 'Blocked'
+    | 'Completed'
+    | 'Payment Pending'
+    | 'Draft'
+    | 'InProgress';
   statusColor: string;
   daysLeft?: string;
   estimatedTime?: string;
@@ -74,6 +83,7 @@ interface CampaignCard {
   details?: AdDetails;
   payment: PaymentInfo;
   rawStatus: string;
+  boardMediaUrl?: string;
 }
 
 interface ActiveCampaignProps {
@@ -127,9 +137,13 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
     }
 
     const statusCounts = advertisementList.reduce((acc, ad) => {
-      acc[ad.status] = (acc[ad.status] || 0) + 1;
+      const statusKey = ad.status || 'UNKNOWN';
+      acc[statusKey] = (acc[statusKey] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
+
+    const getStatusCount = (...statuses: string[]) =>
+      statuses.reduce((sum, status) => sum + (statusCounts[status] || 0), 0);
 
     return [
       {
@@ -139,39 +153,45 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       },
       {
         id: AdvertisementStatus.DRAFT,
-        label: 'Draft',
+        label: 'DRAFT',
         status: AdvertisementStatus.DRAFT,
-        count: statusCounts[AdvertisementStatus.DRAFT] || 0,
-      },
-      {
-        id: 'IN_PROGRESS',
-        label: 'InProgress',
-        status: 'IN_PROGRESS',
-        count: statusCounts['IN_PROGRESS'] || 0,
+        count: getStatusCount(AdvertisementStatus.DRAFT),
       },
       {
         id: AdvertisementStatus.PAYMENT_PENDING,
-        label: 'Payment',
+        label: 'Payment-pending',
         status: AdvertisementStatus.PAYMENT_PENDING,
-        count: statusCounts[AdvertisementStatus.PAYMENT_PENDING] || 0,
+        count: getStatusCount(AdvertisementStatus.PAYMENT_PENDING),
       },
       {
-        id: AdvertisementStatus.UNDER_REVIEW,
-        label: 'Review',
-        status: AdvertisementStatus.UNDER_REVIEW,
-        count: statusCounts[AdvertisementStatus.UNDER_REVIEW] || 0,
+        id: 'IN_REVIEW',
+        label: 'In-Review',
+        status: 'IN_REVIEW',
+        count: getStatusCount('IN_REVIEW', AdvertisementStatus.UNDER_REVIEW),
       },
       {
-        id: AdvertisementStatus.PUBLISHED,
-        label: 'Active',
-        status: AdvertisementStatus.PUBLISHED,
-        count: statusCounts[AdvertisementStatus.PUBLISHED] || 0,
+        id: AdvertisementStatus.SCHEDULED,
+        label: 'Schedule',
+        status: AdvertisementStatus.SCHEDULED,
+        count: getStatusCount(AdvertisementStatus.SCHEDULED),
       },
       {
         id: 'BLOCKED',
         label: 'Blocked',
         status: 'BLOCKED',
-        count: statusCounts['BLOCKED'] || 0,
+        count: getStatusCount('BLOCKED'),
+      },
+      {
+        id: AdvertisementStatus.PUBLISHED,
+        label: 'Publish',
+        status: AdvertisementStatus.PUBLISHED,
+        count: getStatusCount(AdvertisementStatus.PUBLISHED),
+      },
+      {
+        id: AdvertisementStatus.COMPLETED,
+        label: 'Completed',
+        status: AdvertisementStatus.COMPLETED,
+        count: getStatusCount(AdvertisementStatus.COMPLETED),
       },
     ];
   }, [advertisementList]);
@@ -184,16 +204,16 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       case 'IN_PROGRESS':
         return { uiStatus: 'InProgress', color: '#ECBDF3', tab: 'Draft' };
       case 'PAYMENT_PENDING':
-        return { uiStatus: 'Payment Pending', color: '#FEB600', tab: 'Payment' };
+        return { uiStatus: 'Payment Pending', color: '#FDD46C', tab: 'Payment' };
       case 'IN_REVIEW':
       case 'UNDER_REVIEW':
         return { uiStatus: 'Review', color: '#E91E63', tab: 'Review' };
       case 'SCHEDULED':
-        return { uiStatus: 'Scheduled', color: '#9C27B0', tab: 'Active' };
+        return { uiStatus: 'Schedule', color: '#9C27B0', tab: 'Schedule' };
       case 'PUBLISHED':
-        return { uiStatus: 'Active', color: '#4CAF50', tab: 'Active' };
+        return { uiStatus: 'Publish', color: '#4CAF50', tab: 'Publish' };
       case 'COMPLETED':
-        return { uiStatus: 'Recent History', color: '#9E9E9E', tab: 'Recent History' };
+        return { uiStatus: 'Completed', color: '#9E9E9E', tab: 'Completed' };
       case 'BLOCKED':
         return { uiStatus: 'Blocked', color: '#F25255', tab: 'Blocked' };
       default:
@@ -275,9 +295,18 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         return (found || 'N/A').toString();
       })();
 
+      const normalizeMediaUrl = (url?: string | null) => {
+        if (!url) return undefined;
+        if (/^https?:\/\//i.test(url)) {
+          return url;
+        }
+        const base = `${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/public/`;
+        return `${base}${url.replace(/^\/?/, '')}`;
+      };
+
       const boardMediaUrl =
-        ad.media?.[0]?.url ||
-        board?.media?.[0]?.url ||
+        normalizeMediaUrl(ad.media?.[0]?.url) ||
+        normalizeMediaUrl(board?.media?.[0]?.url) ||
         undefined;
 
       const totalPayment = typeof ad.total_payment === 'number'
@@ -355,8 +384,14 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
     
     // Filter by status based on active tab
     const filtered = data.filter((item) => {
-      if (activeTab === 'IN_PROGRESS') {
-        return item.rawStatus === 'IN_PROGRESS';
+      if (activeTab === 'IN_REVIEW') {
+        return item.rawStatus === 'IN_REVIEW' || item.rawStatus === 'UNDER_REVIEW';
+      }
+      if (activeTab === AdvertisementStatus.DRAFT) {
+        return (
+          item.rawStatus === AdvertisementStatus.DRAFT ||
+          item.rawStatus === 'IN_PROGRESS'
+        );
       }
       if (activeTab === 'BLOCKED') {
         return item.rawStatus === 'BLOCKED';
@@ -431,24 +466,15 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       purchaseDuration = item.details.days.replace('days Ad', 'days').replace(' Ad', ' days') || '15 days';
     }
 
-    const timelineProgress = item.rawStatus === 'Active'
+    const timelineProgress = item.status === 'Publish'
       ? 75
-      : item.rawStatus === 'Review'
+      : item.status === 'Review'
         ? 50
-        : item.rawStatus === 'Draft'
+        : item.status === 'Draft'
           ? 10
           : 25;
-
-    // Check if company exists - must have a valid company_id and company object with meaningful data
-    // If company_id is null/undefined/0, or company is null/undefined/empty, then no company was created
     const company = originalAd?.company;
     const companyId = originalAd?.company_id;
-    
-    // STRICT check: company must NOT be null, and must have valid data
-    // If user didn't add company data, company should be null and hasCompanyInfo will be false
-    // Also check for empty objects {} that might be returned by backend
-    
-    // First, check if company_id is invalid (null, undefined, 0, or falsy)
     const hasValidCompanyId = Boolean(
       companyId !== null &&
       companyId !== undefined &&
@@ -456,7 +482,6 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       typeof companyId === 'number' &&
       companyId > 0
     );
-    
     // Second, check if company object exists and is not empty
     const hasValidCompanyObject = Boolean(
       company !== null &&
@@ -480,6 +505,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
     );
     
     // Both conditions must be true
+    // For individual flow campaigns (company_id = 0), hasCompanyInfo will always be false
     const hasCompanyInfo = hasValidCompanyId && hasValidCompanyObject;
 
     // Debug logging - ALWAYS log to help debug
@@ -488,6 +514,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       company_id: companyId,
       company_id_type: typeof companyId,
       company_id_value: companyId,
+      isIndividualFlow: companyId === 0 || companyId === null,
       hasValidCompanyId,
       hasCompanyObject: !!company,
       companyObject: company,
@@ -500,7 +527,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       hasValidCompanyObject,
       hasCompanyInfo,
       shouldShowCompany: hasCompanyInfo,
-      FINAL_DECISION: hasCompanyInfo ? 'SHOW COMPANY' : 'HIDE COMPANY - NO DATA',
+      FINAL_DECISION: hasCompanyInfo ? 'SHOW COMPANY (Business Flow)' : 'HIDE COMPANY - Individual Flow or No Company Data',
     });
 
     const primaryMediaUrl = item.boardMediaUrl;
@@ -515,8 +542,8 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         purchaseDuration={purchaseDuration}
         location={boardLocationName}
         locationDetail={boardArea}
-        startDate={startDate}
-        endDate={endDate}
+        // startDate={startDate}
+        // endDate={endDate}
         timelineProgress={timelineProgress}
         isExpanded={expandedCard === item.id}
         onPress={() => toggleCardExpansion(item.id)}
@@ -529,6 +556,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
           number: originalAd.company.contact_number || undefined,
           ntn: originalAd.company.company_ntn || undefined,
           address: originalAd.company.address || undefined,
+          email: originalAd.company.email || undefined,
           logoUri: originalAd.company.logo_url || undefined,
         } : undefined}
         campaignDetail={{
@@ -756,7 +784,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
       <View style={styles.header}>
         {/* <BackButton /> */}
-      </View>
+     
 
       {/* Campaign Tabs */}
       <CampaignTabs
@@ -764,7 +792,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         activeTab={activeTab}
         onTabPress={handleCampaignTabPress}
       />
-
+ </View>
         {/* Loading State */}
         {loading && (
           <View style={styles.loadingContainer}>
@@ -830,7 +858,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
-    padding:10,
+    padding:2,
   },
   cardImg:{
     width: width * 0.14, 
@@ -863,7 +891,7 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#fcfbfbff',
   },
   cardsContent: {
     paddingHorizontal: wp(5),

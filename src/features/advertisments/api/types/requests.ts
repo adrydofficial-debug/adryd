@@ -2,7 +2,7 @@
 import { AdvertisementStatus } from '../../domain/entities';
 
 export interface CreateAdvertisementRequest {
-  company_id: number;
+  company_id?: number | null; // Optional for individual flow - can be null or omitted
   board_id: number;
   title: string;
   description?: string;

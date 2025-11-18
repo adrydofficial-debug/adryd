@@ -9,14 +9,13 @@ import {
   I18nManager,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { AdvertisementStatus } from '../domain/entities';
 
 const { width } = Dimensions.get('window');
 
 export interface CampaignTab {
   id: string;
   label: string;
-  status?: AdvertisementStatus;
+  status?: string;
   count?: number;
 }
 
@@ -67,7 +66,7 @@ const CampaignTabs: React.FC<CampaignTabsProps> = ({
                 {tab.label}
               </Text>
 
-              {typeof tab.count === 'number' && (
+              {/* {typeof tab.count === 'number' && (
                 <View
                   style={[styles.countBadge, isActive && styles.activeCountBadge]}
                 >
@@ -77,7 +76,7 @@ const CampaignTabs: React.FC<CampaignTabsProps> = ({
                     {tab.count}
                   </Text>
                 </View>
-              )}
+              )} */}
             </TouchableOpacity>
           );
         })}
@@ -111,10 +110,10 @@ const styles = StyleSheet.create({
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingVertical: 6,
-    borderRadius: 18,
-    marginRight: 16,
+    borderRadius:35,
+    marginRight: 8,
     minHeight: 34,
   },
   activeTab: {
@@ -124,11 +123,11 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
     color: '#6F7380',
   },
   activeTabText: {
-    color: '#111827',
+    color: '#18181B',
   },
   countBadge: {
     marginLeft: 8,

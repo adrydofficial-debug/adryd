@@ -28,12 +28,16 @@ import { useBoardUnavailableTimes } from '../../boards/hooks/useBoardUnavailable
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
+
+// Maximum number of days that can be selected at once to prevent server overload
+const MAX_DAYS_PER_REQUEST = 30;
 type RootStackParamList = {
   CampaignUploadFiles: undefined;
 };
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 interface Props {
   navigation: NavigationProp | any;
+  route?: any;
 }
 const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation('advertisments');
@@ -42,8 +46,9 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const setSelectedDaysToStore = useCampaignStore((state) => state.setSelectedDays);
   const clearSelectedDays = useCampaignStore((state) => state.clearSelectedDays);
   const flow = route?.params?.flow ?? 'business';
-  const COMPANY_ID = 1;
-  const BOARD_ID = 1;
+  const companyIdFromRoute = route?.params?.companyId; // Get company_id from route params (for business flow)
+  const COMPANY_ID = companyIdFromRoute || 1; // Use company_id from route, or default to 1
+  const BOARD_ID = 1; // Default board ID - ensure this board exists in the database
   const [campaignName] = useState<string>('Test Ad');
   const [size, setSize] = useState<string>('12x8 ft');
   const [type, setType] = useState<string>('Digital');
@@ -620,6 +625,17 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
               // Sort dates to ensure proper ordering
               const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
               
+              // Limit the number of days to prevent server overload
+              if (sortedDates.length > MAX_DAYS_PER_REQUEST) {
+                setErrorText(`Please select a maximum of ${MAX_DAYS_PER_REQUEST} days at a time. You selected ${sortedDates.length} days.`);
+                Alert.alert(
+                  'Too Many Days Selected',
+                  `You can only select up to ${MAX_DAYS_PER_REQUEST} days at a time. Please reduce your selection and try again.`,
+                  [{ text: 'OK' }]
+                );
+                return;
+              }
+              
               // Create individual bookings for each selected day
               // API expects end_at to be the same as start_at for single-day bookings
               const bookings = sortedDates.map(date => {
@@ -701,14 +717,56 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                 return;
               }
 
-              const advertisementData: CreateAdvertisementRequest = {
-                company_id: COMPANY_ID,
-                board_id: BOARD_ID,
-                title: campaignName.trim(),
-                description: description.trim(),
-                total_payment: 5000,
-                bookings: bookings,
-              };
+              // For individual flow, omit company_id or set to null (server doesn't accept 0)
+              // For business flow, use the actual company_id from the created company
+              let advertisementData: CreateAdvertisementRequest;
+              
+              // Validate company_id for business flow
+              if (flow === 'business') {
+                if (!COMPANY_ID || COMPANY_ID <= 0) {
+                  setErrorText('Company ID is required for business flow. Please create a company first.');
+                  Alert.alert(
+                    'Missing Company',
+                    'Please create a company before creating an advertisement for business flow.',
+                    [{ text: 'OK' }]
+                  );
+                  return;
+                }
+                
+                // Business flow: include company_id
+                advertisementData = {
+                  company_id: COMPANY_ID,
+                  board_id: BOARD_ID,
+                  title: campaignName.trim(),
+                  description: description.trim(),
+                  total_payment: 5000,
+                  bookings: bookings,
+                };
+              } else {
+                // Individual flow: omit company_id entirely (server doesn't accept 0 or null)
+                // Some servers may require the field to be completely omitted rather than null
+                advertisementData = {
+                  // company_id is intentionally omitted for individual flow
+                  // If server requires it, we'll need to handle that in the API layer
+                  board_id: BOARD_ID,
+                  title: campaignName.trim(),
+                  description: description.trim(),
+                  total_payment: 5000,
+                  bookings: bookings,
+                } as CreateAdvertisementRequest;
+              }
+              
+              // Validate board_id exists
+              if (!BOARD_ID || BOARD_ID <= 0) {
+                setErrorText('Invalid board ID. Please contact support.');
+                return;
+              }
+              
+              // Additional validation: Check if bookings array is too large
+              if (bookings.length > MAX_DAYS_PER_REQUEST) {
+                setErrorText(`Too many bookings (${bookings.length}). Maximum allowed: ${MAX_DAYS_PER_REQUEST}`);
+                return;
+              }
               
               // Final validation of the payload
               console.log('📤 Final payload validation:', {
@@ -823,17 +881,37 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                   let finalMessage = `Error (${statusCode}): ${errorMessage}`;
                   
                   if (statusCode === 500) {
-                    finalMessage = `Server Error (500): The server encountered an error processing your request. ` +
+                    // Provide more specific error messages based on common causes
+                    let specificMessage = '';
+                    
+                    if (advertisementData.bookings.length > MAX_DAYS_PER_REQUEST) {
+                      specificMessage = `You selected ${advertisementData.bookings.length} days, which may be too many. Try selecting fewer days (max ${MAX_DAYS_PER_REQUEST}).`;
+                    } else if (flow === 'individual' && advertisementData.company_id !== null && advertisementData.company_id !== undefined) {
+                      specificMessage = 'Individual flow should have company_id as null. Please contact support if this persists.';
+                    } else if (!BOARD_ID || BOARD_ID <= 0) {
+                      specificMessage = 'Invalid board ID. Please contact support.';
+                    } else if (flow === 'individual') {
+                      specificMessage = 'Server may not accept null company_id for individual flow. Please contact support.';
+                    } else {
+                      specificMessage = 'This may be due to invalid data or server issues.';
+                    }
+                    
+                    finalMessage = `Server Error (500): ${specificMessage} ` +
                       `Please check the console for details. ` +
                       `If this persists, try selecting fewer days or contact support.`;
                     
                     // Log additional debugging info for 500 errors
                     console.error('🔴 500 Server Error - Additional Debug Info:', {
+                      flow,
+                      companyId: advertisementData.company_id,
+                      companyIdType: typeof advertisementData.company_id,
+                      boardId: BOARD_ID,
                       bookingsCount: advertisementData.bookings.length,
                       payloadSize: JSON.stringify(advertisementData).length,
                       firstBooking: advertisementData.bookings[0],
                       lastBooking: advertisementData.bookings[advertisementData.bookings.length - 1],
                       serverErrorDetails: serverData,
+                      fullPayload: JSON.stringify(advertisementData, null, 2),
                     });
                   }
                   

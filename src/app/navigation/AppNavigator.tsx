@@ -30,7 +30,7 @@ import HelpFAQsScreen from '../../features/profile/screens/HelpFAQsScreen';
 export type AppStackParamList = {
   BottomTab: undefined;
   CompaignStatus: undefined;
-  AdvertismentCreateScreen: { flow?: 'individual' | 'business' };
+  AdvertismentCreateScreen: { flow?: 'individual' | 'business'; companyId?: number };
   CampaignUploadFiles: { uploadUrl: string; flow?: 'individual' | 'business' };
   CurrentLocation: undefined;
   HomeScreen: undefined;

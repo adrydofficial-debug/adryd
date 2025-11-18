@@ -352,8 +352,11 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         logoName: selectedImage?.name,
       });
 
-      // Navigate to AdvertismentCreateScreen on success
-      navigation.navigate('AdvertismentCreateScreen', { flow });
+      // Navigate to AdvertismentCreateScreen on success with company_id
+      navigation.navigate('AdvertismentCreateScreen', { 
+        flow,
+        companyId: result.id, // Pass the created company ID
+      });
     } catch (error: any) {
       console.error('Create company error:', error);
 
