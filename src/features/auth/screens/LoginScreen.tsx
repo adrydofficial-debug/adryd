@@ -41,7 +41,6 @@ const LoginScreen: React.FC = () => {
 
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [setDrawerVisible] = useState(false);
   const passwordRef = useRef<TextInput>(null);
 
   // ✅ Yup validation schema
@@ -81,7 +80,11 @@ const LoginScreen: React.FC = () => {
 
   const handleLogin = async (
     values: LoginCredentials,
-    { validateForm, setTouched, setFieldTouched }: FormikHelpers<LoginCredentials>,
+    {
+      validateForm,
+      setTouched,
+      setFieldTouched,
+    }: FormikHelpers<LoginCredentials>,
   ) => {
     setApiError(null);
     // Mark both fields as touched to trigger validation display
@@ -130,11 +133,13 @@ const LoginScreen: React.FC = () => {
           <View style={styles.mainContainer}>
             <View style={styles.header}>
               {/* <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.7}> */}
-                <Text style={styles.title}>{t('login.title')}</Text>
+              <Text style={styles.title}>{t('login.title')}</Text>
               {/* </TouchableOpacity> */}
               <Text style={styles.subtitle}>
                 {t('login.subtitle')}{' '}
-                <Text style={styles.highlight}>{t('login.highlight')}</Text> {"\n"}{t('login.subtitleEnd')}
+                <Text style={styles.highlight}>{t('login.highlight')}</Text>{' '}
+                {'\n'}
+                {t('login.subtitleEnd')}
               </Text>
             </View>
             <Formik<LoginCredentials>
@@ -168,11 +173,20 @@ const LoginScreen: React.FC = () => {
                     onFocus={() => handleFocus('phoneNumber')}
                     focused={focusedField === 'phoneNumber'}
                     error={
-                      (touched.phoneNumber && (errors.phoneNumber !== undefined || !values.phoneNumber || values.phoneNumber === '+92' || values.phoneNumber.length < 13)) || apiError
+                      (touched.phoneNumber &&
+                        (errors.phoneNumber !== undefined ||
+                          !values.phoneNumber ||
+                          values.phoneNumber === '+92' ||
+                          values.phoneNumber.length < 13)) ||
+                      apiError
                     }
                     errorMessage={
-                      (touched.phoneNumber && (errors.phoneNumber || (!values.phoneNumber || values.phoneNumber === '+92' || values.phoneNumber.length < 13))) 
-                        ? t('login.errors.phoneNumber') 
+                      touched.phoneNumber &&
+                      (errors.phoneNumber ||
+                        !values.phoneNumber ||
+                        values.phoneNumber === '+92' ||
+                        values.phoneNumber.length < 13)
+                        ? t('login.errors.phoneNumber')
                         : undefined
                     }
                     showErrorText={false}
@@ -195,10 +209,18 @@ const LoginScreen: React.FC = () => {
                     onFocus={() => handleFocus('password')}
                     focused={focusedField === 'password'}
                     error={
-                      (touched.password && (errors.password !== undefined || !values.password || values.password.trim() === '')) || apiError
+                      (touched.password &&
+                        (errors.password !== undefined ||
+                          !values.password ||
+                          values.password.trim() === '')) ||
+                      apiError
                     }
                     errorMessage={
-                      ((touched.password && (errors.password || !values.password || values.password.trim() === '')) || apiError)
+                      (touched.password &&
+                        (errors.password ||
+                          !values.password ||
+                          values.password.trim() === '')) ||
+                      apiError
                         ? t('login.errors.password')
                         : undefined
                     }
@@ -220,9 +242,13 @@ const LoginScreen: React.FC = () => {
                     title={t('login.cta')}
                     onPress={handleSubmit}
                     loading={loginMutation.isPending}
-                    buttonStyle={{ alignSelf: 'center', width: 161, height: 50 }}
+                    buttonStyle={{
+                      alignSelf: 'center',
+                      width: 161,
+                      height: 50,
+                    }}
                   />
-                  ...
+                  {/* Loading indicator */}
                   {loginMutation.isPending && <Loader />}
                 </>
               )}
@@ -281,7 +307,14 @@ const styles = StyleSheet.create({
   },
   loader: { marginRight: wp(2) },
   buttonText: { color: '#fff', fontSize: wp(3.1), fontWeight: 'bold' },
-  grayLine: { height: 1, backgroundColor: '#E5E7EB',  marginTop: hp(4), width:220, justifyContent:'center', alignSelf:'center', },
+  grayLine: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginTop: hp(4),
+    width: 220,
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
