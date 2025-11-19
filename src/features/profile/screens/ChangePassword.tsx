@@ -8,14 +8,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
   Alert,
   I18nManager,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
+import BackButton from '../../../components/BackButton';
 import CustomInput from '../../../components/CustomInput';
-import NoInternet  from '../../../components/NoInternet';
+import PasswordRequirements from '../../../components/PasswordRequirements';
+import PrimaryButton from '../../../components/PrimaryButton';
+import NoInternet from '../../../components/NoInternet';
 import Header from '../../../components/Header';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
@@ -24,29 +26,18 @@ const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
 
-// Base dimensions for responsive scaling
-const BASE_WIDTH = 375;
-const BASE_HEIGHT = 812;
-
-// Responsive scaling functions
-const scaleWidth = (size: number) => (width / BASE_WIDTH) * size;
-const scaleHeight = (size: number) => (height / BASE_HEIGHT) * size;
-const scaleFont = (size: number) => (width / BASE_WIDTH) * size;
-
 const ChangePassword: React.FC = () => {
   const navigation = useNavigation();
   const { t, i18n: i18nInstance } = useTranslation('profile');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string>('');
   const [isEmptyError, setIsEmptyError] = useState(false);
   const [apiErrorBorder, setApiErrorBorder] = useState(false);
+  
   // Track current language to force re-renders
   const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
   // Track RTL state to force layout re-render
@@ -58,14 +49,12 @@ const ChangePassword: React.FC = () => {
   useEffect(() => {
     const handleLanguageChange = (lang: string) => {
       setCurrentLanguage(lang);
-      // Update RTL state based on language
       const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
       const shouldBeRTL = rtlLangs.has(lang);
       setIsRTL(shouldBeRTL);
       setLanguageKey(prev => prev + 1);
     };
     i18n.on('languageChanged', handleLanguageChange);
-    // Set initial language and RTL state
     const lang = i18nInstance.language;
     setCurrentLanguage(lang);
     const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
@@ -86,10 +75,6 @@ const ChangePassword: React.FC = () => {
       return () => {};
     }, [i18nInstance.language])
   );
-
-  const handleBackPress = () => {
-    navigation.goBack();
-  };
 
   const handleFocus = (field: string) => setFocusedField(field);
 
@@ -126,15 +111,32 @@ const ChangePassword: React.FC = () => {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       setApiError(t('changePassword.errorMin'));
+      setApiErrorBorder(true);
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      setApiError(t('changePassword.errorUppercase'));
+      setApiErrorBorder(true);
+      return;
+    }
+
+    if (!/[a-z]/.test(newPassword)) {
+      setApiError(t('changePassword.errorLowercase'));
+      setApiErrorBorder(true);
+      return;
+    }
+
+    if (!/[0-9]/.test(newPassword)) {
+      setApiError(t('changePassword.errorNumber'));
       setApiErrorBorder(true);
       return;
     }
 
     setIsLoading(true);
     
-    // TODO: Implement actual password change API call
     setTimeout(() => {
       setIsLoading(false);
       Alert.alert(t('changePassword.successTitle'), t('changePassword.successMessage'), [
@@ -143,39 +145,50 @@ const ChangePassword: React.FC = () => {
     }, 2000);
   };
 
+  const handleForgotPassword = () => {
+    // Navigate to ForgotPassword screen
+    // Note: This may require navigation to AuthStack if not accessible from AppStack
+    Alert.alert(
+      t('changePassword.forgotPassword', { lng: currentLanguage }),
+      'Please log out and use the forgot password option from the login screen.',
+      [{ text: 'OK' }]
+    );
+  };
+
   return (
-    <View style={styles.container} key={`container-${isRTL}-${languageKey}`}>
+    <LinearGradient
+      colors={['#F9FAFB', '#F9FAFB']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+      style={styles.container}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
       >
         <ScrollView
-          style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.mainContainer}>
-            <Header
-              title={t('changePassword.title', { lng: currentLanguage })}
-              onBackPress={handleBackPress}
-              onRightPress={() => navigation.navigate('HelpFAQsScreen' as never)}
-              showBackButton
-              showRightIcon
-              containerStyle={{
-                flexDirection: isRTL ? 'row-reverse' : 'row',
-                paddingHorizontal: 0,
-                marginBottom: hp(2),
-              }}
-            />
-            <Text style={styles.subtitle} key={`subtitle-${languageKey}-${currentLanguage}`}>
-              {t('changePassword.subtitle', { lng: currentLanguage })}
-            </Text>
+            {/* Back Button - Top Left */}
+            <BackButton iconColor="#000" />
+
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.title} key={`title-${languageKey}-${currentLanguage}`}>
+                {t('changePassword.title', { lng: currentLanguage })}
+              </Text>
+              <Text style={styles.subtitle} key={`subtitle-${languageKey}-${currentLanguage}`}>
+                {t('changePassword.subtitle', { lng: currentLanguage })}
+              </Text>
+            </View>
            
             {/* Current Password Input */}
             <CustomInput
               label={t('changePassword.current', { lng: currentLanguage })}
-              placeholder={t('changePassword.currentPlaceholder', { lng: currentLanguage })}
+              placeholder="••••••••"
               isPassword={true}
               value={currentPassword}
               onChangeText={handleCurrentPasswordChange}
@@ -188,24 +201,33 @@ const ChangePassword: React.FC = () => {
             />
 
             {/* New Password Input */}
-            <CustomInput
-              label={t('changePassword.new', { lng: currentLanguage })}
-              placeholder={t('changePassword.newPlaceholder', { lng: currentLanguage })}
-              isPassword={true}
-              value={newPassword}
-              onChangeText={handleNewPasswordChange}
-              onBlur={() => setFocusedField(null)}
-              onFocus={() => handleFocus('newPassword')}
-              focused={focusedField === 'newPassword'}
-              error={isEmptyError || apiErrorBorder}
-              showErrorText={false}
-              containerStyle={styles.inputContainer}
-            />
+            <View>
+              <CustomInput
+                label={t('changePassword.new', { lng: currentLanguage })}
+                placeholder="••••••••"
+                isPassword={true}
+                value={newPassword}
+                onChangeText={handleNewPasswordChange}
+                onBlur={() => setFocusedField(null)}
+                onFocus={() => handleFocus('newPassword')}
+                focused={focusedField === 'newPassword'}
+                error={isEmptyError || apiErrorBorder}
+                showErrorText={false}
+                containerStyle={styles.inputContainer}
+              />
+              {focusedField === 'newPassword' && (
+                <PasswordRequirements 
+                  password={newPassword} 
+                  namespace="changePassword"
+                  translationNamespace="profile"
+                />
+              )}
+            </View>
 
             {/* Confirm Password Input */}
             <CustomInput
               label={t('changePassword.confirm', { lng: currentLanguage })}
-              placeholder={t('changePassword.confirmPlaceholder', { lng: currentLanguage })}
+              placeholder="••••••••"
               isPassword={true}
               value={confirmPassword}
               onChangeText={handleConfirmPasswordChange}
@@ -217,126 +239,68 @@ const ChangePassword: React.FC = () => {
               containerStyle={styles.inputContainer}
             />
 
+
             {/* Error Message */}
             {apiError ? <Text style={styles.errorText}>{apiError}</Text> : null}
 
             {/* Submit Button */}
-            <View style={styles.buttonWrapper}>
-              <TouchableOpacity
-                style={[
-                  styles.submitButton,
-                  isLoading && styles.disabledButton,
-                ]}
-                onPress={handleSave}
-                disabled={isLoading}
-                activeOpacity={0.8}
-              >
-                <View style={styles.buttonContent}>
-                  {isLoading && (
-                    <ActivityIndicator
-                      size="small"
-                      color="#fff"
-                      style={styles.loader}
-                    />
-                  )}
-                  <Text style={styles.buttonText} key={`button-${languageKey}-${currentLanguage}`}>
-                    {isLoading ? t('changePassword.changing', { lng: currentLanguage }) : t('changePassword.save', { lng: currentLanguage })}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+            <PrimaryButton
+              title={isLoading ? t('changePassword.changing', { lng: currentLanguage }) : t('changePassword.save', { lng: currentLanguage })}
+              onPress={handleSave}
+              loading={isLoading}
+              buttonStyle={{ alignSelf: 'center', width: 161, height: 50 }}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+      <NoInternet />
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: { 
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
-  keyboardAvoidingView: { flex: 1 },
-  scrollView: { flex: 1 },
+  keyboardAvoidingView: { 
+    flex: 1,
+  },
   scrollContent: {
-    paddingHorizontal: wp(5),
-    paddingBottom: hp(5),
-    minHeight: height,
+    paddingHorizontal: wp(6),
+    paddingBottom: hp(25),
+    minHeight: height + hp(10),
   },
   mainContainer: { 
-    flex: 1,
-    paddingTop: hp(3),
+    paddingHorizontal: 30,
   },
-  header: {},
+  header: {
+    marginTop: hp(7),
+    marginBottom: hp(4.5),
+    alignItems: 'flex-start',
+  },
   title: {
-    fontSize: scaleFont(20),
-    fontWeight: '600',
-    color: '#000000',
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#B32687',
     marginBottom: hp(1),
-    textAlign:"center",
-    marginBottom: hp(1),
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: scaleFont(12),
+    fontSize: 14,
     fontWeight: '400',
-    color: '#666666',
-    lineHeight: scaleFont(14),
-      textAlign:"center",
-    // paddingHorizontal:wp(3)
+    color: '#000000',
+    lineHeight: hp(2.2),
+    textAlign: 'left',
   },
   inputContainer: { 
-    position: 'relative',
-    marginBottom: hp(3),
-    paddingHorizontal:wp(6),
-  },
-  eyeIcon: {
-    position: 'absolute',
-    top: scaleHeight(35),
-    padding: scaleWidth(8),
-    zIndex: 1,
-    // right/left will be set dynamically based on RTL/LTR
+    marginBottom: hp(2),
   },
   errorText: {
-    color: '#E63946',
-    textAlign: 'center',
+    color: '#E61215',
+    fontSize: 10,
     marginTop: 5,
-    fontSize: 13,
-  },
-  buttonWrapper: {
-    paddingHorizontal: wp(6),
-  },
-  submitButton: {
-    marginTop: hp(2),
-    backgroundColor: '#C539A5',
-    borderRadius: scaleWidth(12),
-    paddingVertical: hp(2),
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    width: '100%',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
-    elevation: 0,
-  },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loader: { marginRight: wp(2) },
-  buttonText: {
-    color: '#fff',
-    fontSize: scaleFont(16),
-    fontWeight: '600',
+    marginLeft: wp(1),
+    textAlign: 'left',
   },
 });
 
