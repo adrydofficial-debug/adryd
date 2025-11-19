@@ -61,8 +61,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 30,
+    backgroundColor: '#FFFFFF',
   },
   iconButton: {
     width: 36,
@@ -73,10 +74,13 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 15,
+    marginRight: 15,
   },
   iconPlaceholder: {
     width: 36,
     height: 36,
+    marginRight: 15,
   },
   title: {
     flex: 1,

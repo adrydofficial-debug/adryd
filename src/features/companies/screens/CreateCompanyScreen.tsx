@@ -1,5 +1,5 @@
 // src/features/companies/screens/CompanyDetailScreen.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState ,useCallback,useEffect} from 'react';
 import {
   Alert,
   Dimensions,
@@ -11,8 +11,10 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View,  I18nManager,
 } from 'react-native';
+import Header from '../../../components/Header';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -55,7 +57,8 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   route,
   company,
 }) => {
-  const { t } = useTranslation('companies');
+ 
+  const { t, i18n: i18nInstance } = useTranslation('companies');
   const setCompanyData = useCampaignStore((state) => state.setCompanyData);
   const flow = route?.params?.flow ?? 'business';
   const [companyName, setCompanyName] = useState(
@@ -69,9 +72,12 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(
     null,
   );
+   const [languageKey, setLanguageKey] = useState(0);
+    const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
   const [selectedBusinessCategory, setSelectedBusinessCategory] =
     useState<string>('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
+   const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
 
   // Validation states
   const [validationErrors, setValidationErrors] = useState<{
@@ -422,17 +428,24 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       }
     }
   };
+ useFocusEffect(
+    useCallback(() => {
+      const lang = i18nInstance.language;
+      setCurrentLanguage(lang);
+      const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+      setIsRTL(rtlLangs.has(lang));
+      setLanguageKey(prev => prev + 1);
+      return () => {};
+    }, [i18nInstance.language])
+  );
+ const handleBackPress = () => {
+    navigation.goBack();
+  };
 
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
-      <LinearGradient
-        colors={['#F8F8F8', '#F8F8F8']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.container}
-      >
-        <View style={styles.header}>
+        {/* <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -441,7 +454,19 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('create.title')}</Text>
           <View style={styles.headerSpacer} />
-        </View>
+        </View> */}
+         <Header
+              title={t('create.title', { lng: currentLanguage })}
+              onBackPress={handleBackPress}
+              onRightPress={() => navigation.navigate('HelpFAQsScreen' as never)}
+              showBackButton
+              showRightIcon
+              containerStyle={{
+                flexDirection: isRTL ? 'row-reverse' : 'row',
+                paddingHorizontal: 0,
+                marginBottom: hp(2),
+              }}
+            />
         <View style={styles.line} />
         <View style={styles.progressContainer}>
           <ProgressBar currentStep={1} />
@@ -455,8 +480,15 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
             <TouchableOpacity
               style={styles.uploadSection}
               onPress={openImagePicker}
+              activeOpacity={0.9}
             >
-              <View style={styles.uploadContainer}>
+              <View style={[styles.uploadContainer, selectedImage && styles.uploadContainerWithImage]}>
+                {!selectedImage && (
+                  <View style={styles.uploadHeader}>
+                    <Text style={styles.uploadTitle}>{t('create.uploadLogo')}</Text>
+                    <Text style={styles.uploadHint}>{t('create.uploadFormat')}</Text>
+                  </View>
+                )}
                 {selectedImage ? (
                   <View style={styles.imagePreviewContainer}>
                     <Image
@@ -475,17 +507,10 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <>
-                    <Ionicons
-                      name="cloud-upload"
-                      size={width * 0.08}
-                      style={styles.uploadIcon}
-                    />
-                    <Text style={styles.uploadText}>{t('create.uploadLogo')}</Text>
-                    <Text style={styles.uploadSubtext}>
-                      {t('create.uploadFormat')}
-                    </Text>
-                  </>
+                  <View style={styles.uploadButton}>
+                    <Ionicons name="cloud-upload-outline" size={width * 0.06} color="#1F1F1F" />
+                    <Text style={styles.uploadButtonText}>{t('create.uploadAction')}</Text>
+                  </View>
                 )}
               </View>
             </TouchableOpacity>
@@ -634,7 +659,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
             disabled={isSubmitting}
           />
         </View>
-      </LinearGradient>
+
       <NoInternet />
     </View>
   );
@@ -740,29 +765,59 @@ const styles = StyleSheet.create({
   },
   uploadSection: {
     marginBottom: height * 0.03,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   uploadContainer: {
-    borderWidth: 2,
-    borderColor: '#FF6B9D',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     borderStyle: 'dashed',
-    borderRadius: width * 0.03,
-    backgroundColor: '#FFF4FD',
+    borderRadius: 22,
+    backgroundColor: '#F9FAFB',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: height * 0.15,
+    minHeight: height * 0.18,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
   },
-  uploadIcon: {},
-  uploadText: {
+  uploadContainerWithImage: {
+    borderStyle: 'solid',
+    paddingVertical: 16,
+  },
+  uploadHeader: {
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  uploadTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  uploadHint: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#000',
-    marginBottom: height * 0.005,
-  },
-  uploadSubtext: {
-    fontSize: 10,
-    color: '#999',
+    color: '#6B7280',
+    marginTop: 4,
     textAlign: 'center',
-    fontWeight: '400',
+  },
+  uploadButton: {
+    paddingHorizontal: 26,
+    paddingVertical: 12,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    elevation: 1,
+  },
+  uploadButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
   },
   imagePreviewContainer: {
     alignItems: 'center',
