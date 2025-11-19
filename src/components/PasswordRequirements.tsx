@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 interface PasswordRequirementsProps {
-  password: string;
+  password?: string;
   namespace?: string;
 }
 
@@ -13,11 +13,13 @@ const PasswordRequirements: React.FC<PasswordRequirementsProps> = ({
 }) => {
   const { t } = useTranslation('auth');
 
+  const passwordValue = password || '';
+
   const requirements = {
-    minChars: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
+    minChars: passwordValue.length >= 8,
+    uppercase: /[A-Z]/.test(passwordValue),
+    lowercase: /[a-z]/.test(passwordValue),
+    number: /[0-9]/.test(passwordValue),
   };
 
   return (
