@@ -23,8 +23,14 @@ export const Images = {
   homeBanner: require('./HomeBanner.png'),
   texxolOil: require('./texxolOil.png'),
   greenTick:require('./greenTick.png'),
+  paymentIcon: require('./paymentIcon.png'),
+  blockedIcon: require('./BlockedIcon.png'),
+  scheduleIcon: require('./ScheduleIcon.png'),
+  completeIcon: require('./ComplteIcon.png'),
   bannerSetting: require('./Banner_setting.png'),
   editSquare: require('./Edit Square.png'),
+  inviteIllustration: require('./InviteImg.png'),
+
 };
 
 /* SVG exports */
