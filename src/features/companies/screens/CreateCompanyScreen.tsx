@@ -1,5 +1,5 @@
 // src/features/companies/screens/CompanyDetailScreen.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState ,useCallback,useEffect} from 'react';
 import {
   Alert,
   Dimensions,
@@ -11,8 +11,10 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View,  I18nManager,
 } from 'react-native';
+import Header from '../../../components/Header';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -55,7 +57,8 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   route,
   company,
 }) => {
-  const { t } = useTranslation('companies');
+ 
+  const { t, i18n: i18nInstance } = useTranslation('companies');
   const setCompanyData = useCampaignStore((state) => state.setCompanyData);
   const flow = route?.params?.flow ?? 'business';
   const [companyName, setCompanyName] = useState(
@@ -69,9 +72,12 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(
     null,
   );
+   const [languageKey, setLanguageKey] = useState(0);
+    const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
   const [selectedBusinessCategory, setSelectedBusinessCategory] =
     useState<string>('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
+   const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
 
   // Validation states
   const [validationErrors, setValidationErrors] = useState<{
@@ -178,7 +184,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         if (response.didCancel) {
           return;
         } else if (response.errorMessage) {
-         ''
+          ''
         } else if (response.assets && response.assets[0]) {
           const asset = response.assets[0];
           const maxSize = 25 * 1024 * 1024; // 25MB
@@ -199,7 +205,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       });
     }
   };
- const renderProgressStep = (
+  const renderProgressStep = (
     stepNumber: number,
     isActive: boolean,
     isCompleted: boolean,
@@ -331,10 +337,10 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         data: companyData,
         file: selectedImage
           ? {
-              uri: selectedImage.uri,
-              type: selectedImage.type,
-              name: selectedImage.name,
-            }
+            uri: selectedImage.uri,
+            type: selectedImage.type,
+            name: selectedImage.name,
+          }
           : undefined,
       });
 
@@ -353,7 +359,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       });
 
       // Navigate to AdvertismentCreateScreen on success with company_id
-      navigation.navigate('AdvertismentCreateScreen', { 
+      navigation.navigate('AdvertismentCreateScreen', {
         flow,
         companyId: result.id, // Pass the created company ID
       });
@@ -422,17 +428,24 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       }
     }
   };
+ useFocusEffect(
+    useCallback(() => {
+      const lang = i18nInstance.language;
+      setCurrentLanguage(lang);
+      const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+      setIsRTL(rtlLangs.has(lang));
+      setLanguageKey(prev => prev + 1);
+      return () => {};
+    }, [i18nInstance.language])
+  );
+ const handleBackPress = () => {
+    navigation.goBack();
+  };
 
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
-      <LinearGradient
-        colors={['#FFF4FD', '#fef3f9']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.container}
-      >
-        <View style={styles.header}>
+        {/* <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -441,9 +454,22 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('create.title')}</Text>
           <View style={styles.headerSpacer} />
-        </View>
+        </View> */}
+         <Header
+              title={t('create.title', { lng: currentLanguage })}
+              onBackPress={handleBackPress}
+              onRightPress={() => navigation.navigate('HelpFAQsScreen' as never)}
+              showBackButton
+              showRightIcon
+              containerStyle={{
+                flexDirection: isRTL ? 'row-reverse' : 'row',
+                paddingHorizontal: 0,
+                marginBottom: hp(2),
+              }}
+            />
+        <View style={styles.line} />
         <View style={styles.progressContainer}>
-           <ProgressBar currentStep={1}/>
+          <ProgressBar currentStep={1} />
         </View>
         <ScrollView
           style={styles.scrollView}
@@ -454,8 +480,15 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
             <TouchableOpacity
               style={styles.uploadSection}
               onPress={openImagePicker}
+              activeOpacity={0.9}
             >
-              <View style={styles.uploadContainer}>
+              <View style={[styles.uploadContainer, selectedImage && styles.uploadContainerWithImage]}>
+                {!selectedImage && (
+                  <View style={styles.uploadHeader}>
+                    <Text style={styles.uploadTitle}>{t('create.uploadLogo')}</Text>
+                    <Text style={styles.uploadHint}>{t('create.uploadFormat')}</Text>
+                  </View>
+                )}
                 {selectedImage ? (
                   <View style={styles.imagePreviewContainer}>
                     <Image
@@ -474,17 +507,10 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <>
-                    <Ionicons
-                      name="cloud-upload"
-                      size={width * 0.08}
-                      style={styles.uploadIcon}
-                    />
-                    <Text style={styles.uploadText}>{t('create.uploadLogo')}</Text>
-                    <Text style={styles.uploadSubtext}>
-                      {t('create.uploadFormat')}
-                    </Text>
-                  </>
+                  <View style={styles.uploadButton}>
+                    <Ionicons name="cloud-upload-outline" size={width * 0.06} color="#1F1F1F" />
+                    <Text style={styles.uploadButtonText}>{t('create.uploadAction')}</Text>
+                  </View>
                 )}
               </View>
             </TouchableOpacity>
@@ -633,8 +659,8 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
             disabled={isSubmitting}
           />
         </View>
-      </LinearGradient>
-       <NoInternet />
+
+      <NoInternet />
     </View>
   );
 };
@@ -650,6 +676,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.05,
     paddingTop: hp(5),
     paddingBottom: height * 0.03,
+    backgroundColor: "#FFFFFF"
   },
   backButton: {
     backgroundColor: '#fff',
@@ -660,9 +687,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: width * 0.055,
+    fontSize: 13,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#202020',
   },
   headerSpacer: {
     width: wp(10),
@@ -672,7 +699,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: width * 0.1,
-    paddingBottom: height * 0.03,
+    paddingBottom: height * 0.04,
+    paddingTop: height * 0.04,
+  },
+  line: {
+    height: 1,
+    borderColor: "#E5E7EB",
+    width: '100%',
+    borderWidth: 1,
   },
   progressStepContainer: {
     flexDirection: 'row',
@@ -716,44 +750,74 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: width * 0.05,
+    paddingHorizontal: width * 0.12,
     paddingBottom: 280,
   },
   formCard: {
-    backgroundColor: '#fff',
-    borderRadius: width * 0.04,
-    padding: width * 0.05,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    // backgroundColor: '#fff',
+    // borderRadius: width * 0.04,
+    // padding: width * 0.05,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 4 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 8,
+    // elevation: 5,
   },
   uploadSection: {
     marginBottom: height * 0.03,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   uploadContainer: {
-    borderWidth: 2,
-    borderColor: '#FF6B9D',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     borderStyle: 'dashed',
-    borderRadius: width * 0.03,
-    backgroundColor: '#FFF4FD',
+    borderRadius: 22,
+    backgroundColor: '#F9FAFB',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: height * 0.15,
+    minHeight: height * 0.18,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
   },
-  uploadIcon: {},
-  uploadText: {
+  uploadContainerWithImage: {
+    borderStyle: 'solid',
+    paddingVertical: 16,
+  },
+  uploadHeader: {
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  uploadTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  uploadHint: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#000',
-    marginBottom: height * 0.005,
-  },
-  uploadSubtext: {
-    fontSize: 10,
-    color: '#999',
+    color: '#6B7280',
+    marginTop: 4,
     textAlign: 'center',
-    fontWeight: '400',
+  },
+  uploadButton: {
+    paddingHorizontal: 26,
+    paddingVertical: 12,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    elevation: 1,
+  },
+  uploadButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
   },
   imagePreviewContainer: {
     alignItems: 'center',
@@ -811,9 +875,9 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '400',
-    color: '#6f6666ff',
+    color: '#18181B',
     marginBottom: 8,
   },
   dropdownWrapper: {
