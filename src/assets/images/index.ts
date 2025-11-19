@@ -29,6 +29,7 @@ export const Images = {
   blockedIcon: require('./BlockedIcon.png'),
   scheduleIcon: require('./ScheduleIcon.png'),
   completeIcon: require('./ComplteIcon.png'),
+  frame: require('./Frame.png'),
 };
 
 /* SVG exports */

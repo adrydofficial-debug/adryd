@@ -9,24 +9,36 @@
       "phoneNumber": "Phone Number",
       "phonePlaceholder": "Phone number",
       "phoneNote": "Your phone number is verified and cannot be changed.",
-      "cta": "Update Profile"
+      "cta": "Save",
+      "cancel": "Cancel",
+      "editButton": "Edit"
     },
     "changePassword": {
-      "title": "Change Password",
-      "subtitle": "Choose a new password enter and confirm your new password to regain access.",
+      "title": "Update Your Password",
+      "subtitle": "please enter your current password and create a new, strong password to protect your account.",
       "current": "Current Password",
       "currentPlaceholder": "Enter current password",
       "new": "New Password",
       "newPlaceholder": "Enter new password",
-      "confirm": "Confirm New Password",
+      "confirm": "Confirm Password",
       "confirmPlaceholder": "Confirm new password",
       "changing": "Changing...",
-      "save": "Save",
+      "save": "Submit",
+      "forgotPassword": "Forgot Password?",
       "errorMatch": "New passwords do not match.",
-      "errorMin": "New password must be at least 6 characters.",
+      "errorMin": "Password must be at least 8 characters",
+      "errorUppercase": "Password must contain at least one uppercase letter",
+      "errorLowercase": "Password must contain at least one lowercase letter",
+      "errorNumber": "Password must contain at least one number",
       "successTitle": "Success",
       "successMessage": "Password changed successfully!",
-      "ok": "OK"
+      "ok": "OK",
+      "passwordRequirements": {
+        "minChars": "Minimum characters 8",
+        "uppercase": "One uppercase character",
+        "lowercase": "One lowercase character",
+        "number": "One number"
+      }
     },
     "previousCompany": {
       "select": "Select",
@@ -69,24 +81,36 @@
       "phoneNumber": "فون نمبر",
       "phonePlaceholder": "فون نمبر",
       "phoneNote": "آپ کا فون نمبر تصدیق شدہ ہے اور تبدیل نہیں کیا جا سکتا۔",
-      "cta": "پروفائل اپڈیٹ کریں"
+      "cta": "محفوظ کریں",
+      "cancel": "منسوخ کریں",
+      "editButton": "ترمیم"
     },
     "changePassword": {
-      "title": "پاس ورڈ تبدیل کریں",
-      "subtitle": "نیا پاس ورڈ منتخب کریں، نیا پاس ورڈ درج کریں اور تصدیق کریں۔",
+      "title": "اپنا پاس ورڈ اپ ڈیٹ کریں",
+      "subtitle": "براہ کرم اپنا موجودہ پاس ورڈ درج کریں اور اپنے اکاؤنٹ کی حفاظت کے لیے ایک نیا، مضبوط پاس ورڈ بنائیں۔",
       "current": "موجودہ پاس ورڈ",
       "currentPlaceholder": "موجودہ پاس ورڈ درج کریں",
       "new": "نیا پاس ورڈ",
       "newPlaceholder": "نیا پاس ورڈ درج کریں",
-      "confirm": "نئے پاس ورڈ کی تصدیق",
+      "confirm": "پاس ورڈ کی تصدیق",
       "confirmPlaceholder": "نئے پاس ورڈ کی تصدیق کریں",
       "changing": "تبدیل کیا جا رہا ہے...",
-      "save": "محفوظ کریں",
+      "save": "جمع کریں",
+      "forgotPassword": "پاس ورڈ بھول گئے؟",
       "errorMatch": "نئے پاس ورڈ ایک جیسے نہیں ہیں۔",
-      "errorMin": "نیا پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے۔",
+      "errorMin": "پاس ورڈ کم از کم 8 حروف کا ہونا چاہیے",
+      "errorUppercase": "پاس ورڈ میں کم از کم ایک بڑا حرف ہونا چاہیے",
+      "errorLowercase": "پاس ورڈ میں کم از کم ایک چھوٹا حرف ہونا چاہیے",
+      "errorNumber": "پاس ورڈ میں کم از کم ایک نمبر ہونا چاہیے",
       "successTitle": "کامیابی",
       "successMessage": "پاس ورڈ کامیابی سے تبدیل ہو گیا!",
-      "ok": "ٹھیک ہے"
+      "ok": "ٹھیک ہے",
+      "passwordRequirements": {
+        "minChars": "کم از کم 8 حروف",
+        "uppercase": "ایک بڑا حرف",
+        "lowercase": "ایک چھوٹا حرف",
+        "number": "ایک نمبر"
+      }
     },
     "previousCompany": {
       "select": "منتخب کریں",
