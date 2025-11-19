@@ -251,16 +251,24 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
       {/* Header */}
-    
-      
-      
-     <Header
-  title={`${t('previousCompany.select')}`}
-  onBackPress={() => navigation.goBack()}
-  showRightIcon={false}
-/>
-
-   
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBackPress}
+          activeOpacity={0.7}>
+          <Ionicons
+            name="chevron-back"
+            size={scaleFont(24)}
+            color="#000000"
+          />
+        </TouchableOpacity>
+        
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle} key={`title-${languageKey}`}>{t('previousCompany.select')}</Text>
+        </View>
+        
+     
+      </View>
 
       {/* Content */}
       <View style={styles.content}>
@@ -320,6 +328,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
     paddingVertical:25
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: wp(5),
+    paddingTop: hp(4),
+    paddingBottom: hp(2),
+  },
+  backButton: {
+    width: scaleWidth(40),
+    height: scaleWidth(40),
+    borderRadius: scaleWidth(20),
+    backgroundColor: '#F8F8F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000000',
+    marginBottom: scaleHeight(2),
+  },
+  headerSubtitle: {
+    fontSize: scaleFont(14),
+    fontWeight: '400',
+    color: '#666666',
+  },
+  headerSpacer: {
+    width: scaleWidth(40),
   },
   content: {
     flex: 1,

@@ -5,13 +5,15 @@ import { useTranslation } from 'react-i18next';
 interface PasswordRequirementsProps {
   password?: string;
   namespace?: string;
+  translationNamespace?: string;
 }
 
 const PasswordRequirements: React.FC<PasswordRequirementsProps> = ({
   password,
   namespace = 'login',
+  translationNamespace = 'auth',
 }) => {
-  const { t } = useTranslation('auth');
+  const { t } = useTranslation(translationNamespace);
 
   const passwordValue = password || '';
 

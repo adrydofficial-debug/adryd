@@ -15,6 +15,7 @@ import {
   launchImageLibrary,
 } from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Images } from '../assets/images';
 import { isLocalFileUri } from '../services/imageUpload';
 import { useAuthStore } from '../store/authStore';
 
@@ -27,6 +28,7 @@ interface ProfileUserProps {
     path: string;
     publicUrl: string;
   }) => void;
+  onAvatarPress?: () => void;
   containerStyle?: any;
 }
 
@@ -34,6 +36,7 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
   username = '',
   avatarUri,
   onImageSelected,
+  onAvatarPress,
   containerStyle,
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(
@@ -77,6 +80,9 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
   };
 
   const pickImage = async () => {
+    // Notify parent that avatar was clicked
+    onAvatarPress?.();
+
     const permitted = await requestGalleryPermission();
     if (!permitted) {
       Alert.alert(
@@ -141,7 +147,11 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
                 style={styles.avatarImage}
               />
             ) : (
-              <Text style={styles.avatarText}>{initials}</Text>
+              <Image
+                source={Images.frame}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
             )}
           </View>
         </TouchableOpacity>

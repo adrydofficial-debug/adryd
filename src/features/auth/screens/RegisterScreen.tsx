@@ -130,7 +130,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState('');
-  const [setFullName] = useState('');
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [, setPasswordValidation] = useState<PasswordValidation>({
     hasUppercase: false,
@@ -377,21 +376,17 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               style={styles.title}
               key={`title-${languageKey}-${currentLanguage}`}
             >
-              {t('register.title', { lng: currentLanguage })}
+              {currentStep === 'register'
+                ? t('register.title', { lng: currentLanguage })
+                : t('register.createPassword.title', { lng: currentLanguage })}
             </Text>
             <Text
               style={styles.subtitle}
               key={`subtitle-${languageKey}-${currentLanguage}`}
             >
-              {t('register.subtitle.start', { lng: currentLanguage })}{' '}
-              <Text style={styles.highlight}>
-                {t('register.subtitle.highlight1', { lng: currentLanguage })}
-              </Text>{' '}
-              {t('register.subtitle.middle', { lng: currentLanguage })}{' '}
-              <Text style={styles.highlight}>
-                {t('register.subtitle.highlight2', { lng: currentLanguage })}
-              </Text>
-              {t('register.subtitle.end', { lng: currentLanguage })}
+              {currentStep === 'register'
+                ? t('register.subtitle.start', { lng: currentLanguage })
+                : t('register.createPassword.description', { lng: currentLanguage })}
             </Text>
 
             {currentStep === 'register' ? (
