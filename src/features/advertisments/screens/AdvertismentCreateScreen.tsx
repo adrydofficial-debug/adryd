@@ -299,9 +299,9 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   );
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#C538A5" barStyle="light-content" />
+      <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
       <LinearGradient
-        colors={['#FFF4FD', '#fef3f9']}
+        colors={['#F8F8F8', '#F8F8F8']}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.container}

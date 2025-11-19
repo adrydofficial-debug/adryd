@@ -178,7 +178,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         if (response.didCancel) {
           return;
         } else if (response.errorMessage) {
-         ''
+          ''
         } else if (response.assets && response.assets[0]) {
           const asset = response.assets[0];
           const maxSize = 25 * 1024 * 1024; // 25MB
@@ -199,7 +199,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       });
     }
   };
- const renderProgressStep = (
+  const renderProgressStep = (
     stepNumber: number,
     isActive: boolean,
     isCompleted: boolean,
@@ -331,10 +331,10 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         data: companyData,
         file: selectedImage
           ? {
-              uri: selectedImage.uri,
-              type: selectedImage.type,
-              name: selectedImage.name,
-            }
+            uri: selectedImage.uri,
+            type: selectedImage.type,
+            name: selectedImage.name,
+          }
           : undefined,
       });
 
@@ -353,7 +353,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       });
 
       // Navigate to AdvertismentCreateScreen on success with company_id
-      navigation.navigate('AdvertismentCreateScreen', { 
+      navigation.navigate('AdvertismentCreateScreen', {
         flow,
         companyId: result.id, // Pass the created company ID
       });
@@ -427,7 +427,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
       <LinearGradient
-        colors={['#FFF4FD', '#fef3f9']}
+        colors={['#F8F8F8', '#F8F8F8']}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.container}
@@ -442,8 +442,9 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
           <Text style={styles.headerTitle}>{t('create.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
+        <View style={styles.line} />
         <View style={styles.progressContainer}>
-           <ProgressBar currentStep={1}/>
+          <ProgressBar currentStep={1} />
         </View>
         <ScrollView
           style={styles.scrollView}
@@ -634,7 +635,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
           />
         </View>
       </LinearGradient>
-       <NoInternet />
+      <NoInternet />
     </View>
   );
 };
@@ -650,6 +651,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.05,
     paddingTop: hp(5),
     paddingBottom: height * 0.03,
+    backgroundColor: "#FFFFFF"
   },
   backButton: {
     backgroundColor: '#fff',
@@ -660,9 +662,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: width * 0.055,
+    fontSize: 13,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#202020',
   },
   headerSpacer: {
     width: wp(10),
@@ -672,7 +674,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: width * 0.1,
-    paddingBottom: height * 0.03,
+    paddingBottom: height * 0.04,
+    paddingTop: height * 0.04,
+  },
+  line: {
+    height: 1,
+    borderColor: "#E5E7EB",
+    width: '100%',
+    borderWidth: 1,
   },
   progressStepContainer: {
     flexDirection: 'row',
@@ -716,18 +725,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: width * 0.05,
+    paddingHorizontal: width * 0.12,
     paddingBottom: 280,
   },
   formCard: {
-    backgroundColor: '#fff',
-    borderRadius: width * 0.04,
-    padding: width * 0.05,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    // backgroundColor: '#fff',
+    // borderRadius: width * 0.04,
+    // padding: width * 0.05,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 4 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 8,
+    // elevation: 5,
   },
   uploadSection: {
     marginBottom: height * 0.03,
@@ -811,9 +820,9 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '400',
-    color: '#6f6666ff',
+    color: '#18181B',
     marginBottom: 8,
   },
   dropdownWrapper: {

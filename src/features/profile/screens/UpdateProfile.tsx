@@ -17,6 +17,7 @@ import CustomInput from '../../../components/CustomInput';
 import NoInternet from '../../../components/NoInternet';
 import ProfileUser from '../../../components/ProfileUser';
 import i18n from '../../../i18n';
+import BackButton from '../../../components/BackButton';
 import { useProfile, useUpdateUserProfile } from '../hooks';
 
 const { width, height } = Dimensions.get('window');
@@ -95,12 +96,7 @@ const UpdateProfile: React.FC = () => {
       >
         {/* Top Bar */}
         <View style={styles.topBar}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backBtn}
-          >
-            <Ionicons name="chevron-back" size={22} color="#111" />
-          </TouchableOpacity>
+          <BackButton/>
           <Text style={styles.title} key={`title-${languageKey}`}>
             {t('updateProfile.screenTitle')}
           </Text>
@@ -165,19 +161,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: hp(2.5),
     marginBottom: hp(1),
   },
-  backBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 16, fontWeight: '700', color: '#111' },
+  title: { fontSize: 16, fontWeight: '700', color: '#111',marginTop: hp(3) },
   headerCard: {
     alignItems: 'center',
     marginTop: hp(1.5),
