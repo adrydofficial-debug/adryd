@@ -32,7 +32,7 @@ export const Images = {
   completeIcon: require('./ComplteIcon.png'),
   frame: require('./Frame.png'),
   inviteIllustration: require('./InviteImg.png'),
-
+uploadFile: require('./UploadImg.png'),
 
 };
 

@@ -20,6 +20,7 @@ import ProfileUser from '../../../components/ProfileUser';
 import i18n from '../../../i18n';
 import BackButton from '../../../components/BackButton';
 import { useProfile, useUpdateUserProfile } from '../hooks';
+import Header from '../../../components/Header';
 
 const { width, height } = Dimensions.get('window');
 const wp = (p: number) => (width * p) / 100;

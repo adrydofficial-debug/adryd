@@ -13,6 +13,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {useFavoritesBoards} from '../../boards/hooks/useFavorites';
 import type {BoardItem} from '../../../components/BoardList';
 import BackButton from '../../../components/BackButton';
+import Header from '../../../components/Header';
 
 const {width, height} = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -296,11 +297,13 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <View style={styles.content}>
-        <View style={styles.header}>
-          <BackButton />
-          <Text style={styles.headerTitle}>Favorite</Text>
-          <View style={styles.headerSpacer} />
-        </View>
+      
+       <Header
+       title="Favourites"
+        onBackPress={() => navigation.goBack()}
+        showRightIcon={false}
+       />
+      
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -355,27 +358,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: LIST_HORIZONTAL_PADDING,
-    paddingTop: hp(5),
-    paddingBottom: hp(1.8),
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E9E9EF',
-  },
-  headerTitle: {
-    fontSize: width * 0.055,
-    fontWeight: '700',
-    color: '#1C1C1E',
-    letterSpacing: 0.2,
-  },
-  headerSpacer: {
-    width: wp(10),
-    height: wp(10),
   },
   listContent: {
     paddingHorizontal: LIST_HORIZONTAL_PADDING,

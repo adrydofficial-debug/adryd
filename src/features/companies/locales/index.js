@@ -49,7 +49,8 @@ const companiesLocales = {
       successMessage: 'Company created successfully!',
       ok: 'OK',
       uploadLogo: 'Upload Company Logo',
-      uploadFormat: 'Format: .jpeg, .png & Max file size: 25 MB',
+      uploadFormat: 'JPEG, PNG Max file size: 25 MB',
+      uploadAction:"Upload"
     },
   },
   ur: {
