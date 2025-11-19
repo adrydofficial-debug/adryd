@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
 import NoInternet from '../../../components/NoInternet';
@@ -19,6 +18,7 @@ import ProfileUser from '../../../components/ProfileUser';
 import i18n from '../../../i18n';
 import BackButton from '../../../components/BackButton';
 import { useProfile, useUpdateUserProfile } from '../hooks';
+import Header from '../../../components/Header';
 
 const { width, height } = Dimensions.get('window');
 const wp = (p: number) => (width * p) / 100;
@@ -90,19 +90,20 @@ const UpdateProfile: React.FC = () => {
       style={styles.container}
       key={languageKey}
     >
-      <ScrollView
+     
+        {/* Top Bar */}
+    
+         <Header
+  title={t('updateProfile.screenTitle')}
+  onBackPress={() => navigation.goBack()}
+  showRightIcon={false}
+/>
+
+    
+ <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Top Bar */}
-        <View style={styles.topBar}>
-          <BackButton/>
-          <Text style={styles.title} key={`title-${languageKey}`}>
-            {t('updateProfile.screenTitle')}
-          </Text>
-          <View style={{ width: 32 }} />
-        </View>
-
         {/* Avatar Section */}
         <ProfileUser
           key={refreshKey}
@@ -155,14 +156,9 @@ const UpdateProfile: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingVertical: 25 },
+  container: { flex: 1, backgroundColor: '#fff',},
   content: { paddingHorizontal: wp(6), paddingBottom: hp(6) },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: hp(1),
-  },
+
   title: { fontSize: 16, fontWeight: '700', color: '#111',marginTop: hp(3) },
   headerCard: {
     alignItems: 'center',
