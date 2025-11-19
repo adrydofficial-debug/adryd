@@ -31,7 +31,7 @@ export const Images = {
   scheduleIcon: require('./ScheduleIcon.png'),
   completeIcon: require('./ComplteIcon.png'),
   inviteIllustration: require('./InviteImg.png'),
-
+uploadFile: require('./UploadImg.png'),
 
 };
 
