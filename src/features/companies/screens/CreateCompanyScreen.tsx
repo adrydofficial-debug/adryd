@@ -1,5 +1,5 @@
 // src/features/companies/screens/CompanyDetailScreen.tsx
-import React, { useMemo, useState ,useCallback,useEffect} from 'react';
+import React, { useMemo, useState ,useCallback} from 'react';
 import {
   Alert,
   Dimensions,
@@ -18,6 +18,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { UploadIcon } from '../../../assets/images';
 import BusinessCategoryDropdown from '../../../components/BusinessCategoryDropdown';
 import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
@@ -445,29 +446,18 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
-        {/* <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={wp(6)} color="#000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('create.title')}</Text>
-          <View style={styles.headerSpacer} />
-        </View> */}
          <Header
               title={t('create.title', { lng: currentLanguage })}
-              onBackPress={handleBackPress}
-              onRightPress={() => navigation.navigate('HelpFAQsScreen' as never)}
+              onBackPress={handleBackPress} 
               showBackButton
-              showRightIcon
+              // showRightIcon
               containerStyle={{
                 flexDirection: isRTL ? 'row-reverse' : 'row',
                 paddingHorizontal: 0,
                 marginBottom: hp(2),
               }}
             />
-        <View style={styles.line} />
+       
         <View style={styles.progressContainer}>
           <ProgressBar currentStep={1} />
         </View>
@@ -482,22 +472,24 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
               onPress={openImagePicker}
               activeOpacity={0.9}
             >
-              <View style={[styles.uploadContainer, selectedImage && styles.uploadContainerWithImage]}>
-                {!selectedImage && (
-                  <View style={styles.uploadHeader}>
-                    <Text style={styles.uploadTitle}>{t('create.uploadLogo')}</Text>
-                    <Text style={styles.uploadHint}>{t('create.uploadFormat')}</Text>
-                  </View>
-                )}
+              <Text style={styles.uploadTitle}>{t('create.uploadLogo')}</Text>
+              <View
+                style={[
+                  styles.uploadContainer,
+                  !selectedImage && styles.uploadContainerEmpty,
+                ]}
+              >
                 {selectedImage ? (
                   <View style={styles.imagePreviewContainer}>
                     <Image
                       source={{ uri: selectedImage.uri }}
                       style={styles.previewImage}
+                      resizeMode="cover"
                     />
                     <TouchableOpacity
                       style={styles.deleteImageButton}
                       onPress={() => setSelectedImage(null)}
+                      activeOpacity={0.8}
                     >
                       <Ionicons
                         name="trash"
@@ -507,10 +499,17 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <View style={styles.uploadButton}>
-                    <Ionicons name="cloud-upload-outline" size={width * 0.06} color="#1F1F1F" />
-                    <Text style={styles.uploadButtonText}>{t('create.uploadAction')}</Text>
-                  </View>
+                  <>
+                    <View style={styles.uploadButton}>
+                      <UploadIcon width={width * 0.06} height={width * 0.06} />
+                      <Text style={styles.uploadButtonText}>
+                        {t('create.uploadAction')}
+                      </Text>
+                    </View>
+                    <Text style={styles.uploadHint}>
+                      {t('create.uploadFormat')}
+                    </Text>
+                  </>
                 )}
               </View>
             </TouchableOpacity>
@@ -667,7 +666,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f8f8',
   },
   header: {
     flexDirection: 'row',
@@ -702,12 +701,7 @@ const styles = StyleSheet.create({
     paddingBottom: height * 0.04,
     paddingTop: height * 0.04,
   },
-  line: {
-    height: 1,
-    borderColor: "#E5E7EB",
-    width: '100%',
-    borderWidth: 1,
-  },
+ 
   progressStepContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -767,55 +761,57 @@ const styles = StyleSheet.create({
     marginBottom: height * 0.03,
     borderRadius: 24,
     backgroundColor: '#FFFFFF',
-    padding: 4,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   uploadContainer: {
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderStyle: 'dashed',
-    borderRadius: 22,
+    borderRadius: 20,
     backgroundColor: '#F9FAFB',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: height * 0.18,
-    paddingVertical: 24,
+    minHeight: height * 0.2,
+    paddingVertical: 28,
     paddingHorizontal: 16,
+    width: '100%',
   },
-  uploadContainerWithImage: {
-    borderStyle: 'solid',
-    paddingVertical: 16,
+  uploadContainerEmpty: {
+    backgroundColor: '#F5F5F5',
   },
   uploadHeader: {
     alignItems: 'center',
     marginBottom: 18,
   },
   uploadTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '400',
     color: '#111827',
+    textAlign: 'center',
+    marginBottom: 12,
   },
   uploadHint: {
     fontSize: 12,
     color: '#6B7280',
-    marginTop: 4,
     textAlign: 'center',
+    marginTop: 14,
   },
   uploadButton: {
-    paddingHorizontal: 26,
-    paddingVertical: 12,
-    borderRadius: 18,
+    marginTop: 8,
+    paddingHorizontal: 30,
+    paddingVertical: 14,
+    borderRadius: 10,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    // borderWidth: 1,
+    // borderColor: '#E5E7EB',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    elevation: 1,
+    // elevation: 1,
   },
   uploadButtonText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: '#111827',
   },
@@ -827,9 +823,11 @@ const styles = StyleSheet.create({
     maxHeight: '100%',
   },
   previewImage: {
-    width: 310,
-    height: 160,
-    borderRadius: width * 0.02,
+    width: width * 0.6,
+    height: height * 0.18,
+    borderRadius: width * 0.04,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   deleteImageButton: {
     position: 'absolute',
