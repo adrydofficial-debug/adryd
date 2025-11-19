@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Dimensions,
   Keyboard,
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -37,6 +38,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
   const [resendCooldown, setResendCooldown] = useState(0);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const inputRefs = useRef<TextInput[]>([]);
+  const autoVerifyTriggered = useRef(false);
 
   useEffect(() => {
     if (visible) {
@@ -46,6 +48,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
       setErrorMessage('');
       setResendCooldown(60); // 60 seconds cooldown
       setFocusedIndex(null);
+      autoVerifyTriggered.current = false;
     }
   }, [visible]);
 
@@ -59,6 +62,20 @@ const OTPModal: React.FC<OTPModalProps> = ({
     }
   }, [resendCooldown, visible]);
 
+  useEffect(() => {
+    const otpString = otp.join('');
+    if (otpString.length === 6 && !isLoading && !errorMessage && visible && !autoVerifyTriggered.current) {
+      autoVerifyTriggered.current = true;
+      const timer = setTimeout(() => {
+        handleVerify();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+    if (otpString.length < 6) {
+      autoVerifyTriggered.current = false;
+    }
+  }, [otp, isLoading, errorMessage, visible]);
+
   const handleOtpChange = (value: string, index: number) => {
     if (errorMessage) setErrorMessage('');
 
@@ -70,12 +87,21 @@ const OTPModal: React.FC<OTPModalProps> = ({
         if (i < 6) newOtp[i] = digit;
       });
       setOtp(newOtp);
+      autoVerifyTriggered.current = false; 
 
       const lastFilledIndex = pastedOtp.length - 1;
       if (lastFilledIndex < 5) {
         inputRefs.current[lastFilledIndex + 1]?.focus();
       } else {
         Keyboard.dismiss();
+        if (pastedOtp.length === 6) {
+          setTimeout(() => {
+            if (!autoVerifyTriggered.current && !isLoading) {
+              autoVerifyTriggered.current = true;
+              handleVerify();
+            }
+          }, 150);
+        }
       }
       return;
     }
@@ -117,6 +143,8 @@ const OTPModal: React.FC<OTPModalProps> = ({
       }
       setErrorMessage(message);
       setIsLoading(false);
+      autoVerifyTriggered.current = false; 
+      
     }
   };
 
@@ -132,6 +160,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
       await onResend();
       setResendCooldown(60); // Reset cooldown after successful resend
       setOtp(['', '', '', '', '', '']); // Clear OTP fields
+      autoVerifyTriggered.current = false; // Reset auto-verify flag
       // Focus first input after resend
       inputRefs.current[0]?.focus();
     } catch (error: any) {
@@ -174,6 +203,8 @@ const OTPModal: React.FC<OTPModalProps> = ({
                 style={[
                   styles.otpInput,
                   digit ? styles.otpInputFilled : styles.otpInputEmpty,
+                  errorMessage ? styles.otpInputError : null,
+                  !digit && focusedIndex === index && !errorMessage ? styles.otpInputFocused : null,
                 ]}
                 value={digit}
                 onChangeText={value => handleOtpChange(value, index)}
@@ -188,6 +219,8 @@ const OTPModal: React.FC<OTPModalProps> = ({
                 textAlign="center"
                 placeholder=""
                 placeholderTextColor="transparent"
+                selectionColor={Platform.OS === 'ios' ? '#000' : undefined}
+                cursorColor={Platform.OS === 'android' ? '#000' : undefined}
               />
             ))}
           </View>
@@ -284,6 +317,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: height * 0.01,
     paddingHorizontal: width * 0.02,
+    paddingVertical: width * 0.01,
+    marginHorizontal: width * 0.01,
   },
   otpInput: {
     width: width * 0.1,
@@ -298,18 +333,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     includeFontPadding: false,
     textAlignVertical: 'center',
+    color: '#000',
   },
   otpInputEmpty: {
-    backgroundColor: 'white',
-    borderColor: '#ddd',
-    color: '#999',
+    backgroundColor: '#F5F5F5',
+    borderColor: '#E5E5E5',
+    color: '#000',
   },
   otpInputFilled: {
     backgroundColor: '#F2BCE9',
     borderColor: '#C539A5',
-    color: '#C12C9F',
+    color: '#000',
     justifyContent:"center",
     alignItems:"center",
+  },
+  otpInputFocused: {
+    borderColor: '#000',
+    borderWidth: 1,
+  },
+  otpInputError: {
+    borderColor: '#E63946',
+    backgroundColor: 'white',
+    borderWidth: 1,
+    color: '#000',
   },
   verifyButton: {
     backgroundColor: '#C539A5',

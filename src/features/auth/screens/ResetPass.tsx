@@ -113,10 +113,9 @@ const ResetPass: React.FC<ResetPassProps> = ({ navigation, route }) => {
           showSuccessPopup();
         },
         onError: (err: any) => {
-          const message =
-            err?.message || 'Failed to reset password. Please try again.';
-          setApiError(message);
-          setApiErrorBorder(true);
+          Alert.alert('Error', 'Something went wrong plz try again');
+          setApiError('');
+          setApiErrorBorder(false);
         },
       },
     );
