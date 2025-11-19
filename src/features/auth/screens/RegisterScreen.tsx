@@ -25,8 +25,8 @@ import PasswordRequirements from '../../../components/PasswordRequirements';
 import PrimaryButton from '../../../components/PrimaryButton';
 import i18n from '../../../i18n';
 import { supabase } from '../../../services/supabase';
-import { useRegister, useForgotPassword } from '../hooks/useAuth';
 import { useAuthStore } from '../../../store/authStore';
+import { useForgotPassword, useRegister } from '../hooks/useAuth';
 
 // ----------------------
 // Helpers
@@ -34,15 +34,6 @@ import { useAuthStore } from '../../../store/authStore';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
-
-// ----------------------
-// Types
-// ----------------------
-interface RegisterFormValues {
-  username: string;
-  password: string;
-  phoneNumber: string;
-}
 
 interface RegisterScreenProps {
   navigation: {
@@ -68,8 +59,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const registerMutation = useRegister();
   const forgotPassword = useForgotPassword();
   const setUser = useAuthStore(s => s.setUser);
-  
-  const [currentStep, setCurrentStep] = useState<'register' | 'password'>('register');
+
+  const [currentStep, setCurrentStep] = useState<'register' | 'password'>(
+    'register',
+  );
 
   const registerValidationSchema = React.useMemo(() => {
     const currentLang = i18nInstance.language;
@@ -120,7 +113,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             'Password must contain number',
         ),
       confirmPassword: Yup.string()
-        .oneOf([Yup.ref('password')], t('forgot.errors.confirmPassword', { lng: currentLang }) || 'Passwords do not match')
+        .oneOf(
+          [Yup.ref('password')],
+          t('forgot.errors.confirmPassword', { lng: currentLang }) ||
+            'Passwords do not match',
+        )
         .required(
           t('forgot.errors.confirmPassword', { lng: currentLang }) ||
             'Please confirm your password',
@@ -133,7 +130,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [setFullName] = useState('');
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [, setPasswordValidation] = useState<PasswordValidation>({
     hasUppercase: false,
@@ -223,13 +220,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       return;
     }
 
-    // Save full name and phone for later use
-    setFullName(values.username);
     setPhone(values.phoneNumber);
 
     // Send OTP
-    forgotPassword.mutate(
-      { phone: values.phoneNumber },
+    registerMutation.mutate(
+      { phone: values.phoneNumber, fullName: values.username },
       {
         onSuccess: () => {
           formikHelpers.setSubmitting(false);
@@ -272,7 +267,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
     try {
       const { data: currentUser } = await supabase.auth.getUser();
-      
+
       if (!currentUser?.user) {
         throw new Error('User not found. Please try again.');
       }
@@ -285,21 +280,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         throw updatePasswordError;
       }
 
-      const { error: updateMetadataError } = await supabase.auth.updateUser({
-        data: {
-          full_name: fullName,
-        },
-      });
-
-      if (updateMetadataError) {
-        console.warn('Failed to update metadata:', updateMetadataError);
-      }
-
       // Get updated user
       const { data: updatedUser } = await supabase.auth.getUser();
-      
+
       setIsLoading(false);
-      
+
       if (updatedUser?.user) {
         setUser(updatedUser.user);
         (navigation as any).navigate('TermsAndConditions', {
@@ -330,7 +315,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const handleVerifyOtp = async (otp: string) => {
     try {
       // Verify OTP (this logs the user in temporarily)
-      const { data, error } = await supabase.auth.verifyOtp({
+      const { error } = await supabase.auth.verifyOtp({
         phone,
         token: otp,
         type: 'sms',
@@ -429,7 +414,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                   const shouldShowError = (
                     fieldName: 'username' | 'phoneNumber',
                   ) => {
-                    if (!validationAttempted && !touched[fieldName]) return false;
+                    if (!validationAttempted && !touched[fieldName])
+                      return false;
                     const isEmpty =
                       !values[fieldName] || values[fieldName].trim() === '';
                     const hasValidationError =
@@ -476,7 +462,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                       <PrimaryButton
                         title={
                           isSubmitting || forgotPassword.isPending
-                            ? t('forgot.sending', { lng: currentLanguage }) || 'Sending...'
+                            ? t('forgot.sending', { lng: currentLanguage }) ||
+                              'Sending...'
                             : t('register.cta', { lng: currentLanguage })
                         }
                         onPress={formikSubmit as any}
@@ -513,8 +500,11 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                   touched,
                   isSubmitting,
                 }) => {
-                  const shouldShowError = (fieldName: 'password' | 'confirmPassword') => {
-                    if (!validationAttempted && !touched[fieldName]) return false;
+                  const shouldShowError = (
+                    fieldName: 'password' | 'confirmPassword',
+                  ) => {
+                    if (!validationAttempted && !touched[fieldName])
+                      return false;
                     const isEmpty =
                       !values[fieldName] || values[fieldName].trim() === '';
                     const hasValidationError =
@@ -527,7 +517,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                       {/* New Password */}
                       <View>
                         <CustomInput
-                          label={t('register.password', { lng: currentLanguage })}
+                          label={t('register.password', {
+                            lng: currentLanguage,
+                          })}
                           placeholder={t('register.password', {
                             lng: currentLanguage,
                           })}
@@ -559,8 +551,12 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
 
                       {/* Confirm Password */}
                       <CustomInput
-                        label={t('forgot.confirmPassword', { lng: currentLanguage })}
-                        placeholder={t('forgot.confirmPassword', { lng: currentLanguage })}
+                        label={t('forgot.confirmPassword', {
+                          lng: currentLanguage,
+                        })}
+                        placeholder={t('forgot.confirmPassword', {
+                          lng: currentLanguage,
+                        })}
                         isPassword={true}
                         value={values.confirmPassword}
                         onChangeText={handleChange('confirmPassword')}
@@ -570,19 +566,29 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                         error={shouldShowError('confirmPassword')}
                         errorMessage={
                           shouldShowError('confirmPassword')
-                            ? t('forgot.errors.confirmPassword', { lng: currentLanguage }) || 'Passwords do not match'
+                            ? t('forgot.errors.confirmPassword', {
+                                lng: currentLanguage,
+                              }) || 'Passwords do not match'
                             : undefined
                         }
                       />
 
                       <PrimaryButton
                         title={
-                          isSubmitting || isLoading || registerMutation.isPending
-                            ? t('register.registering', { lng: currentLanguage })
+                          isSubmitting ||
+                          isLoading ||
+                          registerMutation.isPending
+                            ? t('register.registering', {
+                                lng: currentLanguage,
+                              })
                             : t('register.cta', { lng: currentLanguage })
                         }
                         onPress={formikSubmit as any}
-                        loading={isSubmitting || isLoading || registerMutation.isPending}
+                        loading={
+                          isSubmitting ||
+                          isLoading ||
+                          registerMutation.isPending
+                        }
                         buttonStyle={{
                           alignSelf: 'center',
                           width: 161,
@@ -590,7 +596,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
                           marginTop: hp(2),
                         }}
                       />
-                      {(isSubmitting || isLoading || registerMutation.isPending) && <Loader />}
+                      {(isSubmitting ||
+                        isLoading ||
+                        registerMutation.isPending) && <Loader />}
                     </>
                   );
                 }}

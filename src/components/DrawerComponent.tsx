@@ -8,6 +8,8 @@ import {
   Easing,
   I18nManager,
   Image,
+  Linking,
+  Modal,
   Platform,
   ScrollView,
   StatusBar,
@@ -79,6 +81,23 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
   const setIsVisible = useDrawerStore(s => s.setIsVisible);
   const translateX = useRef(new Animated.Value(-OFFSCREEN_X)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const [isContactModalVisible, setIsContactModalVisible] = useState(false);
+  const contactEntries = [
+    { id: 'primaryPhone', display: '(+92) 307 4074031', link: 'tel:+923074074031' },
+    { id: 'secondaryPhone', display: '4256945486466', link: 'tel:4256945486466' },
+    { id: 'email', display: 'adryd@app', link: 'mailto:adryd@app?subject=Support%20Request&body=Hi%20Adryd%20Team,' },
+  ];
+  const closeContactModal = () => setIsContactModalVisible(false);
+  const handleContactPress = async (link?: string) => {
+    if (!link) {
+      return;
+    }
+    try {
+      await Linking.openURL(link);
+    } catch (error) {
+      console.error('Contact link error:', error);
+    }
+  };
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ur'>(
     (i18n.language as 'en' | 'ur') || 'en',
   );
@@ -122,6 +141,9 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
 
   useEffect(() => {
     setIsVisible(visible);
+    if (!visible) {
+      setIsContactModalVisible(false);
+    }
     if (visible) {
       Animated.parallel([
         Animated.timing(translateX, {
@@ -211,7 +233,15 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       id: 5,
       title: t('drawer.invite'),
       subtitle: t('drawer.inviteSubtitle'),
-      onPress: () => {},
+      onPress: () => {
+        onClose();
+        try {
+          navigation.navigate('InviteLink' as never);
+          console.log('✅ Navigation to InviteLink successful');
+        } catch (error) {
+          console.error('❌ Navigation to InviteLink failed:', error);
+        }
+      },
       // color: '#4CAF50',
       icon: 'invite',
     },
@@ -239,8 +269,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       onPress: () => {
         onClose();
         try {
-          navigation.navigate('TermsAndConditions' as never);
-          console.log('✅ Navigation to TermsAndConditions successful');
+          navigation.navigate('TermsPrivacyOptions' as never);
+          console.log('✅ Navigation to TermsPrivacyOptions successful');
         } catch (error) {
           console.error('❌ Navigation error:', error);
         }
@@ -252,13 +282,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       id: 8,
       title: t('drawer.contact'),
       onPress: () => {
-        onClose();
-        try {
-          navigation.navigate('ContactSupportScreen' as never);
-          console.log('✅ Navigation to ContactSupportScreen successful');
-        } catch (error) {
-          console.error('❌ Navigation error:', error);
-        }
+        setIsContactModalVisible(true);
       },
       //  color: '#009688',
       icon: 'contact',
@@ -561,6 +585,34 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
           </Animated.View>
         </View>
       )}
+      <Modal
+        visible={isContactModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeContactModal}
+      >
+        <View style={styles.modalContainer}>
+          <TouchableWithoutFeedback onPress={closeContactModal}>
+            <View style={styles.modalOverlay} />
+          </TouchableWithoutFeedback>
+          <View style={styles.contactSheet}>
+            <View style={styles.sheetHandle} />
+            {contactEntries.map(entry => (
+              <View key={entry.id}>
+                <TouchableOpacity
+                  style={styles.contactRow}
+                  activeOpacity={0.8}
+                  onPress={() => handleContactPress(entry.link)}
+                >
+                  <Text style={styles.contactValue}>{entry.display}</Text>
+                </TouchableOpacity>
+                <View style={styles.contactDivider} />
+              </View>
+            ))}
+           
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -803,6 +855,60 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
     flexGrow: 1,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  modalOverlay: {
+    flex: 1,
+  },
+  contactSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  sheetHandle: {
+    width: 48,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E5E7EB',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  contactRow: {
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  contactValue: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1F2937',
+  },
+  contactDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#E5E7EB',
+  },
+  contactCloseButton: {
+    marginTop: 18,
+    borderRadius: 18,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  contactCloseText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#4B5563',
   },
 });
 

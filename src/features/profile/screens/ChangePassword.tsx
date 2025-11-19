@@ -18,6 +18,7 @@ import CustomInput from '../../../components/CustomInput';
 import PasswordRequirements from '../../../components/PasswordRequirements';
 import PrimaryButton from '../../../components/PrimaryButton';
 import NoInternet from '../../../components/NoInternet';
+import Header from '../../../components/Header';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 

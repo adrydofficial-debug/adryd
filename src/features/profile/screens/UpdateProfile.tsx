@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TextInput } from 'react-native';
@@ -9,17 +9,16 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
 import NoInternet from '../../../components/NoInternet';
 import PrimaryButton from '../../../components/PrimaryButton';
 import ProfileUser from '../../../components/ProfileUser';
 import i18n from '../../../i18n';
+import BackButton from '../../../components/BackButton';
 import { useProfile, useUpdateUserProfile } from '../hooks';
 
 const { width, height } = Dimensions.get('window');
@@ -27,7 +26,6 @@ const wp = (p: number) => (width * p) / 100;
 const hp = (p: number) => (height * p) / 100;
 
 const UpdateProfile: React.FC = () => {
-  const navigation = useNavigation();
   const { t } = useTranslation('profile');
   const [refreshKey, setRefreshKey] = useState(0);
   const [languageKey, setLanguageKey] = useState(0);
@@ -145,12 +143,7 @@ const UpdateProfile: React.FC = () => {
         >
           {/* Top Bar */}
           <View style={styles.topBar}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backBtn}
-            >
-              <Ionicons name="chevron-back" size={22} color="#111" />
-            </TouchableOpacity>
+            <BackButton/>
             <Text style={styles.title} key={`title-${languageKey}`}>
               {t('updateProfile.screenTitle')}
             </Text>
@@ -266,19 +259,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: hp(2.5),
     marginBottom: hp(1),
   },
-  backBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 16, fontWeight: '500', color: '#111' },
+  title: { fontSize: 16, fontWeight: '700', color: '#111', marginTop: hp(3) },
   headerCard: {
     alignItems: 'center',
     marginTop: hp(1.5),
