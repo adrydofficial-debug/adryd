@@ -1,6 +1,7 @@
 // src/features/auth/AuthNavigator.tsx
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
+import TermsAndConditions from '../profile/screens/TermsAndConditions';
 import ForgotPasswordScreen from './screens/ForgotPassword';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
@@ -12,6 +13,7 @@ export type AuthStackParamList = {
   ForgotPassword: undefined;
   ResetPass: { phoneNumber: string; otp: string };
   UpdateProfile: undefined;
+  TermsAndConditions: { fromAuth?: boolean; navigateTo?: string } | undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -22,6 +24,7 @@ const AuthNavigator = () => (
     <Stack.Screen name="RegisterScreen" component={RegisterScreen} />
     <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     <Stack.Screen name="ResetPass" component={ResetPassScreen} />
+    <Stack.Screen name="TermsAndConditions" component={TermsAndConditions} />
   </Stack.Navigator>
 );
 

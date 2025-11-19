@@ -1,5 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { Formik } from 'formik';
+import { Formik, FormikHelpers } from 'formik';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -14,15 +14,19 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { Toast } from 'react-native-toast-message/lib/src/Toast';
 import * as Yup from 'yup';
+import BackButton from '../../../components/BackButton';
 import CustomInput from '../../../components/CustomInput';
+import Loader from '../../../components/Loader';
+import NoInternet from '../../../components/NoInternet';
 import OTPModal from '../../../components/OTPModal';
+import PasswordRequirements from '../../../components/PasswordRequirements';
+import PrimaryButton from '../../../components/PrimaryButton';
 import i18n from '../../../i18n';
 import { supabase } from '../../../services/supabase';
-import { useRegister, useVerifyOtp } from '../hooks/useAuth';
-import BackButton from '../../../components/BackButton';
-import NoInternet from '../../../components/NoInternet';
-import CustomButton from '../../../components/CustomButton';
+import { useRegister, useForgotPassword } from '../hooks/useAuth';
+import { useAuthStore } from '../../../store/authStore';
 
 // ----------------------
 // Helpers
@@ -54,21 +58,7 @@ interface PasswordValidation {
   hasSpecial: boolean;
 }
 
-// ----------------------
-// Validation Schema
-// ----------------------
-const validationSchema = Yup.object().shape({
-  username: Yup.string().required('Username is required'),
-  password: Yup.string()
-    .matches(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
-      'Must include uppercase, lowercase, number, and special character',
-    )
-    .required('Password is required'),
-  phoneNumber: Yup.string()
-    .matches(/^\+92\d{10}$/, 'Invalid phone number')
-    .required('Phone number is required'),
-});
+// Validation schema will be created inside component to access translations
 
 // ----------------------
 // Component
@@ -76,13 +66,74 @@ const validationSchema = Yup.object().shape({
 const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const { t, i18n: i18nInstance } = useTranslation('auth');
   const registerMutation = useRegister();
-  const verifyOtpMutation = useVerifyOtp();
+  const forgotPassword = useForgotPassword();
+  const setUser = useAuthStore(s => s.setUser);
+  
+  const [currentStep, setCurrentStep] = useState<'register' | 'password'>('register');
+
+  const registerValidationSchema = React.useMemo(() => {
+    const currentLang = i18nInstance.language;
+    return Yup.object().shape({
+      username: Yup.string().required(
+        t('register.errors.username', { lng: currentLang }) ||
+          'Username is required',
+      ),
+      phoneNumber: Yup.string()
+        .matches(
+          /^\+92\d{10}$/,
+          t('register.errors.phoneNumber', { lng: currentLang }) ||
+            'Invalid phone number',
+        )
+        .required(
+          t('register.errors.phoneNumber', { lng: currentLang }) ||
+            'Phone number is required',
+        ),
+    });
+  }, [t, i18nInstance.language]);
+
+  const passwordValidationSchema = React.useMemo(() => {
+    const currentLang = i18nInstance.language;
+    return Yup.object().shape({
+      password: Yup.string()
+        .required(
+          t('register.errors.password', { lng: currentLang }) ||
+            'Password is required',
+        )
+        .min(
+          8,
+          t('register.errors.password', { lng: currentLang }) ||
+            'Password must be at least 8 characters',
+        )
+        .matches(
+          /[A-Z]/,
+          t('register.errors.password', { lng: currentLang }) ||
+            'Password must contain uppercase',
+        )
+        .matches(
+          /[a-z]/,
+          t('register.errors.password', { lng: currentLang }) ||
+            'Password must contain lowercase',
+        )
+        .matches(
+          /[0-9]/,
+          t('register.errors.password', { lng: currentLang }) ||
+            'Password must contain number',
+        ),
+      confirmPassword: Yup.string()
+        .oneOf([Yup.ref('password')], t('forgot.errors.confirmPassword', { lng: currentLang }) || 'Passwords do not match')
+        .required(
+          t('forgot.errors.confirmPassword', { lng: currentLang }) ||
+            'Please confirm your password',
+        ),
+    });
+  }, [t, i18nInstance.language]);
 
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState('');
+  const [fullName, setFullName] = useState('');
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [, setPasswordValidation] = useState<PasswordValidation>({
     hasUppercase: false,
@@ -127,8 +178,8 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
       setIsRTL(rtlLangs.has(lang));
       setLanguageKey(prev => prev + 1);
-      return () => { };
-    }, [i18nInstance.language])
+      return () => {};
+    }, [i18nInstance.language]),
   );
 
   // ----------------------
@@ -154,71 +205,168 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     if (cleaned.length <= 13) setFieldValue('phoneNumber', cleaned);
   };
 
-  const handleRegister = async (
-    values: RegisterFormValues,
-    formikHelpers: any,
+  const handleRegisterSubmit = async (
+    values: { username: string; phoneNumber: string },
+    formikHelpers: FormikHelpers<any>,
   ) => {
     setValidationAttempted(true);
     setApiError(false);
 
-    // Validate all fields
     const errors = await formikHelpers.validateForm();
 
-    // If there are validation errors, don't proceed
     if (Object.keys(errors).length > 0) {
       formikHelpers.setTouched({
         username: true,
         phoneNumber: true,
-        password: true,
       });
+      formikHelpers.setSubmitting(false);
       return;
     }
 
-    // All fields are valid, proceed with registration
-    setIsLoading(true);
+    // Save full name and phone for later use
+    setFullName(values.username);
+    setPhone(values.phoneNumber);
 
-    const payload = {
-      fullName: values.username,
-      phone: values.phoneNumber,
-      password: values.password,
-    };
-
-    registerMutation.mutate(payload, {
-      onSuccess: () => {
-        setIsLoading(false);
-        setPhone(values.phoneNumber);
-        setShowOtpModal(true); // show OTP modal instead of navigating away
-      },
-      onError: err => {
-        console.warn('Register error:', err);
-        setIsLoading(false);
-        setApiError(true);
-      },
-    });
-  };
-
-  const handleVerifyOtp = (otp: string) => {
-    verifyOtpMutation.mutate(
-      { phone, otp },
+    // Send OTP
+    forgotPassword.mutate(
+      { phone: values.phoneNumber },
       {
-        onSuccess: (user) => {
-          setShowOtpModal(false);
-          navigation.navigate("BottomTab");
+        onSuccess: () => {
+          formikHelpers.setSubmitting(false);
+          setShowOtpModal(true);
         },
-
-        onError: err => {
-          console.warn('OTP verify error:', err);
+        onError: (err: any) => {
+          formikHelpers.setSubmitting(false);
+          console.warn('Send OTP error:', err);
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Failed to send OTP. Please try again.',
+            position: 'bottom',
+          });
         },
       },
     );
   };
 
-  const handleResendOtp = async () => {
-    try {
-      await supabase.auth.signInWithOtp({ phone });
-    } catch (error) {
-      console.warn('Resend OTP error:', error);
+  // Handle password step
+  const handlePasswordSubmit = async (
+    values: { password: string; confirmPassword: string },
+    formikHelpers: FormikHelpers<any>,
+  ) => {
+    setValidationAttempted(true);
+    setApiError(false);
+
+    const errors = await formikHelpers.validateForm();
+
+    if (Object.keys(errors).length > 0) {
+      formikHelpers.setTouched({
+        password: true,
+        confirmPassword: true,
+      });
+      formikHelpers.setSubmitting(false);
+      return;
     }
+
+    setIsLoading(true);
+
+    try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      
+      if (!currentUser?.user) {
+        throw new Error('User not found. Please try again.');
+      }
+
+      const { error: updatePasswordError } = await supabase.auth.updateUser({
+        password: values.password,
+      });
+
+      if (updatePasswordError) {
+        throw updatePasswordError;
+      }
+
+      const { error: updateMetadataError } = await supabase.auth.updateUser({
+        data: {
+          full_name: fullName,
+        },
+      });
+
+      if (updateMetadataError) {
+        console.warn('Failed to update metadata:', updateMetadataError);
+      }
+
+      // Get updated user
+      const { data: updatedUser } = await supabase.auth.getUser();
+      
+      setIsLoading(false);
+      
+      if (updatedUser?.user) {
+        setUser(updatedUser.user);
+        (navigation as any).navigate('TermsAndConditions', {
+          fromAuth: true,
+          navigateTo: 'BottomTab',
+          user: updatedUser.user,
+        });
+      }
+    } catch (err: any) {
+      console.warn('Set password error:', err);
+      setIsLoading(false);
+      formikHelpers.setSubmitting(false);
+
+      let message = 'Something went wrong. Please try again.';
+      if (err?.message) {
+        message = err.message;
+      }
+
+      Toast.show({
+        type: 'error',
+        text1: 'Registration Failed',
+        text2: message,
+        position: 'bottom',
+      });
+    }
+  };
+
+  const handleVerifyOtp = async (otp: string) => {
+    try {
+      // Verify OTP (this logs the user in temporarily)
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone,
+        token: otp,
+        type: 'sms',
+      });
+
+      if (error) {
+        console.warn('OTP verify error:', error);
+        throw error;
+      }
+
+      setShowOtpModal(false);
+      setCurrentStep('password');
+      setValidationAttempted(false);
+    } catch (err) {
+      console.warn('OTP verify error:', err);
+      throw err;
+    }
+  };
+
+  const handleResendOtp = async (): Promise<void> => {
+    console.log('🔄 [Register] Resending OTP to:', phone);
+    await new Promise<void>((resolve, reject) => {
+      forgotPassword.mutate(
+        { phone: phone },
+        {
+          onSuccess: () => {
+            console.log('✅ [Register] OTP resent successfully');
+            resolve();
+          },
+          onError: (err: any) => {
+            console.error('❌ [Register] Failed to resend OTP:', err);
+            reject(err);
+          },
+        },
+      );
+    });
   };
 
   // ----------------------
@@ -236,9 +384,20 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
           keyboardShouldPersistTaps="handled"
         >
           <BackButton />
-          <View style={styles.mainContainer} key={`main-${isRTL}-${languageKey}`}>
-            <Text style={styles.title} key={`title-${languageKey}-${currentLanguage}`}>{t('register.title', { lng: currentLanguage })}</Text>
-            <Text style={styles.subtitle} key={`subtitle-${languageKey}-${currentLanguage}`}>
+          <View
+            style={styles.mainContainer}
+            key={`main-${isRTL}-${languageKey}`}
+          >
+            <Text
+              style={styles.title}
+              key={`title-${languageKey}-${currentLanguage}`}
+            >
+              {t('register.title', { lng: currentLanguage })}
+            </Text>
+            <Text
+              style={styles.subtitle}
+              key={`subtitle-${languageKey}-${currentLanguage}`}
+            >
               {t('register.subtitle.start', { lng: currentLanguage })}{' '}
               <Text style={styles.highlight}>
                 {t('register.subtitle.highlight1', { lng: currentLanguage })}
@@ -250,124 +409,225 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
               {t('register.subtitle.end', { lng: currentLanguage })}
             </Text>
 
-            <Formik
-              initialValues={{
-                username: '',
-                password: '',
-                phoneNumber: '+92',
-              }}
-              validationSchema={validationSchema}
-              onSubmit={(values, formikHelpers) => {
-                handleRegister(values, formikHelpers);
-              }}
-            >
-              {({
-                handleChange,
-                handleBlur,
-                handleSubmit,
-                values,
-                errors,
-                touched,
-                setFieldValue,
-              }) => {
-                // Helper to determine if field should show pink border
-                const shouldShowError = (
-                  fieldName: keyof RegisterFormValues,
-                ) => {
-                  if (!validationAttempted && !touched[fieldName]) return false;
-                  const isEmpty =
-                    !values[fieldName] || values[fieldName].trim() === '';
-                  const hasValidationError =
-                    touched[fieldName] && errors[fieldName];
-                  return isEmpty || hasValidationError;
-                };
+            {currentStep === 'register' ? (
+              <Formik
+                initialValues={{
+                  username: '',
+                  phoneNumber: '+92',
+                }}
+                validationSchema={registerValidationSchema}
+                onSubmit={(values, formikHelpers) => {
+                  handleRegisterSubmit(values, formikHelpers);
+                }}
+              >
+                {({
+                  handleChange,
+                  handleBlur,
+                  handleSubmit: formikSubmit,
+                  values,
+                  errors,
+                  touched,
+                  setFieldValue,
+                  isSubmitting,
+                }) => {
+                  const shouldShowError = (
+                    fieldName: 'username' | 'phoneNumber',
+                  ) => {
+                    if (!validationAttempted && !touched[fieldName]) return false;
+                    const isEmpty =
+                      !values[fieldName] || values[fieldName].trim() === '';
+                    const hasValidationError =
+                      touched[fieldName] && errors[fieldName];
+                    return isEmpty || hasValidationError;
+                  };
 
-                return (
-                  <>
-                    <CustomInput
-                      label={t('Full Name', { lng: currentLanguage })}
-                      placeholder={t('Name', { lng: currentLanguage })}
-                      value={values.username}
-                      onChangeText={handleChange('username')}
-                      onBlur={handleBlur('username')}
-                      focused={focusedField === 'username'}
-                      onFocus={() => setFocusedField('username')}
-                      error={shouldShowError('username') || apiError}
-                      showErrorText={false}
-                    />
+                  return (
+                    <>
+                      <CustomInput
+                        label={t('Full Name', { lng: currentLanguage })}
+                        placeholder={t('Name', { lng: currentLanguage })}
+                        value={values.username}
+                        onChangeText={handleChange('username')}
+                        onBlur={handleBlur('username')}
+                        focused={focusedField === 'username'}
+                        onFocus={() => setFocusedField('username')}
+                        error={shouldShowError('username') || apiError}
+                        showErrorText={false}
+                      />
 
-                    <CustomInput
-                      label={t('login.phoneNumber', { lng: currentLanguage })}
-                      placeholder="3XXXXXXXXX"
-                      isPhoneNumber={true}
-                      value={values.phoneNumber}
-                      onChangeText={text =>
-                        handlePhoneChange(text, setFieldValue)
-                      }
-                      onBlur={handleBlur('phoneNumber')}
-                      onFocus={() => setFocusedField('phoneNumber')}
-                      focused={focusedField === 'phoneNumber'}
-                      error={shouldShowError('phoneNumber') || apiError}
-                      showErrorText={false}
-                    />
+                      <CustomInput
+                        label={t('login.phoneNumber', { lng: currentLanguage })}
+                        placeholder="3XXXXXXXXX"
+                        isPhoneNumber={true}
+                        value={values.phoneNumber}
+                        onChangeText={text =>
+                          handlePhoneChange(text, setFieldValue)
+                        }
+                        onBlur={handleBlur('phoneNumber')}
+                        onFocus={() => setFocusedField('phoneNumber')}
+                        focused={focusedField === 'phoneNumber'}
+                        error={shouldShowError('phoneNumber') || apiError}
+                        errorMessage={
+                          shouldShowError('phoneNumber')
+                            ? t('register.errors.phoneNumber', {
+                                lng: currentLanguage,
+                              })
+                            : undefined
+                        }
+                        showErrorText={false}
+                      />
 
-                    {/* Password */}
-                    <CustomInput
-                      label={t('register.password', { lng: currentLanguage })}
-                      placeholder={t('register.password', {
-                        lng: currentLanguage,
-                      })}
-                      isPassword={true}
-                      value={values.password}
-                      onChangeText={text => {
-                        handleChange('password')(text);
-                        validatePassword(text);
-                      }}
-                      onBlur={handleBlur('password')}
-                      onFocus={() => setFocusedField('password')}
-                      focused={focusedField === 'password'}
-                      error={shouldShowError('password') || (errors.password && touched.password)}
-                    />
+                      <PrimaryButton
+                        title={
+                          isSubmitting || forgotPassword.isPending
+                            ? t('forgot.sending', { lng: currentLanguage }) || 'Sending...'
+                            : t('register.cta', { lng: currentLanguage })
+                        }
+                        onPress={formikSubmit as any}
+                        loading={isSubmitting || forgotPassword.isPending}
+                        buttonStyle={{
+                          alignSelf: 'center',
+                          width: 161,
+                          height: 50,
+                          marginTop: hp(2),
+                        }}
+                      />
+                      {(isSubmitting || forgotPassword.isPending) && <Loader />}
+                    </>
+                  );
+                }}
+              </Formik>
+            ) : (
+              <Formik
+                initialValues={{
+                  password: '',
+                  confirmPassword: '',
+                }}
+                validationSchema={passwordValidationSchema}
+                onSubmit={(values, formikHelpers) => {
+                  handlePasswordSubmit(values, formikHelpers);
+                }}
+              >
+                {({
+                  handleChange,
+                  handleBlur,
+                  handleSubmit: formikSubmit,
+                  values,
+                  errors,
+                  touched,
+                  isSubmitting,
+                }) => {
+                  const shouldShowError = (fieldName: 'password' | 'confirmPassword') => {
+                    if (!validationAttempted && !touched[fieldName]) return false;
+                    const isEmpty =
+                      !values[fieldName] || values[fieldName].trim() === '';
+                    const hasValidationError =
+                      touched[fieldName] && errors[fieldName];
+                    return isEmpty || hasValidationError;
+                  };
 
-                    <CustomButton
-                      title={isLoading ? t('register.registering', { lng: currentLanguage }) : t('register.cta', { lng: currentLanguage })}
-                      onPress={handleSubmit}
-                      loading={isLoading}
-                      buttonStyle={{ alignSelf: 'center', width: 161, height: 50,marginTop:hp(2) }}
-                      variant="primary"
-                      size="medium"
-                    />
+                  return (
+                    <>
+                      {/* New Password */}
+                      <View>
+                        <CustomInput
+                          label={t('register.password', { lng: currentLanguage })}
+                          placeholder={t('register.password', {
+                            lng: currentLanguage,
+                          })}
+                          isPassword={true}
+                          value={values.password}
+                          onChangeText={text => {
+                            handleChange('password')(text);
+                            validatePassword(text);
+                          }}
+                          onBlur={handleBlur('password')}
+                          onFocus={() => setFocusedField('password')}
+                          focused={focusedField === 'password'}
+                          error={shouldShowError('password')}
+                          errorMessage={
+                            shouldShowError('password')
+                              ? t('register.errors.password', {
+                                  lng: currentLanguage,
+                                })
+                              : undefined
+                          }
+                        />
+                        {focusedField === 'password' && (
+                          <PasswordRequirements
+                            password={values.password}
+                            namespace="register"
+                          />
+                        )}
+                      </View>
 
-                  </>
-                );
-              }}
-            </Formik>
+                      {/* Confirm Password */}
+                      <CustomInput
+                        label={t('forgot.confirmPassword', { lng: currentLanguage })}
+                        placeholder={t('forgot.confirmPassword', { lng: currentLanguage })}
+                        isPassword={true}
+                        value={values.confirmPassword}
+                        onChangeText={handleChange('confirmPassword')}
+                        onBlur={handleBlur('confirmPassword')}
+                        onFocus={() => setFocusedField('confirmPassword')}
+                        focused={focusedField === 'confirmPassword'}
+                        error={shouldShowError('confirmPassword')}
+                        errorMessage={
+                          shouldShowError('confirmPassword')
+                            ? t('forgot.errors.confirmPassword', { lng: currentLanguage }) || 'Passwords do not match'
+                            : undefined
+                        }
+                      />
+
+                      <PrimaryButton
+                        title={
+                          isSubmitting || isLoading || registerMutation.isPending
+                            ? t('register.registering', { lng: currentLanguage })
+                            : t('register.cta', { lng: currentLanguage })
+                        }
+                        onPress={formikSubmit as any}
+                        loading={isSubmitting || isLoading || registerMutation.isPending}
+                        buttonStyle={{
+                          alignSelf: 'center',
+                          width: 161,
+                          height: 50,
+                          marginTop: hp(2),
+                        }}
+                      />
+                      {(isSubmitting || isLoading || registerMutation.isPending) && <Loader />}
+                    </>
+                  );
+                }}
+              </Formik>
+            )}
 
             <View style={styles.grayLine} />
-            <View
-              style={[
-                styles.footer,
-                { flexDirection: isRTL ? 'row-reverse' : 'row' },
-              ]}
-            >
-              <Text
-                style={styles.footerText}
-                key={`footer-${languageKey}-${currentLanguage}`}
-              >
-                {t('register.already', { lng: currentLanguage })}{' '}
-              </Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('LoginScreen')}
+            {currentStep === 'register' && (
+              <View
+                style={[
+                  styles.footer,
+                  { flexDirection: isRTL ? 'row-reverse' : 'row' },
+                ]}
               >
                 <Text
-                  style={styles.loginLink}
-                  key={`login-link-${languageKey}-${currentLanguage}`}
+                  style={styles.footerText}
+                  key={`footer-${languageKey}-${currentLanguage}`}
                 >
-                  {' '}
-                  {t('login.title', { lng: currentLanguage })}
+                  {t('register.already', { lng: currentLanguage })}{' '}
                 </Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('LoginScreen')}
+                >
+                  <Text
+                    style={styles.loginLink}
+                    key={`login-link-${languageKey}-${currentLanguage}`}
+                  >
+                    {' '}
+                    {t('login.title', { lng: currentLanguage })}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -416,7 +676,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#000000',
-    fontWeight: "400",
+    fontWeight: '400',
     marginBottom: hp(4.5),
     lineHeight: hp(2.2),
   },

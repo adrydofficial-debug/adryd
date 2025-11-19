@@ -152,6 +152,7 @@ import React, { useEffect, useState } from 'react';
 import 'react-native-get-random-values';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
+import Toast from 'react-native-toast-message';
 import 'react-native-url-polyfill/auto';
 import AppNavigator from './src/app/navigation/AppNavigator';
 import LanguageSelectionModal from './src/components/LanguageSelectionModal';
@@ -206,7 +207,7 @@ const AuthGate = () => {
       // Check if user has completed onboarding
       const hasCompletedOnboarding = await isOnboardingCompleted();
       setHasSeenOnboarding(hasCompletedOnboarding);
-      
+
       if (!hasCompletedOnboarding) {
         // First time user - will show onboarding after splash
         setShowOnboarding(true);
@@ -262,20 +263,32 @@ const AuthGate = () => {
 
   // For returning users, auto-complete splash after 2 seconds once checks are done
   useEffect(() => {
-    if (!loading && !checkingLanguage && !checkingOnboarding && hasSeenOnboarding && !splashComplete) {
+    if (
+      !loading &&
+      !checkingLanguage &&
+      !checkingOnboarding &&
+      hasSeenOnboarding &&
+      !splashComplete
+    ) {
       const timer = setTimeout(() => {
         setSplashComplete(true);
       }, 2000); // 2 seconds for returning users
       return () => clearTimeout(timer);
     }
-  }, [loading, checkingLanguage, checkingOnboarding, hasSeenOnboarding, splashComplete]);
+  }, [
+    loading,
+    checkingLanguage,
+    checkingOnboarding,
+    hasSeenOnboarding,
+    splashComplete,
+  ]);
 
   // Show splash screen while checking or if splash hasn't completed
   // For returning users, show brief splash (2 seconds)
   // For first-time users, show full splash then onboarding
   if (loading || checkingLanguage || checkingOnboarding || !splashComplete) {
     return (
-      <SplashScreen 
+      <SplashScreen
         onComplete={handleSplashComplete}
         shouldWaitForLoading={loading || checkingLanguage || checkingOnboarding}
       />
@@ -297,6 +310,7 @@ const AuthGate = () => {
         visible={showLanguageModal}
         onSelectLanguage={handleLanguageSelect}
       />
+      <Toast />
     </>
   );
 };

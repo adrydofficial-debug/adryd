@@ -29,7 +29,15 @@ export const useRegister = () => {
         },
       });
 
+      // Custom check for empty identities (Supabase ghost-user issue)
+      if (!data.user?.identities || data.user.identities.length === 0) {
+        throw new Error(
+          'User already exists but is not verified. identities is empty.',
+        );
+      }
+
       if (error) throw error;
+
       return data.user;
     },
     onSuccess: () => {
@@ -119,6 +127,23 @@ export const useForgotPassword = () => {
   });
 };
 
+
+// -----------------------------
+// 2️⃣ Update Password
+// -----------------------------
+export const useUpdatePassword = () => {
+  return useMutation({
+    mutationFn: async ({ newPassword }: { newPassword: string }) => {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+      return { message: 'Password updated successfully' };
+    },
+  });
+};
+
 // -----------------------------
 // 4️⃣ Reset Password (Verify OTP + Update Password)
 // -----------------------------
@@ -173,7 +198,7 @@ export const useLogout = () => {
 
 export const useVerifyOtp = () => {
   const setUser = useAuthStore(s => s.setUser);
-  
+
   return useMutation({
     mutationFn: async ({ phone, otp }: { phone: string; otp: string }) => {
       const { data, error } = await supabase.auth.verifyOtp({
@@ -184,7 +209,7 @@ export const useVerifyOtp = () => {
       if (error) throw error;
       return data.user;
     },
-    onSuccess: (user) => {
+    onSuccess: user => {
       if (user) {
         setUser(user);
       }
