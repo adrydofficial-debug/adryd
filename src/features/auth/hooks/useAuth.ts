@@ -8,12 +8,18 @@ import { useAuthStore } from '../../../store/authStore';
 // -----------------------------
 export const useRegister = () => {
   return useMutation({
-    mutationFn: async ({ phone, fullName }: { phone: string; fullName: string }) => {
+    mutationFn: async ({
+      phone,
+      fullName,
+    }: {
+      phone: string;
+      fullName: string;
+    }) => {
       const { data, error } = await supabase.auth.signInWithOtp({
         phone,
         options: {
-          data: { full_name: fullName }
-        }
+          data: { full_name: fullName },
+        },
       });
 
       if (error) throw error;
@@ -102,7 +108,10 @@ export const useForgotPassword = () => {
   return useMutation({
     mutationFn: async ({ phone }: { phone: string }) => {
       console.log('📱 [useForgotPassword] Sending OTP to phone:', phone);
-      const { error } = await supabase.auth.signInWithOtp({ phone });
+      const { data, error } = await supabase.auth.signInWithOtp({
+        phone,
+        options: { shouldCreateUser: false },
+      });
       if (error) {
         console.error(
           '❌ [useForgotPassword] Error sending OTP:',
@@ -110,7 +119,7 @@ export const useForgotPassword = () => {
         );
         throw error;
       }
-      console.log('✅ [useForgotPassword] OTP sent successfully');
+      console.log('✅ [useForgotPassword] OTP sent successfully : ', data);
       return { message: 'OTP sent for password reset' };
     },
   });

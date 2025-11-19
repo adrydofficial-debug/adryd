@@ -130,7 +130,6 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const [apiError, setApiError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState('');
-  const [setFullName] = useState('');
   const [validationAttempted, setValidationAttempted] = useState(false);
   const [, setPasswordValidation] = useState<PasswordValidation>({
     hasUppercase: false,
