@@ -11,9 +11,9 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
+import BackButton from '../../../components/BackButton';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -65,16 +65,7 @@ const ChooseOptionScreen: React.FC = () => {
       
       {/* Header with Back Button */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBackPress}
-          activeOpacity={0.7}>
-          <Ionicons
-            name="chevron-back"
-            size={scaleFont(24)}
-            color="#000000"
-          />
-        </TouchableOpacity>
+        <BackButton/>
       </View>
 
       {/* Main Content - Two Buttons */}
@@ -109,19 +100,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(5),
     paddingTop: hp(2),
     paddingBottom: hp(1),
-  },
-  backButton: {
-    width: scaleWidth(40),
-    height: scaleWidth(40),
-    borderRadius: scaleWidth(20),
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   content: {
     flex: 1,

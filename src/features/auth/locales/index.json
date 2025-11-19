@@ -24,10 +24,14 @@
       }
     },
     "forgot": {
-      "title": "Reset Password",
-      "subtitle": "Enter your phone number and new password. We'll send you an OTP on WhatsApp to confirm the reset.",
+      "title": "Enter Register Number",
+      "subtitle": "Type your registration number to move forward.",
       "newPassword": "New Password",
       "confirmPassword": "Confirm Password",
+      "createPassword": {
+        "title": "Create Password",
+        "description": "Choose a secure password and confirm it to complete your registration."
+      },
       "sending": "Sending...",
       "cta": "Continue",
       "remember": "Remember your password?",
@@ -48,15 +52,16 @@
     "register": {
       "title": "Register",
       "subtitle": {
-        "start": "Create an",
-        "highlight1": "Account",
-        "middle": "to access all features of",
-        "highlight2": "Adryd",
-        "end": "."
+        "start": "Sign up with ADRYD to unlock exclusive features and get started."
+      
       },
       "username": "Username",
       "companyName": "Company Name",
       "password": "Password",
+      "createPassword": {
+        "title": "Create Password",
+        "description": "Choose a secure password and confirm it to complete your registration."
+      },
       "registering": "Registering...",
       "cta": "Register",
       "already": "Already have an account?",
@@ -109,10 +114,14 @@
       }
     },
     "forgot": {
-      "title": "پاس ورڈ بھول گئے",
-      "subtitle": "اپنا فون نمبر اور نیا پاس ورڈ درج کریں۔ ہم واٹس ایپ پر OTP بھیجیں گے۔",
+      "title": "رجسٹریشن نمبر درج کریں",
+      "subtitle": "آگے بڑھنے کے لیے اپنا رجسٹریشن نمبر ٹائپ کریں",
       "newPassword": "نیا پاس ورڈ",
       "confirmPassword": "پاس ورڈ کی تصدیق کریں",
+      "createPassword": {
+        "title": "پاس ورڈ بنائیں",
+        "description": "ایک محفوظ پاس ورڈ منتخب کریں اور اپنی رجسٹریشن مکمل کرنے کے لیے اس کی تصدیق کریں۔"
+      },
       "sending": "بھیجا جا رہا ہے...",
       "cta": "جاری رکھیں",
       "remember": "پاس ورڈ یاد ہے؟",
@@ -133,15 +142,15 @@
     "register": {
       "title": "رجسٹر کریں",
       "subtitle": {
-        "start": "اپنا",
-        "highlight1": "اکاؤنٹ",
-        "middle": "بنائیں تاکہ",
-        "highlight2": "Adryd",
-        "end": " کی تمام خصوصیات تک رسائی حاصل ہو۔"
+        "start": "ADRYD کے ساتھ سائن اپ کریں تاکہ خصوصی خصوصیات کو انلاک کریں اور شروع کریں۔"
       },
       "username": "یوزرنیم",
       "companyName": "کمپنی کا نام",
       "password": "پاس ورڈ",
+      "createPassword": {
+        "title": "پاس ورڈ بنائیں",
+        "description": "ایک محفوظ پاس ورڈ منتخب کریں اور اپنی رجسٹریشن مکمل کرنے کے لیے اس کی تصدیق کریں۔"
+      },
       "registering": "رجسٹر کیا جا رہا ہے...",
       "cta": "رجسٹر کریں",
       "already": "کیا آپ کا پہلے سے اکاؤنٹ ہے؟",

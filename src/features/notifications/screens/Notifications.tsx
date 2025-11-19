@@ -9,8 +9,8 @@ import {
   StatusBar,
   Image,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Images } from '../../../assets/images';
+import BackButton from '../../../components/BackButton';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -38,9 +38,9 @@ const Notifications: React.FC<Props> = ({ navigation }) => {
   const notificationData: NotificationItem[] = [
     {
       id: '1',
-      title: 'Taxx Oil Ad Review',
-      date: 'Sep 09, 2005',
-      description: 'Lompoceturpiscing\nLoveme concetur adipisicing dolor sit amet',
+      title: 'Taxxoil',
+      date: 'Sep 07,2025',
+      description: 'Lorem ipsum dolor sit amet, consectetur adipiscing ipsum dolor sit amet Lorem ipsum dolor sit amet, consectetur adipiscing dolor sit amet, ',
       icon: 'leaf',
       iconColor: '#4CAF50',
       iconBgColor: '#E8F5E8',
@@ -49,7 +49,7 @@ const Notifications: React.FC<Props> = ({ navigation }) => {
     },
     {
       id: '2',
-      title: 'Adryd Ad Review',
+      title: 'Adryd',
       date: 'Sep 07, 2025',
       description:
         'Lorem ipsum dolor sit amet, consectetur adipiscing\nLorem ipsum dolor sit amet, consectetur adipiscing',
@@ -61,9 +61,9 @@ const Notifications: React.FC<Props> = ({ navigation }) => {
     },
     {
       id: '3',
-      title: 'Dot Ad Active',
-      date: 'Sep 02, 2025',
-      description: 'Logicotropiscing\nLost dolor sit amet,',
+      title: 'Dot',
+      date: 'Sep 07,2025',
+      description: 'Logicotropiscing Lost dolor sit amet,',
       icon: 'ellipse',
       iconColor: '#757575',
       iconBgColor: '#F5F5F5',
@@ -115,14 +115,12 @@ const Notifications: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
+      <StatusBar backgroundColor="b" barStyle="dark-content" />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={width * 0.06} color="#000" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Noifiation</Text>
+        <BackButton />
+        <Text style={styles.headerTitle}>Notification</Text>
         <View style={styles.headerSpacer} />
-      </View>
+      </View>  
       <View style={styles.listContainer}>
         <FlatList
           data={notificationData}
@@ -139,60 +137,54 @@ const Notifications: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF4FD',
+    backgroundColor: '#F8F8F8',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: width * 0.05,
-    paddingTop: height * 0.06,
+    paddingHorizontal: width * 0.04,
+    paddingTop: height * 0.02,
     paddingBottom: height * 0.04,
-    backgroundColor: '#FFF4FD',
+    backgroundColor: '#FFFFFF',
   },
-  backButton: {
-    width: width * 0.1,
-    height: width * 0.1,
-    borderRadius: width * 0.05,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+
   headerTitle: {
-    fontSize: width * 0.055,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#000',
+    alignItems: 'center',
+    marginTop:20,
   },
   headerSpacer: {
     width: width * 0.1,
   },
   listContainer: {
     flex: 1,
-    paddingHorizontal: width * 0.04,
   },
   listContent: {
     paddingBottom: height * 0.02,
   },
   notificationCard: {
     backgroundColor: '#fff',
-    borderRadius: width * 0.02,
-    marginBottom: height * 0.015,
     padding: width * 0.04,
     height: height * 0.13,
     justifyContent: 'center',
+    borderBottomWidth:1,
+    borderTopWidth:1,
+    borderColor:"#E5E7EB",
   },
   highlightedCard: {
-    borderWidth: 2,
-    borderColor: '#9C27B0',
+      borderWidth: 1,
+    backgroundColor:"#FDE7FB",
+    
   },
   selectedCard: {
     backgroundColor: '#FDE7FB',
-    borderRadius: width * 0.02,
-    borderWidth: 2,
     borderColor: '#C539A5',
   },
   firstItemGray: {
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#FDE7FB',
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
@@ -200,6 +192,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
+  
   iconContainer: {
     width: width * 0.12,
     height: width * 0.12,
@@ -218,20 +211,20 @@ const styles = StyleSheet.create({
     marginBottom: height * 0.008,
   },
   notificationTitle: {
-    fontSize: width * 0.042,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#18181B',
     flex: 1,
     marginRight: width * 0.02,
   },
   notificationDate: {
-    fontSize: width * 0.035,
-    color: '#666',
+    fontSize: 8,
+    color: '#18181B',
     fontWeight: '500',
   },
   notificationDescription: {
-    fontSize: width * 0.032,
-    color: '#666',
+    fontSize: 11,
+    color: '#18181B',
     lineHeight: width * 0.045,
   },
 });

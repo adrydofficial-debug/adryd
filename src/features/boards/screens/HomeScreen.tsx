@@ -241,12 +241,18 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               ellipsizeMode="tail"
               allowFontScaling={false}
             >
-              {profile?.full_name ||
-                user?.user_metadata?.full_name ||
-                user?.user_metadata?.name ||
-                user?.user_metadata?.username ||
-                user?.email?.split('@')[0] ||
-                'User'}
+              {(() => {
+                const fullName =
+                  profile?.full_name ||
+                  user?.user_metadata?.full_name ||
+                  user?.user_metadata?.name ||
+                  user?.user_metadata?.username ||
+                  user?.email?.split('@')[0] ||
+                  'User';
+                // Extract first name (first word)
+                const firstName = fullName.trim().split(' ')[0];
+                return firstName;
+              })()}
               !
             </Text>
           </View>

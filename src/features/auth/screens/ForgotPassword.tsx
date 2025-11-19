@@ -272,13 +272,19 @@ const ForgotPassword: React.FC = () => {
                 style={styles.title}
                 key={`title-${languageKey}-${currentLanguage}`}
               >
-                {t('forgot.title', { lng: currentLanguage })}
+                {currentStep === 'phone'
+                  ? t('forgot.title', { lng: currentLanguage })
+                  : t('forgot.createPassword.title', { lng: currentLanguage })}
               </Text>
               <Text
                 style={styles.subtitle}
                 key={`subtitle-${languageKey}-${currentLanguage}`}
               >
-                {t('forgot.subtitle', { lng: currentLanguage })}
+                {currentStep === 'phone'
+                  ? t('forgot.subtitle', { lng: currentLanguage })
+                  : t('forgot.createPassword.description', {
+                      lng: currentLanguage,
+                    })}
               </Text>
             </View>
 

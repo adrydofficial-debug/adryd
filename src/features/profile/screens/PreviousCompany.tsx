@@ -264,7 +264,6 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
         
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle} key={`title-${languageKey}`}>{t('previousCompany.select')}</Text>
-          <Text style={styles.headerSubtitle} key={`subtitle-${languageKey}`}>{t('previousCompany.selectPrevious')}</Text>
         </View>
         
      
@@ -350,8 +349,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: scaleFont(20),
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '500',
     color: '#000000',
     marginBottom: scaleHeight(2),
   },

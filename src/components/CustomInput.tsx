@@ -62,6 +62,9 @@ interface CustomInputProps {
   showPasswordToggle?: boolean;
   multiline?: boolean;
   numberOfLines?: number;
+  // Disabled prop
+  disabled?: boolean;
+  editable?: boolean;
 }
 
 const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
@@ -90,6 +93,8 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
   showPasswordToggle = true,
   multiline = false,
   numberOfLines = 1,
+  disabled = false,
+  editable = true,
 }, ref) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -154,11 +159,16 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
             styles.phoneInputWrapper,
             error ? styles.phoneInputWrapperError : undefined,
             error ? styles.phoneInputWrapperWithError : undefined,
-            (isFocused || focused) && !error ? styles.phoneInputWrapperFocused : undefined,
+            (isFocused || focused) && !error && !disabled ? styles.phoneInputWrapperFocused : undefined,
+            disabled && styles.phoneInputWrapperDisabled,
           ]}
         >
           <Text
-            style={[styles.phonePrefix, (isFocused || focused) && styles.phonePrefixFocused]}
+            style={[
+              styles.phonePrefix,
+              (isFocused || focused) && !disabled && styles.phonePrefixFocused,
+              disabled && styles.phonePrefixDisabled,
+            ]}
           >
             {phonePrefix}
           </Text>
@@ -171,7 +181,8 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
             onFocus={handleFocus}
             style={[
               styles.phoneInput,
-              (isFocused || focused) ? styles.phoneInputFocused : styles.phoneInputUnfocused,
+              (isFocused || focused) && !disabled ? styles.phoneInputFocused : styles.phoneInputUnfocused,
+              disabled && styles.phoneInputDisabled,
               inputStyle
             ]}
             keyboardType="phone-pad"
@@ -179,6 +190,7 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
             returnKeyType={returnKeyType}
             blurOnSubmit={blurOnSubmit}
             onSubmitEditing={onSubmitEditing}
+            editable={!disabled && editable}
           />
         </View>
       ) : (
@@ -196,7 +208,8 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
               inputStyle,
               error ? styles.inputError : undefined,
               error ? styles.inputWithError : undefined,
-              (isFocused || focused) ? styles.inputFocused : undefined,
+              (isFocused || focused) && !disabled ? styles.inputFocused : styles.inputUnfocused,
+              disabled && styles.inputDisabled,
               multiline && styles.inputMultiline,
             ]}
             secureTextEntry={actualSecureTextEntry}
@@ -208,6 +221,7 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
             multiline={multiline}
             numberOfLines={numberOfLines}
             textAlignVertical={multiline ? 'top' : 'center'}
+            editable={!disabled && editable}
           />
           {shouldShowPasswordToggle && (
             <TouchableOpacity
@@ -262,7 +276,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    color: '#18181B',
     marginBottom: hp(1),
   },
   inputWithError: {
@@ -329,6 +342,10 @@ const styles = StyleSheet.create({
   inputFocused: {
     borderColor: '#18181B',
     borderWidth: 0.5,
+    color: '#18181B',
+  },
+  inputUnfocused: {
+    color: '#70737D',
   },
   phoneInputWrapperError: {
     borderColor: '#E61215',
@@ -337,6 +354,21 @@ const styles = StyleSheet.create({
   phoneInputWrapperFocused: {
     borderColor: '#18181B',
     borderWidth: 0.5,
+  },
+  phoneInputWrapperDisabled: {
+    backgroundColor: '#F5F5F5',
+    borderColor: '#E5E7EB',
+  },
+  phonePrefixDisabled: {
+    color: '#999',
+  },
+  phoneInputDisabled: {
+    color: '#999',
+  },
+  inputDisabled: {
+    backgroundColor: '#F5F5F5',
+    color: '#999',
+    borderColor: '#E5E7EB',
   },
   errorText: {
     color: '#E61215',
