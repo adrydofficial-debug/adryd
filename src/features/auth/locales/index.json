@@ -31,6 +31,8 @@
       "sending": "Sending...",
       "cta": "Continue",
       "remember": "Remember your password?",
+      "updatePassword": "Update Password",
+      "updating": "Updating...",
       "errors": {
         "phoneNumber": "Please correct phone number",
         "newPassword": "Password must be at least 8 characters",
@@ -58,6 +60,9 @@
       "registering": "Registering...",
       "cta": "Register",
       "already": "Already have an account?",
+      "alreadyRegisteredTitle": "Already Registered",
+      "alreadyRegisteredMessage": "This phone number is already registered. Please try logging in instead.",
+      "cancel": "Cancel",
       "errors": {
         "username": "Username is required",
         "password": "Password must meet all requirements",
@@ -111,6 +116,8 @@
       "sending": "بھیجا جا رہا ہے...",
       "cta": "جاری رکھیں",
       "remember": "پاس ورڈ یاد ہے؟",
+      "updatePassword": "پاس ورڈ اپ ڈیٹ کریں",
+      "updating": "اپ ڈیٹ ہو رہا ہے...",
       "errors": {
         "phoneNumber": "براہ کرم صحیح نمبر درج کریں",
         "newPassword": "پاس ورڈ کم از کم 8 حروف کا ہونا چاہیے",
@@ -138,6 +145,9 @@
       "registering": "رجسٹر کیا جا رہا ہے...",
       "cta": "رجسٹر کریں",
       "already": "کیا آپ کا پہلے سے اکاؤنٹ ہے؟",
+      "alreadyRegisteredTitle": "پہلے سے رجسٹرڈ",
+      "alreadyRegisteredMessage": "یہ فون نمبر پہلے سے رجسٹرڈ ہے۔ براہ کرم لاگ اِن کریں۔",
+      "cancel": "منسوخ کریں",
       "errors": {
         "username": "یوزرنیم درکار ہے",
         "password": "پاس ورڈ تمام تقاضوں کو پورا کرنا چاہیے",
