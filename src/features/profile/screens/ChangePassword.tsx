@@ -13,10 +13,10 @@ import {
   I18nManager,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import CustomInput from '../../../components/CustomInput';
 import NoInternet  from '../../../components/NoInternet';
+import Header from '../../../components/Header';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 
@@ -156,24 +156,21 @@ const ChangePassword: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.mainContainer}>
-            {/* Header */}
-            <View style={[styles.header, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-              <TouchableOpacity
-                style={[styles.backButton, isRTL && { marginRight: 0, marginLeft: wp(4) }]}
-                onPress={handleBackPress}
-              >
-                <Ionicons name={isRTL ? "arrow-forward" : "arrow-back"} size={wp(6)} color="#000" />
-              </TouchableOpacity>
-              
-              <View style={styles.headerContent}>
-                <Text style={[styles.title, { textAlign: 'center' }]} key={`title-${languageKey}-${currentLanguage}`}>{t('changePassword.title', { lng: currentLanguage })}</Text>
-                <Text style={[styles.subtitle, { textAlign: 'center' }]} key={`subtitle-${languageKey}-${currentLanguage}`}>
-                  {t('changePassword.subtitle', { lng: currentLanguage })}
-                </Text>
-              </View>
-              {/* right spacer to perfectly center the title */}
-              <View style={styles.headerSpacer} />
-            </View>
+            <Header
+              title={t('changePassword.title', { lng: currentLanguage })}
+              onBackPress={handleBackPress}
+              onRightPress={() => navigation.navigate('HelpFAQsScreen' as never)}
+              showBackButton
+              showRightIcon
+              containerStyle={{
+                flexDirection: isRTL ? 'row-reverse' : 'row',
+                paddingHorizontal: 0,
+                marginBottom: hp(2),
+              }}
+            />
+            <Text style={styles.subtitle} key={`subtitle-${languageKey}-${currentLanguage}`}>
+              {t('changePassword.subtitle', { lng: currentLanguage })}
+            </Text>
            
             {/* Current Password Input */}
             <CustomInput
@@ -271,37 +268,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: hp(3),
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: hp(4),
-  },
-  backButton: {
-    backgroundColor: '#ffffff',
-    width: wp(12),
-    height: wp(12),
-    borderRadius: wp(6),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: wp(4),
-    borderWidth:1,
-    borderColor:"#E5E7EB"
-  },
-  headerContent: {
-    flex: 1,
-    paddingTop: hp(1),
-    
-  },
-  headerSpacer: {
-    width: wp(12),
-    height: wp(12),
-  },
+  header: {},
   title: {
     fontSize: scaleFont(20),
     fontWeight: '600',
     color: '#000000',
     marginBottom: hp(1),
-    textAlign:"center"
+    textAlign:"center",
+    marginBottom: hp(1),
   },
   subtitle: {
     fontSize: scaleFont(12),

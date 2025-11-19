@@ -7,41 +7,30 @@ import { useAuthStore } from '../../../store/authStore';
 // 1️⃣ Register (Phone + Password + fullName → full_name)
 // -----------------------------
 export const useRegister = () => {
-  const qc = useQueryClient();
-
   return useMutation({
-    mutationFn: async ({
-      phone,
-      password,
-      fullName,
-    }: {
-      phone: string;
-      password: string;
-      fullName: string;
-    }) => {
-      const { data, error } = await supabase.auth.signUp({
+    mutationFn: async ({ phone, fullName }: { phone: string; fullName: string }) => {
+      const { data, error } = await supabase.auth.signInWithOtp({
         phone,
-        password,
         options: {
-          data: {
-            full_name: fullName,
-          },
-        },
+          data: { full_name: fullName }
+        }
       });
 
-      // Custom check for empty identities (Supabase ghost-user issue)
-      if (!data.user?.identities || data.user.identities.length === 0) {
-        throw new Error(
-          'User already exists but is not verified. identities is empty.',
-        );
-      }
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+export const useSetPassword = () => {
+  return useMutation({
+    mutationFn: async ({ password }: { password: string }) => {
+      const { data, error } = await supabase.auth.updateUser({
+        password,
+      });
 
       if (error) throw error;
-
       return data.user;
-    },
-    onSuccess: () => {
-      qc.clear();
     },
   });
 };
@@ -123,23 +112,6 @@ export const useForgotPassword = () => {
       }
       console.log('✅ [useForgotPassword] OTP sent successfully');
       return { message: 'OTP sent for password reset' };
-    },
-  });
-};
-
-
-// -----------------------------
-// 2️⃣ Update Password
-// -----------------------------
-export const useUpdatePassword = () => {
-  return useMutation({
-    mutationFn: async ({ newPassword }: { newPassword: string }) => {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) throw error;
-      return { message: 'Password updated successfully' };
     },
   });
 };

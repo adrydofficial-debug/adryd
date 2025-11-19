@@ -27,9 +27,10 @@ import OTPModal from '../../../components/OTPModal';
 import { AuthStackParamList } from '../AuthNavigator';
 import {
   useForgotPassword,
-  useLogin,
-  useResetPassword,
+  useUpdatePassword,
 } from '../hooks/useAuth';
+import { supabase } from '../../../services/supabase';
+import { useAuthStore } from '../../../store/authStore';
 import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
 import Loader from '../../../components/Loader';
@@ -46,14 +47,18 @@ const ForgotPassword: React.FC = () => {
   const { t, i18n: i18nInstance } = useTranslation('auth');
 
   const forgotPassword = useForgotPassword();
-  const resetPassword = useResetPassword();
-  const login = useLogin();
+  const updatePassword = useUpdatePassword();
+  const setUser = useAuthStore(s => s.setUser);
+  
+  const [currentStep, setCurrentStep] = useState<'phone' | 'password'>('phone');
 
-  // Validation schema with translated error messages
-  const validationSchema = Yup.object().shape({
+  const phoneValidationSchema = Yup.object().shape({
     phoneNumber: Yup.string()
       .required(t('forgot.errors.phoneNumber'))
       .matches(/^\+92[0-9]{10}$/, t('forgot.errors.phoneNumber')),
+  });
+
+  const passwordValidationSchema = Yup.object().shape({
     newPassword: Yup.string()
       .required(t('forgot.errors.newPassword'))
       .min(8, t('forgot.errors.newPassword'))
@@ -67,11 +72,8 @@ const ForgotPassword: React.FC = () => {
 
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [newPassword, setNewPassword] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [validationAttempted, setValidationAttempted] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Track current language to force re-renders
   const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
@@ -112,12 +114,8 @@ const ForgotPassword: React.FC = () => {
       return () => {};
     }, [i18nInstance.language])
   );
-  const handleSubmit = async (
-    values: {
-      phoneNumber: string;
-      newPassword: string;
-      confirmPassword: string;
-    },
+  const handlePhoneSubmit = async (
+    values: { phoneNumber: string },
     formikHelpers: FormikHelpers<any>,
   ) => {
     setValidationAttempted(true);
@@ -127,8 +125,6 @@ const ForgotPassword: React.FC = () => {
     if (Object.keys(errors).length > 0) {
       formikHelpers.setTouched({
         phoneNumber: true,
-        newPassword: true,
-        confirmPassword: true,
       });
       formikHelpers.setSubmitting(false);
       return;
@@ -140,13 +136,48 @@ const ForgotPassword: React.FC = () => {
         onSuccess: () => {
           formikHelpers.setSubmitting(false);
           setPhoneNumber(values.phoneNumber);
-          setNewPassword(values.newPassword);
           setShowOTPModal(true);
         },
         onError: (err: any) => {
           formikHelpers.setSubmitting(false);
           console.warn('Forgot Password error:', err);
+        },
+      },
+    );
+  };
 
+  const handlePasswordSubmit = async (
+    values: { newPassword: string; confirmPassword: string },
+    formikHelpers: FormikHelpers<any>,
+  ) => {
+    setValidationAttempted(true);
+
+    const errors = await formikHelpers.validateForm();
+
+    if (Object.keys(errors).length > 0) {
+      formikHelpers.setTouched({
+        newPassword: true,
+        confirmPassword: true,
+      });
+      formikHelpers.setSubmitting(false);
+      return;
+    }
+
+    updatePassword.mutate(
+      { newPassword: values.newPassword },
+      {
+        onSuccess: async () => {
+          formikHelpers.setSubmitting(false);
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session?.user) {
+            setUser(sessionData.session.user);
+          }
+        },
+        onError: (err: any) => {
+          formikHelpers.setSubmitting(false);
+          console.warn('Update Password error:', err);
+          // Suppress specific error messages and show generic one
+          Alert.alert('Error', 'Something went wrong plz try again');
         },
       },
     );
@@ -154,17 +185,23 @@ const ForgotPassword: React.FC = () => {
 
   const handleOTPVerify = async (otp: string) => {
     try {
-      await resetPassword.mutateAsync({
+      const { data, error } = await supabase.auth.verifyOtp({
         phone: phoneNumber,
-        otp,
-        newPassword,
+        token: otp,
+        type: 'sms',
       });
 
-      await login.mutateAsync({ phone: phoneNumber, password: newPassword });
+      if (error) {
+        throw error;
+      }
 
+      // Don't set user in store yet - wait until password is updated
       setShowOTPModal(false);
+      setCurrentStep('password');
+      // Reset validation attempted state for password step
+      setValidationAttempted(false);
     } catch (error) {
-      console.warn('Reset Password error:', error);
+      console.warn('OTP Verification error:', error);
       let message = 'Something went wrong while verifying the OTP. Please try again.';
       if (error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string') {
         message = (error as any).message;
@@ -222,129 +259,179 @@ const ForgotPassword: React.FC = () => {
               </Text>
             </View>
 
-            <Formik
-              initialValues={{
-                phoneNumber: '+92',
-                newPassword: '',
-                confirmPassword: '',
-              }}
-              validationSchema={validationSchema}
-              onSubmit={(values, formikHelpers) => {
-                handleSubmit(values, formikHelpers);
-              }}
-            >
-              {({
-                handleChange,
-                handleBlur,
-                handleSubmit: formikSubmit,
-                values,
-                errors,
-                touched,
-                isSubmitting,
-                setFieldValue,
-              }) => {
-                const shouldShowError = (fieldName: 'phoneNumber' | 'newPassword' | 'confirmPassword') => {
-                  if (!validationAttempted && !touched[fieldName]) return false;
-                  const isEmpty = !values[fieldName] || values[fieldName].trim() === '';
-                  const hasValidationError = touched[fieldName] && errors[fieldName];
-                  return isEmpty || hasValidationError;
-                };
+            {currentStep === 'phone' ? (
+              <Formik
+                initialValues={{
+                  phoneNumber: '+92',
+                }}
+                validationSchema={phoneValidationSchema}
+                onSubmit={(values, formikHelpers) => {
+                  handlePhoneSubmit(values, formikHelpers);
+                }}
+              >
+                {({
+                  handleChange,
+                  handleBlur,
+                  handleSubmit: formikSubmit,
+                  values,
+                  errors,
+                  touched,
+                  isSubmitting,
+                  setFieldValue,
+                }) => {
+                  const shouldShowError = (fieldName: 'phoneNumber') => {
+                    if (!validationAttempted && !touched[fieldName]) return false;
+                    const isEmpty = !values[fieldName] || values[fieldName].trim() === '';
+                    const hasValidationError = touched[fieldName] && errors[fieldName];
+                    return isEmpty || hasValidationError;
+                  };
 
-                return (
-                  <>
-                    <CustomInput
-                      label={t('login.phoneNumber', { lng: currentLanguage })}
-                      placeholder="3XXXXXXXXX"
-                      isPhoneNumber={true}
-                      value={values.phoneNumber}
-                      onChangeText={(text) => {
-                        const cleaned = text.replace(/[^0-9+]/g, '');
-                        if (!cleaned.startsWith('+92')) {
-                          setFieldValue('phoneNumber', '+92');
-                          return;
-                        }
-                        if (cleaned.length <= 13) {
-                          setFieldValue('phoneNumber', cleaned);
-                        }
-                      }}
-                      onBlur={() => handleBlur('phoneNumber')}
-                      onFocus={() => setFocusedField('phoneNumber')}
-                      focused={focusedField === 'phoneNumber'}
-                      error={shouldShowError('phoneNumber')}
-                      errorMessage={
-                        shouldShowError('phoneNumber') 
-                          ? t('forgot.errors.phoneNumber', { lng: currentLanguage })
-                          : undefined
-                      }
-                      showErrorText={false}
-                    />
-
-                    {/* New Password */}
-                    <View>
+                  return (
+                    <>
                       <CustomInput
-                        label={t('forgot.newPassword', { lng: currentLanguage })}
-                        placeholder={t('forgot.newPassword', { lng: currentLanguage })}
-                        isPassword={true}
-                        value={values.newPassword}
-                        onChangeText={handleChange('newPassword')}
-                        onBlur={() => handleBlur('newPassword')}
-                        onFocus={() => setFocusedField('newPassword')}
-                        focused={focusedField === 'newPassword'}
-                        error={shouldShowError('newPassword')}
+                        label={t('login.phoneNumber', { lng: currentLanguage })}
+                        placeholder="3XXXXXXXXX"
+                        isPhoneNumber={true}
+                        value={values.phoneNumber}
+                        onChangeText={(text) => {
+                          const cleaned = text.replace(/[^0-9+]/g, '');
+                          if (!cleaned.startsWith('+92')) {
+                            setFieldValue('phoneNumber', '+92');
+                            return;
+                          }
+                          if (cleaned.length <= 13) {
+                            setFieldValue('phoneNumber', cleaned);
+                          }
+                        }}
+                        onBlur={() => handleBlur('phoneNumber')}
+                        onFocus={() => setFocusedField('phoneNumber')}
+                        focused={focusedField === 'phoneNumber'}
+                        error={shouldShowError('phoneNumber')}
                         errorMessage={
-                          shouldShowError('newPassword')
-                            ? t('forgot.errors.newPassword', { lng: currentLanguage })
+                          shouldShowError('phoneNumber') 
+                            ? t('forgot.errors.phoneNumber', { lng: currentLanguage })
+                            : undefined
+                        }
+                        showErrorText={false}
+                      />
+
+                      <PrimaryButton
+                        title={
+                          isSubmitting || forgotPassword.isPending
+                            ? t('forgot.sending', { lng: currentLanguage })
+                            : t('forgot.cta', { lng: currentLanguage })
+                        }
+                        onPress={formikSubmit as any}
+                        loading={isSubmitting || forgotPassword.isPending}
+                        buttonStyle={{ alignSelf: 'center', width: 161, height: 50, marginTop: hp(2) }}
+                      />
+                      {(isSubmitting || forgotPassword.isPending) && <Loader />}
+                    </>
+                  );
+                }}
+              </Formik>
+            ) : (
+              <Formik
+                initialValues={{
+                  newPassword: '',
+                  confirmPassword: '',
+                }}
+                validationSchema={passwordValidationSchema}
+                onSubmit={(values, formikHelpers) => {
+                  handlePasswordSubmit(values, formikHelpers);
+                }}
+              >
+                {({
+                  handleChange,
+                  handleBlur,
+                  handleSubmit: formikSubmit,
+                  values,
+                  errors,
+                  touched,
+                  isSubmitting,
+                }) => {
+                  const shouldShowError = (fieldName: 'newPassword' | 'confirmPassword') => {
+                    if (!validationAttempted && !touched[fieldName]) return false;
+                    const isEmpty = !values[fieldName] || values[fieldName].trim() === '';
+                    const hasValidationError = touched[fieldName] && errors[fieldName];
+                    return isEmpty || hasValidationError;
+                  };
+
+                  return (
+                    <>
+                      {/* New Password */}
+                      <View>
+                        <CustomInput
+                          label={t('forgot.newPassword', { lng: currentLanguage })}
+                          placeholder={t('forgot.newPassword', { lng: currentLanguage })}
+                          isPassword={true}
+                          value={values.newPassword}
+                          onChangeText={handleChange('newPassword')}
+                          onBlur={() => handleBlur('newPassword')}
+                          onFocus={() => setFocusedField('newPassword')}
+                          focused={focusedField === 'newPassword'}
+                          error={shouldShowError('newPassword')}
+                          errorMessage={
+                            shouldShowError('newPassword')
+                              ? t('forgot.errors.newPassword', { lng: currentLanguage })
+                              : undefined
+                          }
+                        />
+                        {focusedField === 'newPassword' && (
+                          <PasswordRequirements password={values.newPassword} namespace="forgot" />
+                        )}
+                      </View>
+
+                      {/* Confirm Password */}
+                      <CustomInput
+                        label={t('forgot.confirmPassword', { lng: currentLanguage })}
+                        placeholder={t('forgot.confirmPassword', { lng: currentLanguage })}
+                        isPassword={true}
+                        value={values.confirmPassword}
+                        onChangeText={handleChange('confirmPassword')}
+                        onBlur={() => handleBlur('confirmPassword')}
+                        onFocus={() => setFocusedField('confirmPassword')}
+                        focused={focusedField === 'confirmPassword'}
+                        error={shouldShowError('confirmPassword')}
+                        errorMessage={
+                          shouldShowError('confirmPassword')
+                            ? t('forgot.errors.confirmPassword', { lng: currentLanguage })
                             : undefined
                         }
                       />
-                      {focusedField === 'newPassword' && (
-                        <PasswordRequirements password={values.newPassword} namespace="forgot" />
-                      )}
-                    </View>
 
-                    {/* Confirm Password */}
-                    <CustomInput
-                      label={t('forgot.confirmPassword', { lng: currentLanguage })}
-                      placeholder={t('forgot.confirmPassword', { lng: currentLanguage })}
-                      isPassword={true}
-                      value={values.confirmPassword}
-                      onChangeText={handleChange('confirmPassword')}
-                      onBlur={() => handleBlur('confirmPassword')}
-                      onFocus={() => setFocusedField('confirmPassword')}
-                      focused={focusedField === 'confirmPassword'}
-                      error={shouldShowError('confirmPassword')}
-                      errorMessage={
-                        shouldShowError('confirmPassword')
-                          ? t('forgot.errors.confirmPassword', { lng: currentLanguage })
-                          : undefined
-                      }
-                    />
-
-                    <PrimaryButton
-                      title={
-                        isSubmitting || forgotPassword.isPending
-                          ? t('forgot.sending', { lng: currentLanguage })
-                          : t('forgot.cta', { lng: currentLanguage })
-                      }
-                      onPress={formikSubmit as any}
-                      loading={isSubmitting || forgotPassword.isPending}
-                      buttonStyle={{ alignSelf: 'center', width: 161, height: 50, marginTop: hp(2) }}
-                    />
-                    {(isSubmitting || forgotPassword.isPending || resetPassword.isPending || login.isPending) && <Loader />}
-                  </>
-                )
-              }}
-            </Formik>
+                      <PrimaryButton
+                        title={
+                          isSubmitting || updatePassword.isPending
+                            ? (t('forgot.updating', { lng: currentLanguage }) !== 'forgot.updating' 
+                                ? t('forgot.updating', { lng: currentLanguage }) 
+                                : 'Updating...')
+                            : (t('forgot.updatePassword', { lng: currentLanguage }) !== 'forgot.updatePassword'
+                                ? t('forgot.updatePassword', { lng: currentLanguage })
+                                : 'Update Password')
+                        }
+                        onPress={formikSubmit as any}
+                        loading={isSubmitting || updatePassword.isPending}
+                        buttonStyle={{ alignSelf: 'center', width: 161, height: 50, marginTop: hp(2) }}
+                      />
+                      {(isSubmitting || updatePassword.isPending) && <Loader />}
+                    </>
+                  );
+                }}
+              </Formik>
+            )}
              <View style={styles.grayLine} />
 
-            <View style={[styles.footer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-              <Text style={styles.footerText} key={`footer-${languageKey}-${currentLanguage}`}>{t('forgot.remember', { lng: currentLanguage })} </Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('LoginScreen')}
-              >
-                <Text style={styles.loginLink} key={`login-link-${languageKey}-${currentLanguage}`}>{t('login.title', { lng: currentLanguage })}</Text>
-              </TouchableOpacity>
-            </View>
+            {currentStep === 'phone' && (
+              <View style={[styles.footer, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+                <Text style={styles.footerText} key={`footer-${languageKey}-${currentLanguage}`}>{t('forgot.remember', { lng: currentLanguage })} </Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('LoginScreen')}
+                >
+                  <Text style={styles.loginLink} key={`login-link-${languageKey}-${currentLanguage}`}>{t('login.title', { lng: currentLanguage })}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
