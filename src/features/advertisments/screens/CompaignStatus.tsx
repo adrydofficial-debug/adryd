@@ -137,7 +137,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
     }
 
     const statusCounts = advertisementList.reduce((acc, ad) => {
-      const statusKey = ad.status || 'UNKNOWN';
+      const statusKey = (ad.status || 'UNKNOWN').toUpperCase();
       acc[statusKey] = (acc[statusKey] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -152,28 +152,22 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         count: advertisementList.length,
       },
       {
-        id: AdvertisementStatus.DRAFT,
-        label: 'DRAFT',
-        status: AdvertisementStatus.DRAFT,
-        count: getStatusCount(AdvertisementStatus.DRAFT),
-      },
-      {
         id: AdvertisementStatus.PAYMENT_PENDING,
-        label: 'Payment-pending',
+        label: 'Payment',
         status: AdvertisementStatus.PAYMENT_PENDING,
         count: getStatusCount(AdvertisementStatus.PAYMENT_PENDING),
-      },
-      {
-        id: 'IN_REVIEW',
-        label: 'In-Review',
-        status: 'IN_REVIEW',
-        count: getStatusCount('IN_REVIEW', AdvertisementStatus.UNDER_REVIEW),
       },
       {
         id: AdvertisementStatus.SCHEDULED,
         label: 'Schedule',
         status: AdvertisementStatus.SCHEDULED,
         count: getStatusCount(AdvertisementStatus.SCHEDULED),
+      },
+      {
+        id: AdvertisementStatus.DRAFT,
+        label: 'DRAFT',
+        status: AdvertisementStatus.DRAFT,
+        count: getStatusCount(AdvertisementStatus.DRAFT),
       },
       {
         id: 'BLOCKED',
@@ -209,7 +203,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       case 'UNDER_REVIEW':
         return { uiStatus: 'Review', color: '#E91E63', tab: 'Review' };
       case 'SCHEDULED':
-        return { uiStatus: 'Schedule', color: '#9C27B0', tab: 'Schedule' };
+        return { uiStatus: 'Schedule', color: '#83B1FA', tab: 'Schedule' };
       case 'PUBLISHED':
         return { uiStatus: 'Publish', color: '#4CAF50', tab: 'Publish' };
       case 'COMPLETED':
@@ -255,7 +249,8 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
     console.log(`✅ Mapping ${advertisementList.length} advertisements to UI format`);
     
     return advertisementList.map((ad: any) => {
-      const statusInfo = mapStatusToUI(ad.status || 'DRAFT');
+      const rawStatus = (ad.status || 'DRAFT').toUpperCase();
+      const statusInfo = mapStatusToUI(rawStatus);
       const booking = ad.bookings?.[0];
       const startDateObj = booking ? new Date(booking.start_at) : new Date(ad.created_at);
       const endDateObj = booking?.end_at ? new Date(booking.end_at) : null;
@@ -316,7 +311,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       return {
         id: ad.id,
         title: ad.title || boardTitle,
-        rawStatus: ad.status || 'DRAFT',
+        rawStatus,
         location: boardLocationName,
         locationDetail: boardArea,
         date: startDateObj.toLocaleDateString('en-US', {
@@ -335,7 +330,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
           days: daysDuration ? `${daysDuration} days Ad` : 'Ongoing',
           category: board?.category?.name || 'Advertisement',
           location: boardLocationName,
-          reviewTime: getStatusDescription(ad.status || 'DRAFT'),
+          reviewTime: getStatusDescription(rawStatus),
           reviewStatus: statusInfo.uiStatus,
         } as any,
         payment: {
@@ -384,9 +379,6 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
     
     // Filter by status based on active tab
     const filtered = data.filter((item) => {
-      if (activeTab === 'IN_REVIEW') {
-        return item.rawStatus === 'IN_REVIEW' || item.rawStatus === 'UNDER_REVIEW';
-      }
       if (activeTab === AdvertisementStatus.DRAFT) {
         return (
           item.rawStatus === AdvertisementStatus.DRAFT ||
@@ -718,9 +710,9 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
                  <View style={styles.timelineContainer}>
                    <View style={[styles.timelineDot, { backgroundColor: item.statusColor }]} />
                    <View style={[styles.timelineLine, { backgroundColor: item.statusColor }]} />
-                   <View style={[styles.timelineDot, { backgroundColor: '#E0E0E0' }]} />
-                   <View style={[styles.timelineLine, { backgroundColor: '#E0E0E0' }]} />
-                   <View style={[styles.timelineDot, { backgroundColor: '#E0E0E0' }]} />
+                   <View style={[styles.timelineDot, { backgroundColor: '#D8D8D8' }]} />
+                   <View style={[styles.timelineLine, { backgroundColor: '#D8D8D8' }]} />
+                   <View style={[styles.timelineDot, { backgroundColor: '#D8D8D8' }]} />
                    <View style={[styles.timelineLine, { backgroundColor: '#E0E0E0' }]} />
                    <View style={[styles.timelineDot, { backgroundColor: '#E0E0E0' }]} />
                    <View style={[styles.timelineLine, { backgroundColor: '#E0E0E0' }]} />
@@ -858,7 +850,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
-    padding:2,
+    // padding:2,
   },
   cardImg:{
     width: width * 0.14, 
@@ -894,7 +886,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fcfbfbff',
   },
   cardsContent: {
-    paddingHorizontal: wp(5),
+    paddingHorizontal: wp(4),
     paddingVertical: hp(2),
     paddingBottom: hp(12), // Increased padding for bottom tab
   },
@@ -903,7 +895,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   campaignCard: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F5F5F5',
     borderRadius: wp(4),
     marginBottom: hp(2),
     padding: wp(5),
@@ -912,8 +904,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
-    borderWidth: 1,
+    // borderWidth: 1,
     borderColor: '#E8F5E8',
+
   },
   activeCard: {
     backgroundColor: '#F0F8F0',

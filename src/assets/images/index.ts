@@ -25,6 +25,10 @@ export const Images = {
   greenTick:require('./greenTick.png'),
   bannerSetting: require('./Banner_setting.png'),
   editSquare: require('./Edit Square.png'),
+  paymentIcon: require('./paymentIcon.png'),
+  blockedIcon: require('./BlockedIcon.png'),
+  scheduleIcon: require('./ScheduleIcon.png'),
+  completeIcon: require('./ComplteIcon.png'),
 };
 
 /* SVG exports */
