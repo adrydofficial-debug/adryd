@@ -43,6 +43,21 @@
       "number": "Number",
       "continueBusiness": "Continue this business"
     },
+    "inviteScreen": {
+      "headlineTop": "Discover Outdoor",
+      "headlineBottom": "Spaces place your ads",
+      "ctaHighlight": "Be a hero",
+      "ctaText": "and invite using your unique referral link.",
+      "helper": "Share the link with friends, teammates and partners to unlock rewards together.",
+      "primaryCta": "Invite",
+      "shareMessage": "Join me on Adryd Marketing Co. and reserve outdoor spaces:",
+      "copiedToast": "Referral link copied",
+      "copiedTitle": "Copied",
+      "copiedMessage": "Your referral link is ready to paste anywhere.",
+      "backA11y": "Go back",
+      "shareA11y": "Share invite link",
+      "copyA11y": "Copy invite link"
+    },
     "drawer": {
       "security": "Security",
       "securitySubtitle": "Phone number & Password",
@@ -57,6 +72,12 @@
       "contact": "Contact Support",
       "logout": "Log Out",
       "noPhone": "No phone number"
+    },
+    "termsPrivacyOptions": {
+      "title": "Terms & Privacy",
+      "terms": "Terms and Conditions",
+      "privacy": "Privacy Policy",
+      "backA11y": "Go back"
     }
   },
   "ur": {
@@ -103,6 +124,21 @@
       "number": "نمبر",
       "continueBusiness": "اس کاروبار کو جاری رکھیں"
     },
+    "inviteScreen": {
+      "headlineTop": "آؤٹ ڈور اسپیسز دریافت کریں",
+      "headlineBottom": "جہاں آپ کے اشتہارات جگہ پاتے ہیں",
+      "ctaHighlight": "ہیرو بنیں",
+      "ctaText": "اور اپنے منفرد ریفرل لنک کے ذریعے دوسروں کو مدعو کریں۔",
+      "helper": "اس لنک کو دوستوں اور ساتھیوں کے ساتھ شیئر کریں اور مل کر انعامات حاصل کریں۔",
+      "primaryCta": "دعوت دیں",
+      "shareMessage": "Adryd Marketing Co پر میرے ساتھ شامل ہوں اور آؤٹ ڈور اسپیس بک کریں:",
+      "copiedToast": "ریفرل لنک کاپی ہو گیا",
+      "copiedTitle": "کاپی ہوا",
+      "copiedMessage": "آپ کا ریفرل لنک کہیں بھی پیسٹ کرنے کے لیے تیار ہے۔",
+      "backA11y": "واپس جائیں",
+      "shareA11y": "دعوتی لنک شیئر کریں",
+      "copyA11y": "دعوتی لنک کاپی کریں"
+    },
     "drawer": {
       "security": "سیکیورٹی",
       "securitySubtitle": "فون نمبر اور پاس ورڈ",
@@ -117,6 +153,12 @@
       "contact": "سپورٹ سے رابطہ کریں",
       "logout": "لاگ آؤٹ",
       "noPhone": "کوئی فون نمبر نہیں"
+    },
+    "termsPrivacyOptions": {
+      "title": "شرائط اور رازداری",
+      "terms": "شرائط و ضوابط",
+      "privacy": "رازداری کی پالیسی",
+      "backA11y": "واپس جائیں"
     }
   }
 }

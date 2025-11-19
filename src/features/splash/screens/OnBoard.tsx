@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from "react";
 import {
   View,
@@ -7,112 +6,174 @@ import {
   Animated,
   Dimensions,
   TouchableOpacity,
+  Image
 } from "react-native";
-import Group from "../../../assets/icons/Group.svg";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 const { width, height } = Dimensions.get("window");
 
-// Circle positions for 3 screens
-const positions: number[] = [400, -109, 400];
+//  3-screen data
+const SCREENS = [
+  {
+    title: "Discover Outdoor \n Spaces place your ads",
+    text: "Browse a wide network of verified billboards and digital screens, all organized in one simple place to help you find the perfect spot for your campaign.",
+    image: require("../../../assets/images/OnBoardOne.png")
+  },
+  {
+    title: "Plan and Schedule with Ease",
+    text: "Create bookings through a smooth, fully digital process that removes the back-and-forth and lets you secure your placements in just a few steps.",
+    image: require("../../../assets/images/OnBoardTwo.png")
+  },
+  {
+    title: "Stay Updated in Real Time",
+    text: "Get instant status updates, confirmations, and changes so you always know exactly where your campaign stands and what’s happening on the  ground.",
+    image: require("../../../assets/images/OnBoardThree.png")
+  },
+];
 
 interface OnboardProps {
   onComplete?: () => void;
 }
 
 const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
-  const index = useRef<Animated.Value>(new Animated.Value(0)).current;
-  const [screen, setScreen] = useState<number>(0); // 0,1,2
+  const [screen, setScreen] = useState<number>(0);
 
-  const goTo = (screenNumber: number) => {
-    setScreen(screenNumber);
-    Animated.timing(index, {
-      toValue: screenNumber,
-      duration: 500,
-      useNativeDriver: false,
-    }).start();
+  //  Fade Animation
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  const animateAndGo = (next: number) => {
+    // Fade out current screen
+    Animated.timing(opacity, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      // Switch screen AFTER fade out
+      setScreen(next);
+
+      // Fade in new screen
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 700,
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
-  const animatedTop = index.interpolate({
-    inputRange: [0, 1, 2],
-    outputRange: [positions[0], positions[1], positions[2]],
-  });
-
-  const animatedColor = index.interpolate({
-    inputRange: [0, 1, 2],
-    outputRange: ["#FFFFFF", "#000000", "#FFFFFF"],
-  });
-
-  // Responsive dimensions
-  const circleSize = width * 1.5;
-  const btnWidth = width * 0.5;
-  const btnHeight = height * 0.06;
-  const arrowSize = width * 0.10;
-  const groupWidth = width * 0.9;
-  const groupHeight = height * 0.36;
 
   return (
     <View style={styles.container}>
-      {/* Animated Circle */}
-      <Animated.View
-        style={[
-          styles.circle,
-          { top: animatedTop, left: -circleSize * 0.17, width: circleSize, height: circleSize, borderRadius: circleSize / 2 },
-        ]}
-      />
+      <View style={{ flex: 2 }}>
 
-      {/* Image */}
-      <View style={{ justifyContent: "center", alignItems: "center", marginTop: height * 0.12 }}>
-        <Group width={groupWidth} height={groupHeight} />
+        {/* Image Section with Fade */}
+        <Animated.View style={{ opacity }}>
+          <Image
+            source={SCREENS[screen].image}
+            style={styles.image}
+          />
+        </Animated.View>
       </View>
 
-      {/* Content */}
-      <View style={[styles.content, { paddingHorizontal: width * 0.09, top: height * 0.62 }]}>
-        <Animated.Text style={[styles.title, { color: animatedColor, fontSize: width * 0.068 }]}>
-          The smarter way to place your ads.
-        </Animated.Text>
+      {/*  Text Content */}
+      <View
+        style={{
+          flex: 1.2,
+          justifyContent: "center",
+          paddingHorizontal: width * 0.05,
+          backgroundColor: "#F8F8F8",
+        }}
+      >
+        {/* Pagination Dots */}
+        <View
+          style={{
+            width: width * 0.12,
+            height: height * 0.008,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignSelf: "center",
+            position: "absolute",
+            top:10,
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <View
+              key={i}
+              style={{
+                width: width * 0.017,
+                height: width * 0.017,
+                borderRadius: width * 0.017,
+                backgroundColor: screen === i ? "#C539A5" : "#E5E7EB",
+              }}
+            />
+          ))}
+        </View>
 
-        <Animated.Text style={[styles.text, { color: animatedColor, fontSize: width * 0.035, lineHeight: height * 0.03 }]}>
-          The smarter way to place your ads.The smarter way to place your ads.
-          The smarter way to place your ads.The smarter way to place your ads.
-        </Animated.Text>
+        {/* Title + Text with Fade */}
+        <Animated.View style={{ position: "absolute", top: 35, alignSelf: "center", opacity }}>
+          <Text style={styles.title}>
+            {SCREENS[screen].title}
+          </Text>
 
-        {/* Bottom Row */}
-        <View style={[styles.mainrowContainer, { gap: width * 0.05}]}>
-          {/* Left Arrow */}
-          {screen > 0 && (
+          <Text style={styles.text}>
+            {SCREENS[screen].text}
+          </Text>
+        </Animated.View>
+
+        {/*  Fixed Bottom Controls */}
+        <View
+          style={{
+            position: "absolute",
+            bottom: height * 0.08,
+            left: 0,
+            right: 0,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            paddingHorizontal: width * 0.06,
+          }}
+        >
+          {/* Back button */}
+          {screen > 0 ? (
             <TouchableOpacity
-              style={[styles.arrow, { width: arrowSize, height: arrowSize, borderRadius: arrowSize / 2 }]}
-              onPress={() => goTo(screen - 1)}
+              style={[styles.arrow, { width: 38, height: 38 }]}
+              onPress={() => animateAndGo(screen - 1)}
             >
-              <Ionicons name="chevron-back-outline" size={arrowSize * 0.5} color="#000" />
+              <Ionicons name="chevron-back-outline" size={15} color="#000" />
             </TouchableOpacity>
+          ) : (
+            <View style={{ width: 38 }} />
           )}
 
-          {/* Main Button */}
+          {/* Center Button */}
           <TouchableOpacity
-            style={[styles.mainBtn, { width: btnWidth, height: btnHeight, borderRadius: btnHeight / 3 }]}
-            onPress={() => {
-              if (screen === 2) {
-                // Last screen, complete onboarding
-                onComplete?.();
-              } else {
-                // Navigate to next screen
-                goTo(screen + 1);
-              }
-            }}
+            disabled={screen !== 2}
+            style={[
+              styles.mainBtn,
+              { backgroundColor: screen === 2 ? "#C539A5" : "#E5E7EB" }
+            ]}
+            onPress={() => screen === 2 && onComplete?.()}
           >
-            <Text style={{ fontWeight: "500", fontSize: width * 0.04 }}>Get Started</Text>
+            <Text
+              style={{
+                fontWeight: "500",
+                fontSize: width * 0.04,
+                color: screen === 2 ? "#FFFFFF" : "#00000033"
+              }}
+            >
+              Get Started
+            </Text>
           </TouchableOpacity>
 
-          {/* Right Arrow */}
-          {screen < 2 && (
+          {/* Forward button */}
+          {screen < 2 ? (
             <TouchableOpacity
-              style={[styles.arrow, { width: arrowSize, height: arrowSize, borderRadius: arrowSize / 2 }]}
-              onPress={() => goTo(screen + 1)}
+              style={[styles.arrow, { width: 38, height: 38 }]}
+              onPress={() => animateAndGo(screen + 1)}
             >
-              <Ionicons name="chevron-forward-outline" size={arrowSize * 0.5} color="#000" />
+              <Ionicons name="chevron-forward-outline" size={15} color="#000" />
             </TouchableOpacity>
+          ) : (
+            <View style={{ width: 38 }} />
           )}
         </View>
       </View>
@@ -123,45 +184,41 @@ const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
 export default Onboard;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
-  mainrowContainer: {
+  container: { flex: 1, backgroundColor: "#F8F8F8" },
+  image: {
+    width: "100%",
+    height: height * 0.75,
+    resizeMode: "cover",
     position: "absolute",
-    bottom: height * 0.03,
-    alignSelf: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  circle: {
-    position: "absolute",
-    backgroundColor: "#C539A5"
-  },
-  content: {
-    position: "absolute",
-    bottom: height * 0.05,
+    top: 0,
   },
   title: {
     fontWeight: "600",
-    textAlign: "center"
+    textAlign: "center",
+    fontSize: 18,
+    color: "#18181B",
   },
   text: {
-    marginTop: height * 0.01,
+    marginTop: height * 0.02,
     textAlign: "center",
     fontWeight: "300",
+    fontSize: 13,
+    color: "#18181B",
+     lineHeight: height * 0.02,
   },
   arrow: {
     backgroundColor: "#FFFFFF",
+    borderRadius: 65,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
     borderColor: "#E5E7EB",
-     shadowOpacity:10,
-    elevation:20,
   },
   mainBtn: {
-    backgroundColor: "#FFFFFF",
+    width: width * 0.5,
+    height: height * 0.06,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    shadowOpacity:10,
-    elevation:20,
-  },
+  }
 });

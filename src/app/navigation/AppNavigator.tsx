@@ -13,8 +13,9 @@ import BottomTab from './BottomTab';
 import CompaignStatus from '../../features/advertisments/screens/CompaignStatus';
 import UpdateProfile from '../../features/profile/screens/UpdateProfile';
 import ChatScreen from '../../features/chat/screens/ChatScreen';  
-  import ChangePassword from '../../features/profile/screens/ChangePassword';
-  import PreviousCompanyScreen from '../../features/profile/screens/PreviousCompany';
+import ChangePassword from '../../features/profile/screens/ChangePassword';
+import PreviousCompanyScreen from '../../features/profile/screens/PreviousCompany';
+import InviteLink from '../../features/profile/screens/InviteLink';
 //  import UpdateProfile from '../../features/profile/screens/UpdateProfile';
 import CompanyWithInfoScreen from '../../features/advertisments/screens/CompanyWithInfoScreen';
 import AdvertismentCongratulateScreen from '../../features/advertisments/screens/AdvertismentCongratulateScreen';
@@ -25,6 +26,8 @@ import ChooseOptionScreen from '../../features/advertisments/screens/ChooseOptio
 import CompanywithoutInfoScreen from '../../features/advertisments/screens/CompanywithoutInfoScreen';
 import TermsAndConditions from '../../features/profile/screens/TermsAndConditions';
 import HelpFAQsScreen from '../../features/profile/screens/HelpFAQsScreen';
+import TermsPrivacyOptions from '../../features/profile/screens/TermsPrivacyOptions';
+import PrivacyPolicy from '../../features/profile/screens/PrivacyPolicy';
 
 // 🔹 Define navigation param types
 export type AppStackParamList = {
@@ -51,8 +54,11 @@ export type AppStackParamList = {
   ChooseOptionScreen: undefined;
   ContactSupportScreen: undefined;
   CompanywithoutInfoScreen: { campaignId: string };
-  TermsAndConditions: undefined;
+  TermsAndConditions: { fromAuth?: boolean; navigateTo?: string } | undefined;
   HelpFAQsScreen: undefined;
+  InviteLink: undefined;
+  TermsPrivacyOptions: undefined;
+  PrivacyPolicy: { fromAuth?: boolean; navigateTo?: string } | undefined;
 };
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -91,6 +97,9 @@ const AppNavigator = () => {
     <Stack.Screen name="SearchLocation" component={SearchLocation} />
     <Stack.Screen name="TermsAndConditions" component={TermsAndConditions} />
     <Stack.Screen name="HelpFAQsScreen" component={HelpFAQsScreen} />
+    <Stack.Screen name="InviteLink" component={InviteLink} />
+    <Stack.Screen name="TermsPrivacyOptions" component={TermsPrivacyOptions} />
+    <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
    
   </Stack.Navigator>
   );

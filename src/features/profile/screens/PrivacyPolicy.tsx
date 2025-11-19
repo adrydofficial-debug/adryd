@@ -24,7 +24,7 @@ const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
 
-interface TermsAndConditionsProps {
+interface PrivacyPolicyProps {
   route?: {
     params?: {
       fromAuth?: boolean;
@@ -34,7 +34,7 @@ interface TermsAndConditionsProps {
   };
 }
 
-const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
+const PrivacyPolicy: React.FC<PrivacyPolicyProps> = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const params = (route.params as any) || {};
@@ -42,15 +42,10 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
   const navigateTo = params.navigateTo;
   const pendingUser = params.user; // User from registration OTP verification
   const setUser = useAuthStore(s => s.setUser);
-
   const [hasAgreed, setHasAgreed] = useState<boolean>(false);
   const [showHelloBanner, setShowHelloBanner] = useState<boolean>(false);
   const [isChecked, setIsChecked] = useState<boolean>(false);
-  
-  // Refs
   const scrollViewRef = useRef<ScrollView>(null);
-  
-  // Animation values
   const checkboxScale = useRef(new Animated.Value(1)).current;
   const checkboxOpacity = useRef(new Animated.Value(0)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
@@ -226,7 +221,7 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
         <View style={styles.helloBanner}>
           <Text style={styles.helloTitle}>Hello</Text>
           <Text style={styles.helloSubtitle}>
-            Before you create an account, please read and accept our Terms and Condition.
+            Before you create an account, please read and accept our Privacy Policy.
           </Text>
         </View>
       )}
@@ -239,17 +234,14 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
         showsVerticalScrollIndicator={true}
       >
         <View style={styles.contentContainer}>
-          <Text style={styles.title}>Terms and Conditions</Text>
+          <Text style={styles.title}>Privacy Policy</Text>
           <View style={styles.lastUpdateContainer}>
             <Text style={styles.lastUpdate}>Last update: Yesterday</Text>
           </View>
 
           <View style={styles.termsContent}>
             <Text style={styles.introText}>
-              Welcome to ADRYD Marketing Co. ("ADRYD," "we," "our," or "us"). These Terms and
-              Conditions ("Terms") govern your access to and use of our website{' '}
-              <Text style={styles.link}>https://adryd.app</Text>, our mobile application, and all
-              related services (collectively referred to as the "Platform").
+            This Privacy Policy explains how ADRYD Marketing Co. (“ADRYD,” “we,” “our,” or “us”) collects, uses, and protects your personal information when you use our website https://adryd.app and our mobile application (collectively referred to as the “Platform”). By using our Platform, you agree to the collection and use of your information in accordance with this Privacy Policy.
             </Text>
             <Text style={styles.introText}>
               By using ADRYD, you agree to these Terms. Please read them carefully before accessing
@@ -665,4 +657,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default TermsAndConditions;
+export default PrivacyPolicy;
+
