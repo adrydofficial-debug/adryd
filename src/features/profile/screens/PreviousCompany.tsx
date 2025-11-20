@@ -22,6 +22,7 @@ import { Company as ApiCompany } from '../../companies/domain/entities';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 import NoInternet from '../../../components/NoInternet';
+import Header from '../../../components/Header';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;

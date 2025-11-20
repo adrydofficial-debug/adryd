@@ -11,6 +11,7 @@ import {
 import { useNotifications } from '../hooks/useNotifications';
 import { markAllNotificationsRead } from '../api/api';
 import BackButton from '../../../components/BackButton';
+import Header from '../../../components/Header';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -66,12 +67,13 @@ const GetAllNotification: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
-      <View style={styles.header}>
-        <BackButton />
-        <Text style={styles.headerTitle}>Notification</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      <StatusBar backgroundColor="#FFFF" barStyle="dark-content" />
+  <Header
+  title="Notification"
+  onBackPress={() => navigation.goBack()}
+  showRightIcon={false}
+/>
+
 
       <View style={styles.listContainer}>
         {isLoading ? (
@@ -102,28 +104,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F8F8',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: width * 0.04,
-    paddingTop: height * 0.02,
-    paddingBottom: height * 0.04,
-    backgroundColor: '#FFFFFF',
-  },
-  headerTitle: {
-    fontSize: width * 0.039,
-    fontWeight: '600',
-    color: '#000',
-    alignItems: 'center',
-    marginTop: height * 0.028,
-  },
-  headerSpacer: {
-    width: width * 0.1,
-  },
   listContainer: {
     flex: 1,
-
   },
   listContent: {
     paddingBottom: height * 0.02,
