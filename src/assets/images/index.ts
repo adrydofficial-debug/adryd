@@ -5,7 +5,7 @@ export const Images = {
   search: require('./Search.png'),
   pinkBell: require('./PinkBell.png'),
   filterIllustration: require('./fillterrr.png'),
-  adrydLogo: require('./AdrydLogo.png'),
+  adrydLogo: require('./adrydlogo.png'),
   logo: require('./logo.png'),
   axoVolt: require('./AxoVolt.png'),
   addPlaceholder: require('./add.png'),
@@ -22,7 +22,7 @@ export const Images = {
   bannerTwo: require('./BannerTwo.png'),
   homeBanner: require('./HomeBanner.png'),
   texxolOil: require('./texxolOil.png'),
-  greenTick:require('./greenTick.png'),
+  greenTick: require('./greenTick.png'),
   bannerSetting: require('./Banner_setting.png'),
   editSquare: require('./Edit Square.png'),
 
@@ -32,8 +32,6 @@ export const Images = {
   completeIcon: require('./ComplteIcon.png'),
   frame: require('./Frame.png'),
   inviteIllustration: require('./InviteImg.png'),
-
-
 };
 
 /* SVG exports */

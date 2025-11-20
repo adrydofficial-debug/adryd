@@ -95,3 +95,83 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+
+## Registration Flow (With Existing User Check)
+
+```
+                                          User enters name + phone
+                                                   │
+                                                   ▼
+                             Frontend calls signInWithOtp(phone, { createUser:false })
+                                                   │
+                                                   ▼
+                                       Supabase tries to send OTP
+                                        │                    │
+                                        │ success            │ error (user not found)
+                                        ▼                    ▼
+              User already exists → show error       Proceed with registration
+                                                             │
+                                                             ▼
+                                       Frontend calls signInWithOtp(phone)  (create user = true)
+                                                             │
+                                                             ▼
+                                                     Supabase sends OTP
+                                                             │
+                                                             ▼
+                                                       User enters OTP
+                                                             │
+                                                             ▼
+                                                  Frontend calls verifyOtp
+                                                    │               │
+                                                    │ success       │ error
+                                                    ▼               ▼
+                                       Ask user to set password     Show error message
+                                                    │
+                                                    ▼
+                                    Frontend calls updateUser({ password })
+                                          │                       │
+                                          │ success               │ error
+                                          ▼                       ▼
+                                    Navigate to Home        Show error message
+
+```
+## Login Flow (With Password)
+
+```
+                                                User enters phone + password
+                                                            │
+                                                            ▼
+                                                Frontend calls signInWithPassword
+                                                            │
+                                                            ▼
+                                                Supabase checks credentials
+                                                  │                     │
+                                                  │ success             │ error
+                                                  ▼                     ▼
+                                    Frontend receives session     Frontend receives error
+                                                │                       │
+                                                ▼                       ▼
+                                    Navigate to Home              Show error message
+
+```
+## Forgot Password Flow (With User Exists Check)
+```
+                                                  User enters phone
+                                                          │
+                                                          ▼
+                                   Frontend calls signInWithOtp({ createUser: false })
+                                                          │
+                                                          ▼
+                                                  Supabase sends OTP
+                                                          │
+                                                          ▼
+                                                  User enters OTP
+                                                          │
+                                                          ▼
+                                              Frontend calls verifyOtp
+                                                  │            │
+                                                  │ success    │ error
+                                                  ▼            ▼
+                                        Navigate to Home     Show error message
+
+```
