@@ -30,6 +30,7 @@ import {
   useCompanyCategoryGroups,
   useCreateCompany,
 } from '../hooks/useCompanies';
+import { useCities } from '../../locations/hooks/hooks';
 import NoInternet from '../../../components/NoInternet';
 import { useCampaignStore } from '../../../store/campaignStore';
 import ProgressBar from '../../../components/ProgressBar';
@@ -65,7 +66,6 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   const [companyName, setCompanyName] = useState(
     company?.company_name || 'Adryd',
   );
-  const [businessName, setBusinessName] = useState(company?.company_name || '');
   const [companyNTN, setCompanyNTN] = useState(company?.company_ntn || '');
   const [companyAddress, setCompanyAddress] = useState(company?.address || '');
   const [companyEmail, setCompanyEmail] = useState(company?.email || '');
@@ -77,22 +77,23 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
   const [selectedBusinessCategory, setSelectedBusinessCategory] =
     useState<string>('');
+  const [selectedCityId, setSelectedCityId] = useState<string>('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
    const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
 
   // Validation states
   const [validationErrors, setValidationErrors] = useState<{
     companyName: boolean;
-    businessName: boolean;
     businessCategory: boolean;
+    city: boolean;
     companyEmail: boolean;
     companyAddress: boolean;
     companyNTN: boolean;
     companyNumber: boolean;
   }>({
     companyName: false,
-    businessName: false,
     businessCategory: false,
+    city: false,
     companyEmail: false,
     companyAddress: false,
     companyNTN: false,
@@ -139,6 +140,17 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     console.log('Business Category Data:', data);
     return data.length > 0 ? data : testData;
   }, [categoriesData, categoriesLoading]);
+
+  const { data: citiesData, isLoading: citiesLoading } = useCities();
+  const cityOptions = useMemo(() => {
+    if (!citiesData || citiesData.length === 0) {
+      return [];
+    }
+    return citiesData.map(city => ({
+      label: city.province_name ? `${city.name}, ${city.province_name}` : city.name,
+      value: String(city.id),
+    }));
+  }, [citiesData]);
 
   const requestAndroidPermission = async (): Promise<boolean> => {
     if (Platform.OS === 'android') {
@@ -247,12 +259,15 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   const handleNext = async (): Promise<void> => {
     const errors = {
       companyName: !companyName.trim(),
-      businessName: !businessName.trim(),
       companyAddress: !companyAddress.trim(),
       companyNTN: !companyNTN.trim(),
       businessCategory: !selectedBusinessCategory,
+      city: !selectedCityId,
       companyEmail: !companyEmail.trim() || !isValidEmail(companyEmail),
-      companyNumber: !companyNumber || companyNumber.trim() === '+92' || !isValidPhoneNumber(companyNumber),
+      companyNumber:
+        !companyNumber ||
+        companyNumber.trim() === '+92' ||
+        !isValidPhoneNumber(companyNumber),
     };
 
     console.log('Validation errors:', errors);
@@ -326,6 +341,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         address: companyAddress.trim() || 'Not provided',
         email: companyEmail.trim(),
         contact_number: companyNumber.trim() || '+923000000000',
+        city_id: selectedCityId ? Number(selectedCityId) : undefined,
         logo_url: selectedImage?.uri || 'https://via.placeholder.com/150',
         logo_filename: selectedImage?.fileName || 'logo.png',
         logo_size: selectedImage?.fileSize || 0,
@@ -348,8 +364,9 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       // Save company data to store before navigating
       setCompanyData({
         companyName: companyName.trim(),
-        businessName: businessName.trim(),
+        businessName: companyName.trim(),
         businessCategory: selectedBusinessCategory,
+        cityId: selectedCityId,
         companyEmail: companyEmail.trim(),
         companyAddress: companyAddress.trim(),
         companyNTN: companyNTN.trim() || '0000000-0',
@@ -391,8 +408,8 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       // On API error, set all fields to show red borders
       setValidationErrors({
         companyName: true,
-        businessName: true,
         businessCategory: true,
+        city: true,
         companyEmail: true,
         companyAddress: true,
         companyNTN: true,
@@ -532,26 +549,13 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                 error={validationErrors.companyName}
               />
 
-              <CustomInput
-                label={t('Business Name')}
-                placeholder={t('create.enterCompanyName')}
-                value={businessName}
-                onChangeText={text => {
-                  setBusinessName(text);
-                  // Clear validation error when user starts typing
-                  if (validationErrors.businessName) {
-                    setValidationErrors(prev => ({
-                      ...prev,
-                      businessName: false,
-                    }));
-                  }
-                }}
-                containerStyle={styles.customInputContainer}
-                error={validationErrors.businessName}
-              />
-
               {/* Business Category Input Field with Element Dropdown */}
-              <View style={styles.customInputContainer}>
+              <View
+                style={[
+                  styles.customInputContainer,
+                  validationErrors.businessCategory && styles.errorContainer,
+                ]}
+              >
                 <Text style={styles.inputLabel}>{t('create.category')}</Text>
                 <BusinessCategoryDropdown
                   label=""
@@ -575,9 +579,42 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                 />
               </View>
 
+              {/* Company Location (City) */}
+              <View
+                style={[
+                  styles.customInputContainer,
+                  validationErrors.city && styles.errorContainer,
+                ]}
+              >
+                <Text style={styles.inputLabel}>
+                  {t('create.city', 'Company location')}
+                </Text>
+                <BusinessCategoryDropdown
+                  label=""
+                  data={cityOptions}
+                  value={selectedCityId}
+                  onSelect={value => {
+                    setSelectedCityId(value);
+                    if (validationErrors.city) {
+                      setValidationErrors(prev => ({
+                        ...prev,
+                        city: false,
+                      }));
+                    }
+                  }}
+                  placeholder={
+                    citiesLoading
+                      ? t('create.loading', 'Loading...')
+                      : t('create.selectCity', 'Select city')
+                  }
+                  containerStyle={styles.dropdownWrapper}
+                  error={validationErrors.city}
+                />
+              </View>
+
               {/* Company Number Input - Same as Login Screen */}
               <CustomInput
-                label={t('create.companyNumber') || 'Company Number'}
+                label={t('create.companyNumber')}
                 placeholder="3XXXXXXXXX"
                 keyboardType="phone-pad"
                 value={companyNumber}
@@ -587,7 +624,10 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                 focused={focusedField === 'companyNumber'}
                 error={!!validationErrors.companyNumber}
                 showErrorText={false}
-                containerStyle={styles.customInputContainer}
+                containerStyle={StyleSheet.flatten([
+                  styles.customInputContainer,
+                  validationErrors.companyNumber && styles.errorContainer,
+                ])}
               />
 
               <CustomInput
@@ -848,6 +888,13 @@ const styles = StyleSheet.create({
   customInputContainer: {
     marginBottom: height * 0.025,
   },
+  errorContainer: {
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    borderRadius: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
   buttonContainer: {
     paddingHorizontal: width * 0.05,
     paddingBottom: height * 0.06,
@@ -883,14 +930,9 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
     borderRadius: 12,
     backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowColor: 'transparent',
+    paddingVertical:5,
+    paddingHorizontal:4,
   },
   dropdownContainer: {
     marginBottom: 0, // Remove default margin since it's inside input container

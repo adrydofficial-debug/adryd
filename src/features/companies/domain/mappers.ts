@@ -16,6 +16,7 @@ import {
 export const mapCompany = (data: CompanyResponse): Company => ({
   id: data.id,
   company_name: data.company_name,
+  city_id: data.city_id ?? null,
   company_ntn: data.company_ntn ?? null,
   address: data.address ?? null,
   email: data.email ?? null,
