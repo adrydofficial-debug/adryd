@@ -251,25 +251,13 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBackPress}
-          activeOpacity={0.7}>
-          <Ionicons
-            name="chevron-back"
-            size={scaleFont(24)}
-            color="#000000"
-          />
-        </TouchableOpacity>
-        
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle} key={`title-${languageKey}`}>{t('previousCompany.select')}</Text>
-        </View>
-        
-     
-      </View>
-
+<Header
+  title={t('previousCompany.select')}
+  onBackPress={handleBackPress}
+  showBackButton={true}
+  showRightIcon={false}  
+  containerStyle={{ paddingVertical: 5}} 
+/>
       {/* Content */}
       <View style={styles.content}>
         {renderAddCompanyCard()}
@@ -329,22 +317,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingVertical:25
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: wp(5),
-    paddingTop: hp(4),
-    paddingBottom: hp(2),
-  },
-  backButton: {
-    width: scaleWidth(40),
-    height: scaleWidth(40),
-    borderRadius: scaleWidth(20),
-    backgroundColor: '#F8F8F8',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+
   headerTitleContainer: {
     flex: 1,
     alignItems: 'center',

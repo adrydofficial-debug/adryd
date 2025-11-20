@@ -12,10 +12,11 @@ import {
   TextInput,
   Animated,
 } from 'react-native';
+import Header from '../../../components/Header';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import BackButton from '../../../components/BackButton';
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -37,6 +38,10 @@ const HelpFAQsScreen: React.FC = () => {
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+
+  const handleBackPress = () => {
+    navigation.goBack();
+  };
 
   useEffect(() => {
     Animated.parallel([
@@ -156,9 +161,13 @@ const HelpFAQsScreen: React.FC = () => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header with Back Button */}
-      <View style={styles.header}>
-        <BackButton iconColor="#000" />
-      </View>
+
+      <Header
+        onBackPress={handleBackPress}
+        title=""
+        showBackButton={true}
+        showRightIcon={false}
+      />
 
       {/* Hero Banner */}
       <LinearGradient
@@ -415,11 +424,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FAFAFA',
   },
-  header: {
-    paddingHorizontal: width * 0.04,
-    paddingTop: Platform.OS === 'ios' ? 0 : height * 0.02,
-    zIndex: 10,
-  },
+
   heroBanner: {
     marginHorizontal: width * 0.04,
     marginTop: height * 0.01,
