@@ -6,8 +6,6 @@ import PrimaryButton from "../../../components/PrimaryButton";
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
-
-// SVG Imports
 import EasyPaisa from "../../../assets/images/EasyPaisa.svg";
 
 const { width, height } = Dimensions.get("window");
@@ -49,7 +47,7 @@ const EasyPaisaPaymentForm: React.FC = () => {
                 <View style={{ justifyContent: "center", alignItems: "center", marginBottom: hp(2), marginTop: hp(4) }}>
                     <Text style={styles.title}>Please add Number</Text>
                     <Text style={styles.SubTitle}>
-                        We have sent OTP Code! Please check number.
+                      We have sent OTP Code! Your WhatsApp Number.
                     </Text>
                 </View>
 

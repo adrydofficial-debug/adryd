@@ -5,7 +5,7 @@ import PrimaryButton from "../../../components/PrimaryButton";
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
-import JazzCash from "../../../assets/images/JazzCash.svg";
+import EasyPaisa from "../../../assets/images/EasyPaisa.svg";
 
 const { width, height } = Dimensions.get("window");
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -13,7 +13,7 @@ const hp = (percentage: number) => (height * percentage) / 100;
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
-const JazzCashOtpForm: React.FC = () => {
+const EasyPaisaOtpForm: React.FC = () => {
   const [otp, setOtp] = useState("");
   const navigation = useNavigation<NavigationProp>();
 
@@ -28,7 +28,7 @@ const JazzCashOtpForm: React.FC = () => {
       <View style={styles.card}>
         <View style={styles.topIcons}>
           <View style={styles.iconCircle}>
-            <JazzCash width={wp(6.7)} height={wp(6.7)} />
+            <EasyPaisa width={wp(6.7)} height={wp(6.7)} />
           </View>
         </View>
 
@@ -70,7 +70,7 @@ const JazzCashOtpForm: React.FC = () => {
 
       <PrimaryButton
         title="Done"
-        onPress={() => {}}
+        onPress={() => { }}
         buttonStyle={{
           width: wp(65),
           height: hp(6),
@@ -91,7 +91,7 @@ const JazzCashOtpForm: React.FC = () => {
   );
 };
 
-export default JazzCashOtpForm;
+export default EasyPaisaOtpForm;
 
 const styles = StyleSheet.create({
   title: { fontSize: 12, fontWeight: "600" },

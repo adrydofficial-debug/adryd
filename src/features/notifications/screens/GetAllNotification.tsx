@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useNotifications } from '../hooks/useNotifications';
 import { markAllNotificationsRead } from '../api/api';
-import BackButton from '../../../components/BackButton';
 import Header from '../../../components/Header';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
