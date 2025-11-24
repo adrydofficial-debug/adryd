@@ -2,6 +2,7 @@
 export interface Company {
   id: number;
   company_name: string;
+  city_id?: number | null;
   company_ntn?: string | null;
   address?: string | null;
   email?: string | null;

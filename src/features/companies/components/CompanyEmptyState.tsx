@@ -329,90 +329,93 @@ const CompanyEmptyState: React.FC<CompanyEmptyStateProps> = ({
         <BackButton iconColor="#000000" />
       </View>
 
-      {/* Animation Cards Container */}
-      <View style={styles.animationContainer}>
-        {/* Card 3 - Back (bottom-right) */}
-        <Animated.View
-          style={[
-            styles.cardWrapper,
-            {
-              opacity: fadeAnim3,
-              zIndex: 1,
-              transform: [
-                { scale: scaleAnim3 },
-                { translateY: translateYAnim3 },
-                { translateX: translateXAnim3 },
-                { rotate: getRotation(rotateAnim3) },
-              ],
-            },
-          ]}>
-          <Image
-            source={animationCards[2]}
-            style={styles.animationCard}
-            resizeMode="contain"
+      {/* Centered Content Container */}
+      <View style={styles.centeredContent}>
+        {/* Animation Cards Container */}
+        <View style={styles.animationContainer}>
+          {/* Card 3 - Back (bottom-right) */}
+          <Animated.View
+            style={[
+              styles.cardWrapper,
+              {
+                opacity: fadeAnim3,
+                zIndex: 1,
+                transform: [
+                  { scale: scaleAnim3 },
+                  { translateY: translateYAnim3 },
+                  { translateX: translateXAnim3 },
+                  { rotate: getRotation(rotateAnim3) },
+                ],
+              },
+            ]}>
+            <Image
+              source={animationCards[2]}
+              style={styles.animationCard}
+              resizeMode="contain"
+            />
+          </Animated.View>
+
+          {/* Card 2 - Middle */}
+          <Animated.View
+            style={[
+              styles.cardWrapper,
+              {
+                opacity: fadeAnim2,
+                zIndex: 2,
+                transform: [
+                  { scale: scaleAnim2 },
+                  { translateY: translateYAnim2 },
+                  { translateX: translateXAnim2 },
+                  { rotate: getRotation(rotateAnim2) },
+                ],
+              },
+            ]}>
+            <Image
+              source={animationCards[1]}
+              style={styles.animationCard}
+              resizeMode="contain"
+            />
+          </Animated.View>
+
+          {/* Card 1 - Front (top-left) */}
+          <Animated.View
+            style={[
+              styles.cardWrapper,
+              {
+                opacity: fadeAnim1,
+                zIndex: 3,
+                transform: [
+                  { scale: scaleAnim1 },
+                  { translateY: translateYAnim1 },
+                  { translateX: translateXAnim1 },
+                  { rotate: getRotation(rotateAnim1) },
+                ],
+              },
+            ]}>
+            <Image
+              source={animationCards[0]}
+              style={styles.animationCard}
+              resizeMode="contain"
+            />
+          </Animated.View>
+        </View>
+
+        {/* Text Content */}
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>Create Your Company</Text>
+          <Text style={styles.subtitle}>
+            Add your company details to get started{'\n'}and manage your boards with ease.
+          </Text>
+        </View>
+
+        {/* Create Company Button */}
+        <View style={styles.buttonContainer}>
+          <PrimaryButton
+            title="Let's Create Company"
+            onPress={onCreateCompany}
+            buttonStyle={styles.button}
           />
-        </Animated.View>
-
-        {/* Card 2 - Middle */}
-        <Animated.View
-          style={[
-            styles.cardWrapper,
-            {
-              opacity: fadeAnim2,
-              zIndex: 2,
-              transform: [
-                { scale: scaleAnim2 },
-                { translateY: translateYAnim2 },
-                { translateX: translateXAnim2 },
-                { rotate: getRotation(rotateAnim2) },
-              ],
-            },
-          ]}>
-          <Image
-            source={animationCards[1]}
-            style={styles.animationCard}
-            resizeMode="contain"
-          />
-        </Animated.View>
-
-        {/* Card 1 - Front (top-left) */}
-        <Animated.View
-          style={[
-            styles.cardWrapper,
-            {
-              opacity: fadeAnim1,
-              zIndex: 3,
-              transform: [
-                { scale: scaleAnim1 },
-                { translateY: translateYAnim1 },
-                { translateX: translateXAnim1 },
-                { rotate: getRotation(rotateAnim1) },
-              ],
-            },
-          ]}>
-          <Image
-            source={animationCards[0]}
-            style={styles.animationCard}
-            resizeMode="contain"
-          />
-        </Animated.View>
-      </View>
-
-      {/* Text Content */}
-      <View style={styles.textContainer}>
-        <Text style={styles.title}>Create Your Company</Text>
-        <Text style={styles.subtitle}>
-          Add your company details to get started{'\n'}and manage your boards with ease.
-        </Text>
-      </View>
-
-      {/* Create Company Button */}
-      <View style={styles.buttonContainer}>
-        <PrimaryButton
-          title="Let's Create Company"
-          onPress={onCreateCompany}
-          buttonStyle={styles.button}
-        />
+        </View>
       </View>
     </View>
   );
@@ -422,21 +425,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    paddingTop: hp(27),
-    paddingBottom: hp(4),
   },
   backButtonContainer: {
     position: 'absolute',
-    top: hp(5),
-    left: wp(4),
+    left: wp(5),
     zIndex: 10,
+  },
+  centeredContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp(5),
+    paddingTop: hp(8),
+    paddingBottom: hp(8),
   },
   animationContainer: {
     width: wp(75),
     height: hp(22),
     alignSelf: 'center',
-    marginTop: hp(1),
-    marginBottom: hp(2),
+    marginBottom: hp(3),
     position: 'relative',
   },
   cardWrapper: {
@@ -452,7 +459,7 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     alignItems: 'center',
-    marginBottom: hp(2),
+    marginBottom: hp(3),
     paddingHorizontal: wp(8),
     width: '100%',
   },

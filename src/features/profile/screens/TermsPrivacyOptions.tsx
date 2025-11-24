@@ -9,11 +9,17 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
-import BackButton from '../../../components/BackButton';
+import Header from '../../../components/Header';
+
 
 const TermsPrivacyOptions: React.FC = () => {
   const navigation = useNavigation();
   const { t } = useTranslation('profile');
+  
+  const handleBackPress = () => {
+    navigation.goBack();
+  };
+
 
   const options = [
     {
@@ -32,19 +38,12 @@ const TermsPrivacyOptions: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        {/* <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel={t('termsPrivacyOptions.backA11y')}
-        >
-          <Ionicons name="chevron-back" size={20} color="#111827" />
-        </TouchableOpacity> */}
-        <BackButton/>
-        <Text style={styles.title}>{t('termsPrivacyOptions.title')}</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+  <Header
+  title={t('termsPrivacyOptions.title')}
+  onBackPress={handleBackPress}   // same back function
+  showRightIcon={false}           // because you had an empty right spacer
+/>
+
 
       <View style={styles.card}>
         {options.map(option => (
@@ -71,15 +70,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F8F8',
-    paddingHorizontal: 18,
+    
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 18,
-    marginBottom: 24,
-  },
+
   backButton: {
     width: 36,
     height: 36,
@@ -90,15 +83,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    marginTop:22,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  headerSpacer: {
-    width: 36,
-  },
+
   card: {
     // backgroundColor: '#FFFFFF',
     // borderRadius: 14,

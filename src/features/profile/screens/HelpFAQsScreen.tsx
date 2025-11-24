@@ -11,6 +11,7 @@ import {
   TextInput,
   Animated,
 } from 'react-native';
+import Header from '../../../components/Header';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -36,6 +37,10 @@ const HelpFAQsScreen: React.FC = () => {
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+
+  const handleBackPress = () => {
+    navigation.goBack();
+  };
 
   useEffect(() => {
     Animated.parallel([
@@ -192,6 +197,31 @@ const HelpFAQsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* Header with Back Button */}
+
+      <Header
+        onBackPress={handleBackPress}
+        title=""
+        showBackButton={true}
+        showRightIcon={false}
+      />
+
+      {/* Hero Banner */}
+      <LinearGradient
+        colors={['#FFF4FD', '#FEF3F9', '#FFFFFF']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroBanner}
+      >
+        <View style={styles.heroIconContainer}>
+          <Ionicons name="help-circle" size={40} color="#C539A5" />
+        </View>
+        <Text style={styles.heroTitle}>Help & FAQs</Text>
+        <Text style={styles.heroSubtitle}>
+          Find answers to common questions and get the help you need
+        </Text>
+      </LinearGradient>
 
       <ScrollView
         ref={scrollViewRef}
@@ -420,7 +450,44 @@ const HelpFAQsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#FBF5FA',
+    backgroundColor: '#FAFAFA',
+  },
+
+  heroBanner: {
+    marginHorizontal: width * 0.04,
+    marginTop: height * 0.01,
+    marginBottom: height * 0.02,
+    padding: width * 0.06,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(197, 57, 165, 0.15)',
+    shadowColor: '#C539A5',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    overflow: 'hidden',
+    alignItems: 'center',
+  },
+  heroIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(197, 57, 165, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  heroTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,

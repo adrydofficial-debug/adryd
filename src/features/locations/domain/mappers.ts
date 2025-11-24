@@ -18,4 +18,6 @@ export const mapCity = (raw: any): City => ({
   country_id: raw.country_id,
   created_at: raw.created_at,
   updated_at: raw.updated_at,
+  province_name: raw.province?.name,
+  province_code: raw.province?.code,
 });

@@ -105,7 +105,7 @@ const BusinessCategoryDropdown: React.FC<BusinessCategoryDropdownProps> = ({
         // )}
         renderRightIcon={() => (
           <View style={styles.rightIconContainer}>
-            <Ionicons name="chevron-down" size={20} color="#C539A5" />
+            <Ionicons name="chevron-down" size={20} color="#E5E7EB" />
           </View>
         )}
         renderItem={(item: DropdownData) => {
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dropdownContainer: {
-    width: width * 0.62, // reduce dropdown list width
+    width: width * 0.50, // reduce dropdown list width
     alignSelf: 'center',
     borderRadius: 8,
     borderWidth: 1,
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 20,
+    elevation: 0,
     zIndex: 20,
   },
   itemContainer: {

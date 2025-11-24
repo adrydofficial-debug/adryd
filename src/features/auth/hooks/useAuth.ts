@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../services/supabase';
 import { useAuthStore } from '../../../store/authStore';
+import { checkUserExistsRequest } from '../api/api';
 
 // -----------------------------
 // 1️⃣ Register (Phone + Password + fullName → full_name)
@@ -15,19 +16,34 @@ export const useRegister = () => {
       phone: string;
       fullName: string;
     }) => {
-      const { data, error } = await supabase.auth.signInWithOtp({
+      console.log('📱 checking phone', phone);
+      // 1) Check if user already exists using public lookup table
+      const { exists } = await checkUserExistsRequest(phone);
+
+      if (exists) {
+        throw new Error('User already exists with this phone');
+      }
+
+      // 2) Kick off OTP (creates auth user if doesn't exist)
+      const { data, error: otpError } = await supabase.auth.signInWithOtp({
         phone,
         options: {
           data: { full_name: fullName },
         },
       });
 
-      if (error) throw error;
+      if (otpError) {
+        throw new Error(`Registration failed: ${otpError.message}`);
+      }
+
       return data;
     },
   });
 };
 
+// -----------------------------
+// 2️⃣ Set Password + Mark User Verified
+// -----------------------------
 export const useSetPassword = () => {
   return useMutation({
     mutationFn: async ({ password }: { password: string }) => {
@@ -126,34 +142,47 @@ export const useForgotPassword = () => {
 };
 
 // -----------------------------
-// 4️⃣ Reset Password (Verify OTP + Update Password)
+// 4️⃣ Change Password (Old → New)
 // -----------------------------
-export const useResetPassword = () => {
+export const useChangePassword = () => {
   return useMutation({
     mutationFn: async ({
-      phone,
-      otp,
+      oldPassword,
       newPassword,
     }: {
-      phone: string;
-      otp: string;
+      oldPassword: string;
       newPassword: string;
     }) => {
-      // Verify OTP (logs user in)
-      const { error } = await supabase.auth.verifyOtp({
+      // 1️⃣ Get the current logged-in user
+      const { data: currentUserData, error: userError } =
+        await supabase.auth.getUser();
+      if (userError || !currentUserData.user?.phone) {
+        throw userError || new Error('No user or phone found');
+      }
+
+      const phone = currentUserData.user.phone;
+
+      // 2️⃣ Reauthenticate using old password
+      const { error: reauthError } = await supabase.auth.signInWithPassword({
         phone,
-        token: otp,
-        type: 'sms',
+        password: oldPassword,
       });
-      if (error) throw error;
+      if (reauthError) {
+        throw new Error('Incorrect current password');
+      }
 
-      // Then update password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-      if (updateError) throw updateError;
+      // 3️⃣ Update password
+      const { data: passwordData, error: updateError } =
+        await supabase.auth.updateUser({
+          password: newPassword,
+        });
+      if (updateError || !passwordData.user)
+        throw updateError || new Error('Failed to update password');
 
-      return { message: 'Password reset successful' };
+      return {
+        message: 'Password updated successfully',
+        user: passwordData.user,
+      };
     },
   });
 };
