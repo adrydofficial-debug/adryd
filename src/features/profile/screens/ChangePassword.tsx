@@ -1,26 +1,24 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
+  Alert,
   Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
-  I18nManager,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import BackButton from '../../../components/BackButton';
 import CustomInput from '../../../components/CustomInput';
+import NoInternet from '../../../components/NoInternet';
 import PasswordRequirements from '../../../components/PasswordRequirements';
 import PrimaryButton from '../../../components/PrimaryButton';
-import NoInternet from '../../../components/NoInternet';
-import Header from '../../../components/Header';
-import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
+import { useChangePassword } from '../../auth/hooks/useAuth';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -37,11 +35,12 @@ const ChangePassword: React.FC = () => {
   const [apiError, setApiError] = useState<string>('');
   const [isEmptyError, setIsEmptyError] = useState(false);
   const [apiErrorBorder, setApiErrorBorder] = useState(false);
-  
+
+  const changePassword = useChangePassword();
+
   // Track current language to force re-renders
   const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
   // Track RTL state to force layout re-render
-  const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
   // Language change tracking for forced re-render
   const [languageKey, setLanguageKey] = useState(0);
 
@@ -49,31 +48,31 @@ const ChangePassword: React.FC = () => {
   useEffect(() => {
     const handleLanguageChange = (lang: string) => {
       setCurrentLanguage(lang);
-      const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
-      const shouldBeRTL = rtlLangs.has(lang);
-      setIsRTL(shouldBeRTL);
+      // const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+      // const shouldBeRTL = rtlLangs.has(lang);
+      // setIsRTL(shouldBeRTL);
       setLanguageKey(prev => prev + 1);
     };
     i18n.on('languageChanged', handleLanguageChange);
     const lang = i18nInstance.language;
     setCurrentLanguage(lang);
-    const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
-    setIsRTL(rtlLangs.has(lang));
+    // const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+    // setIsRTL(rtlLangs.has(lang));
     return () => {
       i18n.off('languageChanged', handleLanguageChange);
     };
   }, [i18nInstance.language]);
-  
+
   // Update language key when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       const lang = i18nInstance.language;
       setCurrentLanguage(lang);
-      const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
-      setIsRTL(rtlLangs.has(lang));
+      // const rtlLangs = new Set<string>(['ar', 'ur', 'he', 'fa']);
+      // setIsRTL(rtlLangs.has(lang));
       setLanguageKey(prev => prev + 1);
       return () => {};
-    }, [i18nInstance.language])
+    }, [i18nInstance.language]),
   );
 
   const handleFocus = (field: string) => setFocusedField(field);
@@ -100,7 +99,11 @@ const ChangePassword: React.FC = () => {
   };
 
   const handleSave = () => {
-    if (!currentPassword.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+    if (
+      !currentPassword.trim() ||
+      !newPassword.trim() ||
+      !confirmPassword.trim()
+    ) {
       setIsEmptyError(true);
       return;
     }
@@ -136,23 +139,33 @@ const ChangePassword: React.FC = () => {
     }
 
     setIsLoading(true);
-    
+    changePassword.mutate(
+      {
+        oldPassword: currentPassword,
+        newPassword: newPassword,
+      },
+      {
+        onSuccess: user => {
+          if (user) {
+            // setUser(user.user);
+            console.log('✅ Login success:', user);
+          }
+        },
+        onError: (error: any) => {
+          console.log('❌ Login failed:', error);
+          setApiError(error?.message || 'Login failed');
+        },
+      },
+    );
+
     setTimeout(() => {
       setIsLoading(false);
-      Alert.alert(t('changePassword.successTitle'), t('changePassword.successMessage'), [
-        { text: t('changePassword.ok'), onPress: () => navigation.goBack() }
-      ]);
+      Alert.alert(
+        t('changePassword.successTitle'),
+        t('changePassword.successMessage'),
+        [{ text: t('changePassword.ok'), onPress: () => navigation.goBack() }],
+      );
     }, 2000);
-  };
-
-  const handleForgotPassword = () => {
-    // Navigate to ForgotPassword screen
-    // Note: This may require navigation to AuthStack if not accessible from AppStack
-    Alert.alert(
-      t('changePassword.forgotPassword', { lng: currentLanguage }),
-      'Please log out and use the forgot password option from the login screen.',
-      [{ text: 'OK' }]
-    );
   };
 
   return (
@@ -177,14 +190,20 @@ const ChangePassword: React.FC = () => {
 
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.title} key={`title-${languageKey}-${currentLanguage}`}>
+              <Text
+                style={styles.title}
+                key={`title-${languageKey}-${currentLanguage}`}
+              >
                 {t('changePassword.title', { lng: currentLanguage })}
               </Text>
-              <Text style={styles.subtitle} key={`subtitle-${languageKey}-${currentLanguage}`}>
+              <Text
+                style={styles.subtitle}
+                key={`subtitle-${languageKey}-${currentLanguage}`}
+              >
                 {t('changePassword.subtitle', { lng: currentLanguage })}
               </Text>
             </View>
-           
+
             {/* Current Password Input */}
             <CustomInput
               label={t('changePassword.current', { lng: currentLanguage })}
@@ -216,8 +235,8 @@ const ChangePassword: React.FC = () => {
                 containerStyle={styles.inputContainer}
               />
               {focusedField === 'newPassword' && (
-                <PasswordRequirements 
-                  password={newPassword} 
+                <PasswordRequirements
+                  password={newPassword}
                   namespace="changePassword"
                   translationNamespace="profile"
                 />
@@ -239,13 +258,16 @@ const ChangePassword: React.FC = () => {
               containerStyle={styles.inputContainer}
             />
 
-
             {/* Error Message */}
             {apiError ? <Text style={styles.errorText}>{apiError}</Text> : null}
 
             {/* Submit Button */}
             <PrimaryButton
-              title={isLoading ? t('changePassword.changing', { lng: currentLanguage }) : t('changePassword.save', { lng: currentLanguage })}
+              title={
+                isLoading
+                  ? t('changePassword.changing', { lng: currentLanguage })
+                  : t('changePassword.save', { lng: currentLanguage })
+              }
               onPress={handleSave}
               loading={isLoading}
               buttonStyle={{ alignSelf: 'center', width: 161, height: 50 }}
@@ -259,10 +281,10 @@ const ChangePassword: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
+  container: {
     flex: 1,
   },
-  keyboardAvoidingView: { 
+  keyboardAvoidingView: {
     flex: 1,
   },
   scrollContent: {
@@ -270,7 +292,7 @@ const styles = StyleSheet.create({
     paddingBottom: hp(25),
     minHeight: height + hp(10),
   },
-  mainContainer: { 
+  mainContainer: {
     paddingHorizontal: 30,
   },
   header: {
@@ -292,7 +314,7 @@ const styles = StyleSheet.create({
     lineHeight: hp(2.2),
     textAlign: 'left',
   },
-  inputContainer: { 
+  inputContainer: {
     marginBottom: hp(2),
   },
   errorText: {

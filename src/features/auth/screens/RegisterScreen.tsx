@@ -271,8 +271,10 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
         throw new Error('User not found. Please try again.');
       }
 
+      const currentMeta = currentUser.user.user_metadata || {};
       const { error: updatePasswordError } = await supabase.auth.updateUser({
         password: values.password,
+        data: { ...currentMeta, has_password: true },
       });
 
       if (updatePasswordError) {
@@ -386,7 +388,9 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
             >
               {currentStep === 'register'
                 ? t('register.subtitle.start', { lng: currentLanguage })
-                : t('register.createPassword.description', { lng: currentLanguage })}
+                : t('register.createPassword.description', {
+                    lng: currentLanguage,
+                  })}
             </Text>
 
             {currentStep === 'register' ? (

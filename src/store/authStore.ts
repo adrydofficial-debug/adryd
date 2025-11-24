@@ -32,8 +32,21 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { data, error } = await supabase.auth.getSession();
           if (error) console.error('Session error:', error);
+
+          const session = data.session;
+          const user = session?.user ?? null;
+
+          // Must be verified
+          const isVerified = user?.user_metadata?.isVerified === true;
+
+          // Must have completed password setup
+          const hasPassword = user?.user_metadata?.hasPassword === true;
+
+          // User is considered "logged in" only if BOTH conditions are satisfied
+          const isFullyOnboarded = isVerified && hasPassword;
+
           set({
-            user: data.session?.user ?? null,
+            user: isFullyOnboarded ? user : null,
             loading: false,
           });
         } catch (err) {
