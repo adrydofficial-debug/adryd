@@ -69,9 +69,12 @@ const styles = StyleSheet.create({
     borderRadius: width * 0.07,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: height * 0.03, // 5% of screen height
+    // marginTop: height * 0.04, // 5% of screen height
     borderWidth:0.7,
     borderColor:"#E5E7EB",
+    position:"absolute",
+    left:26,
+    top: 26,
   },
 });
 

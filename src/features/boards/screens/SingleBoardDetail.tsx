@@ -18,6 +18,7 @@ import {
   Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import PrimaryButton from '../../../components/PrimaryButton';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import MapView from 'react-native-maps';
 import { useRateBoard } from '../hooks/useRateBoard';
@@ -142,15 +143,15 @@ const SingleBoardDetail: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const routeItem = (route.params as { item: any })?.item || null;
-  
+
   const [item, setItem] = useState<any>(routeItem);
-  
+
   const user = useAuthStore(s => s.user);
   const queryClient = useQueryClient();
 
   const rawBoardId = Number(item?.id);
   const boardId = Number.isFinite(rawBoardId) && rawBoardId > 0 ? rawBoardId : undefined;
-  
+
   useEffect(() => {
     if (routeItem) {
       setItem(routeItem);
@@ -169,13 +170,13 @@ const SingleBoardDetail: React.FC = () => {
   const toggleFavoriteMutation = useToggleFavorite(boardId);
   const isFavoritePending = isFavoriteLoading || toggleFavoriteMutation.isPending;
   const canToggleFavorite = typeof boardId === 'number' && boardId > 0;
-  
+
   // Fetch board ratings
   const {
     data: fetchedRatings,
     refetch: refetchRatings,
-  } = useBoardRatings(boardId || 0, 1, 100); 
-  
+  } = useBoardRatings(boardId || 0, 1, 100);
+
   useFocusEffect(
     useCallback(() => {
       if (boardId) {
@@ -184,21 +185,21 @@ const SingleBoardDetail: React.FC = () => {
       }
     }, [boardId, refetchRatings])
   );
-  
+
   useEffect(() => {
     if (!item) return;
-    
+
     if (fetchedRatings && Array.isArray(fetchedRatings)) {
       console.log('SingleBoardDetail - Merging fetched ratings:', fetchedRatings.length);
       setItem((prevItem: any) => {
         if (!prevItem) return prevItem;
-        
+
         if (fetchedRatings.length > 0) {
           const transformedRatings = fetchedRatings.map((rating: any) => ({
             id: rating.id,
             user_id: rating.user?.id,
             board_id: prevItem.id,
-            rating: rating.stars || rating.rating || 0, 
+            rating: rating.stars || rating.rating || 0,
             comment: rating.comment || '',
             created_at: rating.createdAt || rating.created_at || new Date().toISOString(),
             user: {
@@ -207,13 +208,13 @@ const SingleBoardDetail: React.FC = () => {
               avatar_url: rating.user?.avatar || rating.user?.avatar_url || null,
             },
           }));
-          
+
           const mergedRatings = transformedRatings;
-          
+
           const totalRatings = mergedRatings.length;
           const sumRatings = mergedRatings.reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
           const newAvgRating = totalRatings > 0 ? sumRatings / totalRatings : 0;
-          
+
           return {
             ...prevItem,
             ratings: mergedRatings,
@@ -232,12 +233,12 @@ const SingleBoardDetail: React.FC = () => {
       });
     }
   }, [fetchedRatings]);
-  
+
   // Debug log to help troubleshoot
   console.log('SingleBoardDetail - route.params:', route.params);
   console.log('SingleBoardDetail - item:', item);
   console.log('SingleBoardDetail - fetchedRatings:', fetchedRatings?.length || 0);
-  
+
   const extractMediaSources = (board: any) => {
     if (Array.isArray(board?.media) && board.media.length > 0) {
       const sortedMedia = [...board.media].sort((a, b) => {
@@ -285,13 +286,13 @@ const SingleBoardDetail: React.FC = () => {
   const [billboard, setBillboard] = useState<BillboardData>(() => {
     if (item && typeof item === 'object') {
       const mediaSources = extractMediaSources(item);
-      const ratingValue = typeof (item as any)?.avg_rating === 'number' 
-        ? (item as any).avg_rating 
+      const ratingValue = typeof (item as any)?.avg_rating === 'number'
+        ? (item as any).avg_rating
         : (item.rating ?? 0);
-      const locationName = typeof (item as any)?.location === 'object' 
+      const locationName = typeof (item as any)?.location === 'object'
         ? ((item as any).location?.name || 'Lahore Gulberg')
         : (item.location || 'Lahore Gulberg');
-      
+
       return {
         title: item.title || 'Billboard Campaign Ad',
         location: locationName,
@@ -304,21 +305,21 @@ const SingleBoardDetail: React.FC = () => {
     }
     return billboardData;
   });
-  
+
   // Main image index (0..4)
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  
+
   // Rating modal state
   const [isRatingModalVisible, setIsRatingModalVisible] = useState<boolean>(false);
   const [userRating, setUserRating] = useState<number>(0);
   const [ratingComment, setRatingComment] = useState<string>('');
-  
+
   // Rating mutation hook
   const rateBoardMutation = useRateBoard(parseInt(item?.id) || 0);
-  
+
   // Debug log for board ID
   console.log('SingleBoardDetail - Board ID:', item?.id, 'Parsed:', parseInt(item?.id) || 0);
-  
+
   // Update rating when item changes (only from API data)
   useEffect(() => {
     // Use avg_rating from API if available, otherwise fallback to rating
@@ -352,7 +353,7 @@ const SingleBoardDetail: React.FC = () => {
       while (list.length < 5) list.push(placeholder);
       return list;
     }
-    
+
     // Fallback to billboard imagesList
     const base = Array.isArray(billboard.imagesList) ? billboard.imagesList.slice(0, 5) : [];
     const list = [...base];
@@ -371,7 +372,7 @@ const SingleBoardDetail: React.FC = () => {
     if (Array.isArray(item?.categories) && item.categories.length > 0) {
       return item.categories.slice(0, 5);
     }
-    return ['Recommended', 'Near', 'Special', '20% Less', 'New'];
+    return ['Recommended', 'New', 'Special', '20% Less',];
   }, [item?.categories]);
 
   const formatDateLabel = (value?: string) => {
@@ -401,13 +402,13 @@ const SingleBoardDetail: React.FC = () => {
           counts[5 - starLevel] += 1; // 5-star is index 0, 1-star is index 4
         }
       });
-      
+
       return counts.map((count, index) => ({
         label: `${5 - index}`,
         count: count,
       }));
     }
-    
+
     // Fallback to rating_breakdown if available
     if (Array.isArray((item as any)?.rating_breakdown)) {
       return (item as any).rating_breakdown
@@ -417,7 +418,7 @@ const SingleBoardDetail: React.FC = () => {
           count: Number(entry?.count) || 0,
         }));
     }
-    
+
     return defaultRatingBreakdown;
   }, [item]);
 
@@ -461,7 +462,7 @@ const SingleBoardDetail: React.FC = () => {
           const dateB = b?.created_at ? new Date(b.created_at).getTime() : 0;
           return dateB - dateA; // Descending order (newest first)
         });
-        
+
         return sortedRatings.map((rating: any, index: number) => ({
           id: rating?.id?.toString() ?? `rating-${index}`,
           name: rating?.user?.full_name || rating?.user_name || 'Anonymous',
@@ -473,7 +474,7 @@ const SingleBoardDetail: React.FC = () => {
       // Return empty array if ratings array exists but is empty
       return [];
     }
-    
+
     // Fallback to reviews if ratings not available (for backward compatibility)
     if (Array.isArray((item as any)?.reviews) && (item as any).reviews.length > 0) {
       return (item as any).reviews.map((review: any, index: number) => ({
@@ -484,7 +485,7 @@ const SingleBoardDetail: React.FC = () => {
         date: formatDateLabel(review?.created_at),
       }));
     }
-    
+
     // Return empty array instead of defaultReviews to ensure dynamic behavior
     return [];
   }, [item]);
@@ -492,7 +493,7 @@ const SingleBoardDetail: React.FC = () => {
   const infoItems = useMemo<InfoItem[]>(() => {
     const resolve = (value: string | number | null | undefined, fallback: string) =>
       value !== undefined && value !== null && String(value).trim().length > 0
-        ? String(value).trim()           
+        ? String(value).trim()
         : fallback;
 
     // Handle nested category object from API
@@ -650,10 +651,6 @@ const SingleBoardDetail: React.FC = () => {
   const renderRatingCard = (variant: 'page' | 'modal' = 'page') => (
     <View style={[styles.ratingCard, variant === 'modal' && styles.ratingCardModal]}>
       <Text style={styles.ratingCardTitle}>Rate this Board</Text>
-      <Text style={styles.ratingCardSubtitle}>
-        Share your experience and help advertisers choose with confidence.
-      </Text>
-
       <View style={styles.ratingStarRow}>
         {[1, 2, 3, 4, 5].map(star => (
           <TouchableOpacity
@@ -670,7 +667,7 @@ const SingleBoardDetail: React.FC = () => {
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={styles.ratingHint}>Tap the stars and leave a short comment about your experience.</Text>
+      <Text style={styles.ratingHint}>Rate this Backer and tell others what you think</Text>
 
       <View style={styles.commentRow}>
         <TextInput
@@ -698,9 +695,17 @@ const SingleBoardDetail: React.FC = () => {
           )}
         </TouchableOpacity>
       </View>
+      <View style={{justifyContent:"center",alignItems:"center",marginTop:10,}}>
+
+       <Text style={styles.ratingTitle}>Statics Wal Panels</Text>
+          <Text style={styles.ratingSubTitle}>Rate this Backer and tell others what you think</Text>
+          </View>
 
       <View style={styles.ratingSummaryRow}>
+
         <View style={styles.ratingSummaryLeft}>
+          {/* <Text style={styles.ratingTitle}>Statics Wal Panels</Text>
+          <Text style={styles.ratingSubTitle}>Rate this Backer and tell others what you think</Text> */}
           <Text style={styles.ratingSummaryNumber}>{averageRating.toFixed(1)}</Text>
           <View style={styles.ratingSummaryStars}>{renderStars(averageRating, 16)}</View>
           <Text style={styles.ratingSummaryCaption}>{totalReviews.toLocaleString()} reviews</Text>
@@ -738,7 +743,7 @@ const SingleBoardDetail: React.FC = () => {
               imageStyle={styles.heroImageStyle}
             >
               <View style={styles.heroTopBar}>
-                <BackButton style={styles.heroBackButton} iconColor="#1F2937" />
+                <BackButton  />
                 <View style={styles.heroActions}>
                   <TouchableOpacity style={styles.actionIcon}>
                     <UploadIcon width={20} height={20} />
@@ -762,23 +767,23 @@ const SingleBoardDetail: React.FC = () => {
                 </View>
               </View>
 
-            <View style={styles.thumbnailTray}>
-              <View style={styles.thumbnailStrip}>
-                {images.map((src: ImageSourcePropType, idx: number) => {
-                  const isSelected = idx === selectedIndex;
-                  return (
-                    <TouchableOpacity
-                      key={`thumb-${idx}`}
-                      onPress={() => selectImageIndex(idx)}
-                      style={[styles.thumbnailButton, isSelected && styles.thumbnailButtonActive]}
-                      activeOpacity={0.85}
-                    >
-                      <Image source={src} style={styles.thumbnailImage} resizeMode="cover" />
-                    </TouchableOpacity>
-                  );
-                })}
+              <View style={styles.thumbnailTray}>
+                <View style={styles.thumbnailStrip}>
+                  {images.map((src: ImageSourcePropType, idx: number) => {
+                    const isSelected = idx === selectedIndex;
+                    return (
+                      <TouchableOpacity
+                        key={`thumb-${idx}`}
+                        onPress={() => selectImageIndex(idx)}
+                        style={[styles.thumbnailButton, isSelected && styles.thumbnailButtonActive]}
+                        activeOpacity={0.85}
+                      >
+                        <Image source={src} style={styles.thumbnailImage} resizeMode="cover" />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
             </ImageBackground>
           </View>
         </View>
@@ -789,7 +794,7 @@ const SingleBoardDetail: React.FC = () => {
               <Text style={styles.title}>{billboard.title}</Text>
             </View>
 
-            <TouchableOpacity style={styles.ratingLabel}  activeOpacity={0.85}>
+            <TouchableOpacity style={styles.ratingLabel} activeOpacity={0.85}>
               <Ionicons name="star" size={16} color="#FBBF24" style={styles.ratingIcon} />
               <Text style={styles.ratingLabelValue}>{averageRating.toFixed(1)}</Text>
               <Text style={styles.ratingLabelMeta}>({totalReviews.toLocaleString()})</Text>
@@ -818,14 +823,15 @@ const SingleBoardDetail: React.FC = () => {
                   <Text style={info.multiline ? styles.infoValueMultiline : styles.infoValue}>
                     {info.value}
                   </Text>
+
                 </View>
-                {index !== infoItems.length - 1 && <View style={styles.infoDivider} />}
+
+                {index !== infoItems.length - 0 && <View style={styles.infoDivider} />}
+
+
               </React.Fragment>
             ))}
-          </View>
 
-          <View style={styles.sectionBlock}>
-            <Text style={styles.sectionHeading}>{t('location')}</Text>
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => (navigation as any).navigate('CurrentLocation')}
@@ -845,9 +851,21 @@ const SingleBoardDetail: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.connectButton}>
-            <Text style={styles.connectButtonText}>{t('letsConnect')}</Text>
-          </TouchableOpacity>
+          <PrimaryButton
+            title={t('letsConnect')}
+            onPress={() => console.log("Button pressed")}
+            buttonStyle={{
+              width: 250,
+              height: 50,
+              borderRadius: 12,
+              alignSelf: "center",
+            }}
+            textStyle={{
+              fontSize: 14,
+              fontWeight: "500",
+              color: "#F8F8F8"
+            }}
+          />
 
           {renderRatingCard()}
 
@@ -951,27 +969,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: heroTopBarPaddingTop, // Status bar height + safe padding
   },
-  heroBackButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 0,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 4,
-  },
   heroActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    position:"absolute",
+    top:22,
+    right:22,
   },
   actionIcon: {
-    width: 44,
-    height: 44,
+    width: 38,
+    height: 38,
     borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(229, 231, 235, 0.6)',
@@ -1042,16 +1049,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   detailTitleBlock: {
     flex: 1,
     paddingRight: 16,
   },
   title: {
-    color: '#C539A5',
-    fontSize: 24,
-    fontWeight: '700',
+    color: '#18181B',
+    fontSize: 20,
+    fontWeight: '600',
   },
   locationRow: {
     flexDirection: 'row',
@@ -1074,79 +1081,88 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     backgroundColor: '#F5F5F5',
-    borderRadius: 999,
+    borderRadius: 5,
     borderWidth: 1,
+    borderColor: "#E5E7EB"
   },
   ratingIcon: {
     marginRight: 6,
   },
+  ratingTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#18181B",
+  },
   ratingLabelValue: {
-    fontSize: 16,
-    color: '#1F2937',
+    fontSize: 10,
+    color: '#333333',
   },
   ratingLabelMeta: {
     marginLeft: 6,
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: 10,
+    color: '#70737D',
   },
   tagRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
-    marginTop: 18,
     marginRight: -8,
   },
   tagChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 5,
     backgroundColor: '#F2BCE9',
-    marginRight: 8,
+    marginRight: 6,
     marginBottom: 6,
-    minWidth: 90,
+    minWidth: 37,
     alignItems: 'center',
   },
   tagChipHighlighted: {
     backgroundColor: '#C539A5',
-    borderRadius: 999,
+    borderRadius: 5,
+  },
+  ratingSubTitle: {
+    fontSize: 10,
+    fontWeight: "400",
+    color: "#70737D",
   },
   tagText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '400',
     color: '#C539A5',
-    textTransform: 'uppercase',
+    // textTransform: 'uppercase',
   },
   tagTextLight: {
-    color: '#FDF2F8',
+    color: '#F8F8F8',
   },
   infoRow: {
     alignItems: 'flex-start',
-    paddingHorizontal: 20,
+    paddingHorizontal: 5,
     paddingVertical: 14,
   },
   infoLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
+    fontSize: 10,
+    fontWeight: '400',
+    color: '#70737D',
+    // textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
   infoValue: {
-    marginTop: 6,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#18181B',
   },
   infoValueMultiline: {
     marginTop: 6,
     fontSize: 14,
-    lineHeight: 20,
-    color: '#4B5563',
+    lineHeight: 15,
+    color: '#18181B',
   },
   infoDivider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: '#E5E7EB',
-    marginHorizontal: 20,
+    marginHorizontal: 5,
   },
   sectionBlock: {
     marginTop: 26,
@@ -1163,15 +1179,15 @@ const styles = StyleSheet.create({
     color: '#4B5563',
   },
   mapCard: {
-    marginTop: 16,
-    borderRadius: 22,
+    marginTop: 20,
+    borderRadius: 16.76,
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: 1.3,
     borderColor: '#E5E7EB',
   },
   map: {
-    width: '100%',
-    height: 180,
+    width: 299,
+    height: 156,
   },
   connectButton: {
     marginTop: 28,
@@ -1205,27 +1221,26 @@ const styles = StyleSheet.create({
     shadowColor: 'transparent',
   },
   ratingCardTitle: {
-    fontSize: 20,
+    fontSize: 10,
     fontWeight: '700',
     color: '#111827',
-  },
-  ratingCardSubtitle: {
-    marginTop: 6,
-    fontSize: 14,
-    color: '#6B7280',
+    alignSelf: "center",
   },
   ratingStarRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    marginTop: 5,
   },
   ratingStarButton: {
     padding: 6,
   },
   ratingHint: {
-    marginTop: 12,
-    fontSize: 13,
-    color: '#9CA3AF',
+    marginTop: 10,
+    fontSize: 12,
+    fontWeight:"400",
+
+    color: '#70737D',
+    alignSelf:"center",
   },
   commentRow: {
     flexDirection: 'row',
@@ -1234,13 +1249,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    marginTop: 18,
+    marginTop: 15,
     padding: 4,
   },
   commentInput: {
     flex: 1,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 14,
     fontSize: 14,
     minHeight: 48,
     maxHeight: 120,
@@ -1249,7 +1264,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 0,
     marginRight: 8,
-    marginBottom: 0,
+
+
   },
   sendButton: {
     width: 48,
@@ -1275,7 +1291,7 @@ const styles = StyleSheet.create({
   ratingSummaryNumber: {
     fontSize: 46,
     fontWeight: '700',
-    color: '#C539A5',
+    color: '#18181B',
   },
   ratingSummaryStars: {
     flexDirection: 'row',

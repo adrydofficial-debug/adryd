@@ -179,14 +179,11 @@ const ChangePassword: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+
           <View style={styles.mainContainer}>
             {/* Back Button - Top Left */}
-            <BackButton iconColor="#000" />
+            <BackButton  />
+           
 
             {/* Header */}
             <View style={styles.header}>
@@ -273,7 +270,6 @@ const ChangePassword: React.FC = () => {
               buttonStyle={{ alignSelf: 'center', width: 161, height: 50 }}
             />
           </View>
-        </ScrollView>
       </KeyboardAvoidingView>
       <NoInternet />
     </LinearGradient>
@@ -296,7 +292,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
   header: {
-    marginTop: hp(7),
+    marginTop: hp(15),
     marginBottom: hp(4.5),
     alignItems: 'flex-start',
   },

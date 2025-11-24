@@ -337,8 +337,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: wp(5),
-    paddingTop: hp(3),
   },
   addCompanyCard: {
     backgroundColor: '#FFFFFF',
