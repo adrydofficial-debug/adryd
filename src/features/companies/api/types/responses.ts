@@ -6,6 +6,7 @@ export interface CompanyResponse {
   id: number;
   user_id?: string;
   company_name: string;
+  city_id?: number | null;
   company_category_id?: number;
   company_ntn?: string | null;
   address?: string | null;

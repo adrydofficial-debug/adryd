@@ -1,4 +1,4 @@
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, CommonActions } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TextInput } from 'react-native';
@@ -18,9 +18,12 @@ import NoInternet from '../../../components/NoInternet';
 import PrimaryButton from '../../../components/PrimaryButton';
 import ProfileUser from '../../../components/ProfileUser';
 import i18n from '../../../i18n';
-import BackButton from '../../../components/BackButton';
 import { useProfile, useUpdateUserProfile } from '../hooks';
 import Header from '../../../components/Header';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
+
+type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 const { width, height } = Dimensions.get('window');
 const wp = (p: number) => (width * p) / 100;
@@ -30,6 +33,8 @@ const UpdateProfile: React.FC = () => {
   const { t } = useTranslation('profile');
   const [refreshKey, setRefreshKey] = useState(0);
   const [languageKey, setLanguageKey] = useState(0);
+  const navigation = useNavigation<NavigationProp>();
+
 
   // Profile hooks
   const { data: profile, refetch } = useProfile();
@@ -47,6 +52,7 @@ const UpdateProfile: React.FC = () => {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const nameInputRef = useRef<TextInput>(null);
 
+
   // Language change listener
   useEffect(() => {
     const handleLanguageChange = () => {
@@ -57,6 +63,9 @@ const UpdateProfile: React.FC = () => {
       i18n.off('languageChanged', handleLanguageChange);
     };
   }, []);
+  const handleBackPress = () => {
+    navigation.goBack();
+  };
 
   // Initialize from profile data
   useEffect(() => {
@@ -138,18 +147,18 @@ const UpdateProfile: React.FC = () => {
         style={styles.container}
         key={languageKey}
       >
+
+        {/* Top Bar */}
+        <Header
+          title={t('updateProfile.screenTitle')}
+          onBackPress={handleBackPress}
+          showRightIcon={false}
+        />
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Top Bar */}
-          <View style={styles.topBar}>
-            <BackButton/>
-            <Text style={styles.title} key={`title-${languageKey}`}>
-              {t('updateProfile.screenTitle')}
-            </Text>
-            <View style={{ width: 32 }} />
-          </View>
+
 
           {/* Avatar Section */}
           <ProfileUser
@@ -190,7 +199,7 @@ const UpdateProfile: React.FC = () => {
               </Text>
               <CustomInput
                 value={profile?.phone || ''}
-                onChangeText={() => {}} // Read-only
+                onChangeText={() => { }} // Read-only
                 placeholder={t('updateProfile.phonePlaceholder')}
                 containerStyle={styles.inputContainerFix}
                 disabled={true}

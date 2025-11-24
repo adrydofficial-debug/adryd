@@ -31,14 +31,14 @@ const companiesLocales = {
     create: {
       title: 'Create Company',
       companyName: 'Company Name',
-      enterCompanyName: 'Enter company name',
-      category: 'Category',
+      companyNumber:' Company Number',
+      category: 'Business Category',
       selectCategory: 'Select category',
-      ntn: 'NTN',
+      ntn: 'Company NTN',
       enterNtn: 'Enter NTN',
-      address: 'Address',
+      address: 'Company Address',
       enterAddress: 'Enter address',
-      email: 'Email',
+      email: 'Company Email',
       enterEmail: 'Enter email',
       contactNumber: 'Contact Number',
       enterContactNumber: 'Enter contact number',
@@ -50,7 +50,8 @@ const companiesLocales = {
       ok: 'OK',
       uploadLogo: 'Upload Company Logo',
       uploadFormat: 'JPEG, PNG Max file size: 25 MB',
-      uploadAction:"Upload"
+      uploadAction:"Upload",
+      province:"Company Location"
     },
   },
   ur: {

@@ -9,6 +9,7 @@ export interface CompanyData {
   companyName: string;
   businessName: string;
   businessCategory: string;
+  cityId?: string;
   companyEmail: string;
   companyAddress: string;
   companyNTN: string;
