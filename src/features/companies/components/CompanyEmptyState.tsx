@@ -486,7 +486,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(5),
   },
   button: {
-    minWidth: 100,
+    minWidth: 180,
+    // padding: 5,
   },
 });
 
