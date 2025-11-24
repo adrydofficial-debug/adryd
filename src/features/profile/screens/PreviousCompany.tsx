@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 import NoInternet from '../../../components/NoInternet';
 import Header from '../../../components/Header';
+import CompanyEmptyState from '../../companies/components/CompanyEmptyState';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -250,17 +251,20 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
     <SafeAreaView style={styles.container} key={languageKey}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
-      {/* Header */}
-<Header
-  title={t('previousCompany.select')}
-  onBackPress={handleBackPress}
-  showBackButton={true}
-  showRightIcon={false}  
-  containerStyle={{ paddingVertical: 5}} 
-/>
+      {/* Header - Show for loading, error, or when companies exist. Hide only when showing empty state animation */}
+      {(!isLoading && !error && companies.length === 0) ? null : (
+        <Header
+          title={t('previousCompany.select')}
+          onBackPress={handleBackPress}
+          showBackButton={true}
+          showRightIcon={false}  
+          containerStyle={{ paddingVertical: 5}} 
+        />
+      )}
       {/* Content */}
       <View style={styles.content}>
-        {renderAddCompanyCard()}
+        {/* Only show add company card when there are companies */}
+        {!isLoading && !error && companies.length > 0 && renderAddCompanyCard()}
         
         {/* Loading State */}
         {isLoading && (
@@ -285,26 +289,21 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
 
         {/* Companies List */}
         {!isLoading && !error && (
-          <ScrollView 
-            style={styles.companyList}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            {companies.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>{t('previousCompany.empty')}</Text>
-                <Text style={styles.emptySubtext}>
-                  {t('previousCompany.emptyHint')}
-                </Text>
-              </View>
-            ) : (
-              companies.map((company) => (
+          companies.length === 0 ? (
+            <CompanyEmptyState onCreateCompany={handleAddNewCompany} />
+          ) : (
+            <ScrollView 
+              style={styles.companyList}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              {companies.map((company) => (
                 <View key={company.id}>
                   {renderCompanyCard(company)}
                 </View>
-              ))
-            )}
-          </ScrollView>
+              ))}
+            </ScrollView>
+          )
         )}
       </View>
     </SafeAreaView>
