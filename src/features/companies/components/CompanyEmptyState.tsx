@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   },
   backButtonContainer: {
     position: 'absolute',
-    left: wp(5),
+    left: wp(2),
     zIndex: 10,
   },
   centeredContent: {
@@ -486,7 +486,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(5),
   },
   button: {
-    minWidth: 100,
+    minWidth: 180,
+    // padding: 5,
   },
 });
 
