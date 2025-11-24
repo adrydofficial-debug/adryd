@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   },
   backButtonContainer: {
     position: 'absolute',
-    left: wp(5),
+    left: wp(2),
     zIndex: 10,
   },
   centeredContent: {
