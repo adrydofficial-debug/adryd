@@ -8,7 +8,6 @@ import {
   SafeAreaView,
   StatusBar,
   Dimensions,
-  Platform,
   TextInput,
   Animated,
 } from 'react-native';
@@ -116,12 +115,51 @@ const HelpFAQsScreen: React.FC = () => {
     },
   ];
 
-  const categories = [
-    { id: 'all', label: 'All', icon: 'apps' },
-    { id: 'account', label: 'Account', icon: 'person' },
-    { id: 'boards', label: 'Boards', icon: 'grid' },
-    { id: 'payment', label: 'Payment', icon: 'card' },
-    { id: 'general', label: 'General', icon: 'help-circle' },
+  const highlightCards = [
+    {
+      id: 'payment',
+      category: 'payment',
+      leadingLabel: 'Questions about',
+      title: 'Payment',
+      icon: 'card',
+      backgroundColor: '#E4F6EB',
+      borderColor: '#CFEFDF',
+      iconBackground: 'rgba(37, 186, 122, 0.16)',
+      iconColor: '#1F9E74',
+    },
+    {
+      id: 'account',
+      category: 'account',
+      leadingLabel: 'Questions about',
+      title: 'Getting Started',
+      icon: 'rocket',
+      backgroundColor: '#FFE7F4',
+      borderColor: '#FFDAED',
+      iconBackground: 'rgba(241, 94, 150, 0.18)',
+      iconColor: '#D13A9E',
+    },
+    {
+      id: 'general',
+      category: 'general',
+      leadingLabel: 'Questions about',
+      title: 'How To Invest',
+      icon: 'trending-up',
+      backgroundColor: '#FFF5DB',
+      borderColor: '#FFE7C0',
+      iconBackground: 'rgba(243, 176, 52, 0.2)',
+      iconColor: '#D27B21',
+    },
+    {
+      id: 'all',
+      category: 'all',
+      leadingLabel: 'Browse all',
+      title: 'Help Topics',
+      icon: 'help-circle',
+      backgroundColor: '#F4F4F9',
+      borderColor: '#E8E8F2',
+      iconBackground: 'rgba(106, 112, 255, 0.14)',
+      iconColor: '#525BFF',
+    },
   ];
 
   const filteredFAQ = faqData.filter(item => {
@@ -155,27 +193,6 @@ const HelpFAQsScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Header with Back Button */}
-      <View style={styles.header}>
-        <BackButton iconColor="#000" />
-      </View>
-
-      {/* Hero Banner */}
-      <LinearGradient
-        colors={['#FFF4FD', '#FEF3F9', '#FFFFFF']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroBanner}
-      >
-        <View style={styles.heroIconContainer}>
-          <Ionicons name="help-circle" size={40} color="#C539A5" />
-        </View>
-        <Text style={styles.heroTitle}>Help & FAQs</Text>
-        <Text style={styles.heroSubtitle}>
-          Find answers to common questions and get the help you need
-        </Text>
-      </LinearGradient>
-
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
@@ -183,82 +200,86 @@ const HelpFAQsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Search Section */}
+        <LinearGradient
+          colors={['#FDF4FB', '#FDF1F7', '#FFF3F9']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroSection}
+        >
+          <View style={styles.heroHeader}>
+            <BackButton iconColor="#000" />
+          </View>
+          <Text style={styles.greetingTitle}>Hi Umair</Text>
+          <Text style={styles.heroSubtitle}>How can we help you?</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.highlightRow}
+          >
+            {highlightCards.map(card => (
+              <TouchableOpacity
+                key={card.id}
+                style={[
+                  styles.highlightCard,
+                  {
+                    backgroundColor: card.backgroundColor,
+                    borderColor: card.borderColor,
+                  },
+                  selectedCategory === card.category && styles.highlightCardActive,
+                ]}
+                onPress={() => setSelectedCategory(card.category)}
+                activeOpacity={0.85}
+              >
+                <View
+                  style={[
+                    styles.highlightIconBackground,
+                    { backgroundColor: card.iconBackground },
+                  ]}
+                >
+                  <Ionicons name={card.icon as any} size={18} color={card.iconColor} />
+                </View>
+                <Text style={styles.highlightLabel}>{card.leadingLabel}</Text>
+                <Text style={styles.highlightTitle}>{card.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        <View style={styles.messageBubble}>
+          <Text style={styles.messageLabel}>Message</Text>
+          <Text style={styles.messageText}>Help</Text>
+        </View>
+        </LinearGradient>
+
         <Animated.View
           style={[
-            styles.searchSection,
+            styles.contentWrapper,
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
             },
           ]}
         >
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={22} color="#C539A5" style={styles.searchIcon} />
+          <Text style={styles.sectionHeading}>Top Questions</Text>
+          <Text style={styles.sectionSubheading}>
+            Browse curated answers or search for help instantly.
+          </Text>
+          <View style={styles.searchWrapper}>
+            <Ionicons name="search" size={18} color="#AEB0C8" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search for help..."
-              placeholderTextColor="#999999"
+              placeholderTextColor="#C8CAD7"
               value={searchQuery}
               onChangeText={setSearchQuery}
               returnKeyType="search"
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity
-                onPress={() => setSearchQuery('')}
-                style={styles.clearButton}
-              >
-                <Ionicons name="close-circle" size={20} color="#999999" />
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                <Ionicons name="close-circle" size={18} color="#AEB0C8" />
               </TouchableOpacity>
             )}
           </View>
         </Animated.View>
 
-        {/* Category Filter */}
-        <Animated.View
-          style={[
-            styles.categorySection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryContainer}
-          >
-            {categories.map(category => (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.categoryChip,
-                  selectedCategory === category.id && styles.categoryChipActive,
-                ]}
-                onPress={() => setSelectedCategory(category.id)}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={category.icon as any}
-                  size={18}
-                  color={selectedCategory === category.id ? '#FFFFFF' : '#C539A5'}
-                  style={styles.categoryIcon}
-                />
-                <Text
-                  style={[
-                    styles.categoryText,
-                    selectedCategory === category.id && styles.categoryTextActive,
-                  ]}
-                >
-                  {category.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </Animated.View>
-
-        {/* FAQ Section */}
         <Animated.View
           style={[
             styles.faqSection,
@@ -268,15 +289,6 @@ const HelpFAQsScreen: React.FC = () => {
             },
           ]}
         >
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconContainer}>
-              <Ionicons name="document-text" size={24} color="#C539A5" />
-            </View>
-            <Text style={styles.sectionTitle}>
-              {filteredFAQ.length} {filteredFAQ.length === 1 ? 'Question' : 'Questions'} Found
-            </Text>
-          </View>
-
           {filteredFAQ.length === 0 ? (
             <View style={styles.noResultsContainer}>
               <Ionicons name="search" size={60} color="#E0E0E0" />
@@ -310,7 +322,7 @@ const HelpFAQsScreen: React.FC = () => {
                           {
                             translateY: slideAnim.interpolate({
                               inputRange: [0, 30],
-                              outputRange: [0, 30 + index * 5],
+                              outputRange: [0, 30 + index * 4],
                             }),
                           },
                         ],
@@ -322,14 +334,9 @@ const HelpFAQsScreen: React.FC = () => {
                       onPress={() => handleFAQPress(item.id)}
                       activeOpacity={0.7}
                     >
-                      <View style={styles.faqQuestionLeft}>
-                        <View style={styles.faqNumberBadge}>
-                          <Text style={styles.faqNumberText}>{index + 1}</Text>
-                        </View>
-                        <Text style={styles.faqQuestion} numberOfLines={isExpanded ? 0 : 2}>
-                          {item.question}
-                        </Text>
-                      </View>
+                      <Text style={styles.faqQuestion} numberOfLines={isExpanded ? 0 : 2}>
+                        {item.question}
+                      </Text>
                       <View
                         style={[
                           styles.faqIconContainer,
@@ -337,9 +344,9 @@ const HelpFAQsScreen: React.FC = () => {
                         ]}
                       >
                         <Ionicons
-                          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                          name={isExpanded ? 'remove' : 'add'}
                           size={20}
-                          color="#C539A5"
+                          color={isExpanded ? '#4F2D6C' : '#C539A5'}
                         />
                       </View>
                     </TouchableOpacity>
@@ -352,10 +359,11 @@ const HelpFAQsScreen: React.FC = () => {
                             opacity: faqAnimations.current[item.id] || 0,
                             transform: [
                               {
-                                translateY: faqAnimations.current[item.id]?.interpolate({
-                                  inputRange: [0, 1],
-                                  outputRange: [-10, 0],
-                                }) || -10,
+                                translateY:
+                                  faqAnimations.current[item.id]?.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [-10, 0],
+                                  }) || -10,
                               },
                             ],
                           },
@@ -372,7 +380,6 @@ const HelpFAQsScreen: React.FC = () => {
           )}
         </Animated.View>
 
-        {/* Contact Support CTA */}
         <Animated.View
           style={[
             styles.ctaSection,
@@ -413,244 +420,220 @@ const HelpFAQsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
-  },
-  header: {
-    paddingHorizontal: width * 0.04,
-    paddingTop: Platform.OS === 'ios' ? 0 : height * 0.02,
-    zIndex: 10,
-  },
-  heroBanner: {
-    marginHorizontal: width * 0.04,
-    marginTop: height * 0.01,
-    marginBottom: height * 0.02,
-    padding: width * 0.06,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(197, 57, 165, 0.15)',
-    shadowColor: '#C539A5',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-    overflow: 'hidden',
-    alignItems: 'center',
-  },
-  heroIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(197, 57, 165, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  heroTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    marginBottom: 8,
-    letterSpacing: 0.5,
-    textAlign: 'center',
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#666666',
-    lineHeight: 22,
-    textAlign: 'center',
+    // backgroundColor: '#FBF5FA',
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     paddingBottom: height * 0.1,
   },
-  searchSection: {
-    paddingHorizontal: width * 0.04,
+  heroSection: {
+    paddingHorizontal: 32,
+    paddingTop: 40,
+    paddingBottom: 36,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
+  },
+  heroHeader: {
+    width: '100%',
+    alignItems: 'flex-start',
+  },
+  greetingTitle: {
+    fontFamily: 'Inter',
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#000000',
+    lineHeight: 28,
+    letterSpacing: 0,
+    marginTop: 12,
+  },
+  heroSubtitle: {
+    fontFamily: 'Inter',
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#000000',
+    lineHeight: 24,
+    letterSpacing: 0,
+    marginTop: 4,
+  },
+  highlightRow: {
+    marginTop: 18,
+    paddingVertical: 6,
+  },
+  highlightCard: {
+    width: 141,
+    minHeight: 126,
+    borderRadius: 12,
+    borderWidth: 0.7,
+    padding: 10,
+    marginRight: 10,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     marginBottom: 20,
   },
-  searchContainer: {
+  highlightCardActive: {
+    borderColor: '#C8EFDB',
+  },
+  highlightIconBackground: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  highlightLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#5C5C62',
+    marginBottom: 4,
+  },
+  highlightTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1C1A1F',
+  },
+  messageBubble: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 16,
+    marginTop: 20,
+    borderWidth: 0.3,
+    borderColor: '#E5E7EB',
+  },
+  messageLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8A8A96',
+    marginBottom: 10,
+  },
+  messageText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8A8A96',
+  },
+  contentWrapper: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -32,
+    paddingTop: 32,
+    paddingHorizontal: width * 0.06,
+    paddingBottom: 8,
+  },
+  sectionHeading: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#141414',
+    marginBottom: 6,
+  },
+  sectionSubheading: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#6A6D78',
+    marginBottom: 18,
+  },
+  searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F8F8',
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderWidth: 2,
-    borderColor: '#E8E8E8',
+    width: 300,
+    height: 40,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 7,
+    borderWidth: 0.7,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 10,
+    gap: 5,
+    marginBottom: 8,
   },
   searchIcon: {
-    marginRight: 12,
+    marginRight: 4,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
-    color: '#1A1A1A',
+    fontSize: 14,
     fontWeight: '500',
+    color: '#1E1E1E',
+    height: '100%',
   },
   clearButton: {
-    marginLeft: 8,
-    padding: 4,
-  },
-  categorySection: {
-    marginBottom: 24,
-  },
-  categoryContainer: {
-    paddingHorizontal: width * 0.04,
-    paddingVertical: 8,
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#C539A5',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 12,
-  },
-  categoryChipActive: {
-    backgroundColor: '#C539A5',
-    borderColor: '#C539A5',
-  },
-  categoryIcon: {
-    marginRight: 6,
-  },
-  categoryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#C539A5',
-    letterSpacing: 0.2,
-  },
-  categoryTextActive: {
-    color: '#FFFFFF',
+    padding: 2,
   },
   faqSection: {
     paddingHorizontal: width * 0.04,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  sectionIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(197, 57, 165, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    letterSpacing: 0.3,
+    marginTop: 12,
   },
   faqList: {
-    gap: 16,
+    marginTop: 12,
   },
   faqCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    borderColor: '#ECECF5',
+    marginBottom: 14,
     overflow: 'hidden',
   },
   faqQuestionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
-  },
-  faqQuestionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 12,
-  },
-  faqNumberBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#C539A5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  faqNumberText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
   },
   faqQuestion: {
+    flex: 1,
     fontSize: 16,
     fontWeight: '600',
-    color: '#1A1A1A',
-    flex: 1,
+    color: '#111111',
     lineHeight: 22,
-    letterSpacing: 0.2,
   },
   faqIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(197, 57, 165, 0.1)',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#F3F3F7',
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 16,
   },
   faqIconContainerExpanded: {
-    backgroundColor: 'rgba(197, 57, 165, 0.2)',
+    backgroundColor: '#EFD7EC',
   },
   faqAnswerContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 18,
   },
   faqAnswerDivider: {
     height: 1,
-    backgroundColor: '#E8E8E8',
-    marginBottom: 16,
+    backgroundColor: '#E4E4EC',
+    marginBottom: 14,
   },
   faqAnswer: {
     fontSize: 15,
     fontWeight: '400',
-    color: '#555555',
-    lineHeight: 24,
-    letterSpacing: 0.1,
+    color: '#4C4C54',
+    lineHeight: 22,
   },
   noResultsContainer: {
     alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 20,
+    paddingVertical: 40,
+    paddingHorizontal: 16,
   },
   noResultsText: {
     fontSize: 20,
     fontWeight: '700',
     color: '#1A1A1A',
-    marginTop: 20,
+    marginTop: 18,
     marginBottom: 8,
   },
   noResultsSubtext: {
     fontSize: 15,
     fontWeight: '400',
-    color: '#999999',
+    color: '#8E8E99',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 18,
     lineHeight: 22,
   },
   clearSearchButton: {
@@ -666,7 +649,8 @@ const styles = StyleSheet.create({
   },
   ctaSection: {
     paddingHorizontal: width * 0.04,
-    marginTop: 32,
+    marginTop: 24,
+    marginBottom: height * 0.05,
   },
   ctaCard: {
     borderRadius: 20,
@@ -708,12 +692,12 @@ const styles = StyleSheet.create({
   ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
   },
   ctaButtonText: {
     fontSize: 16,

@@ -14,6 +14,7 @@ import {useFavoritesBoards} from '../../boards/hooks/useFavorites';
 import type {BoardItem} from '../../../components/BoardList';
 import BackButton from '../../../components/BackButton';
 import Header from '../../../components/Header';
+import FavouritesEmptyState from '../components/FavouritesEmptyState';
 
 const {width, height} = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -172,6 +173,11 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
     navigation.navigate('SingleBoardDetail', {item});
   };
 
+  const handleFindFavorites = () => {
+    // Navigate to home or boards screen to find favorites
+    navigation.navigate('BottomTab' as never, { tab: 'Home' } as never);
+  };
+
   const renderFavouriteCard = ({
     item,
     index,
@@ -298,12 +304,14 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <View style={styles.content}>
       
-       <Header
-       title="Favourites"
-        onBackPress={() => navigation.goBack()}
-        showRightIcon={false}
-       />
-      
+       {/* Only show Header when there are favourites or loading/error */}
+       {!isLoading && !error && favourites.length > 0 && (
+         <Header
+           title="Favourites"
+           onBackPress={() => navigation.goBack()}
+           showRightIcon={false}
+         />
+       )}
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -337,13 +345,7 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
             onRefresh={onRefresh}
           />
         ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="heart-outline" size={wp(15)} color="#C539A5" />
-            <Text style={styles.emptyTitle}>No Favourites Yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Start adding boards to your favourites to see them here
-            </Text>
-          </View>
+          <FavouritesEmptyState onFindFavorites={handleFindFavorites} />
         )}
       </View>
     </View>

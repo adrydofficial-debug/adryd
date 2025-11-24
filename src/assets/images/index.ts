@@ -33,6 +33,14 @@ export const Images = {
   frame: require('./Frame.png'),
   inviteIllustration: require('./InviteImg.png'),
   uploadFile: require('./UploadImg.png'),
+  animationCard1: require('./animation_card1.png'),
+  animationCard2: require('./animation_card2.png'),
+  animationCard3: require('./animation_card3.png'),
+  campaignEmptyState: require('./campaign_empty_state.png'),
+  campaignEmptyState1: require('./campaign_empty_state1.png'),
+  campaignEmptyState2: require('./campaign_empty_state2.png'),
+  cart1: require('./cart1.png'),
+  cart2: require('./cart2.png'),
 };
 
 /* SVG exports */

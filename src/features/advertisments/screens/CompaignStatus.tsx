@@ -15,6 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import BottomTab from '../../../app/navigation/BottomTab';
 import { useAdvertisements } from '../hooks/useAdvertisements';
 import CampaignTabs, { CampaignTab } from '../components/CampaignTabs';
+import CampaignEmptyState from '../components/CampaignEmptyState';
 import StatusCard from '../components/StatusCard';
 import { SUPABASE_URL } from '../../../config';
 import { AdvertisementStatus } from '../domain/entities';
@@ -128,6 +129,10 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
   // Handle campaign tab press
   const handleCampaignTabPress = (tabId: string) => {
     setActiveTab(tabId);
+  };
+
+  const handleCreateCampaign = () => {
+    navigation.navigate('ChooseOptionScreen' as never);
   };
 
   // Create tabs configuration
@@ -772,65 +777,59 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
+  <View style={styles.container}>
+      <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
       <View style={styles.header}>
         {/* <BackButton /> */}
-     
 
-      {/* Campaign Tabs */}
-      <CampaignTabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabPress={handleCampaignTabPress}
-      />
- </View>
-        {/* Loading State */}
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#C539A5" />
-            <Text style={styles.loadingText}>Loading campaigns...</Text>
-          </View>
-        )}
+        {/* Campaign Tabs */}
+        <CampaignTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabPress={handleCampaignTabPress}
+        />
+      </View>
 
-        {/* Error State */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>
-              Failed to load campaigns. Please try again.
-            </Text>
-            <TouchableOpacity 
-              style={styles.retryButton}
-              onPress={() => refetch()}
-            >
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+      {/* Loading State */}
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#C539A5" />
+          <Text style={styles.loadingText}>Loading campaigns...</Text>
+        </View>
+      )}
 
-        {/* Campaign Data */}
-        {!loading && !error && (
-          <>
-            {/* Debug Info - Remove in production */}
-           
+      {/* Error State */}
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>
+            Failed to load campaigns. Please try again.
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => refetch()}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Campaign Data */}
+      {!loading && !error && (
+        <>
+          {/* Debug Info - Remove in production */}
+
+          {listData.length === 0 ? (
+            <View style={styles.emptyWrapper}>
+              <CampaignEmptyState onCreateCampaign={handleCreateCampaign} />
+            </View>
+          ) : (
             <FlatList
               style={styles.cardsContainer}
               data={listData}
               keyExtractor={(item, index) => `${item.id}-${index}`}
-              contentContainerStyle={[
-                styles.cardsContent,
-                listData.length === 0 && styles.emptyContent,
-              ]}
+              contentContainerStyle={styles.cardsContent}
               showsVerticalScrollIndicator={false}
               removeClippedSubviews={false}
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>No campaigns found</Text>
-                  <Text style={styles.emptySubtext}>
-                    Create your first campaign to get started
-                  </Text>
-                </View>
-              }
               onLayout={() => {
                 console.log('📱 FLATLIST RENDERED:', {
                   dataCount: listData.length,
@@ -840,9 +839,10 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
               }}
               renderItem={renderStatusCard}
             />
-          </>
-        )}
-      </View>
+          )}
+        </>
+      )}
+    </View>
   );
 };
 
@@ -883,12 +883,19 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     flex: 1,
-    backgroundColor: '#fcfbfbff',
+    backgroundColor: '#ffffff',
   },
   cardsContent: {
     paddingHorizontal: wp(4),
     paddingVertical: hp(2),
     paddingBottom: hp(12), // Increased padding for bottom tab
+  },
+  emptyWrapper: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp(4),
   },
   emptyContent: {
     flexGrow: 1,
