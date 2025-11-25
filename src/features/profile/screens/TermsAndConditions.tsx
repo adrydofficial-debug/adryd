@@ -14,6 +14,7 @@ import {
   Alert,
   Share,
   PermissionsAndroid,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
@@ -23,6 +24,8 @@ import BackButton from '../../../components/BackButton';
 import PrimaryButton from '../../../components/PrimaryButton';
 import { getTermsAgreed, setTermsAgreed } from '../../../services/storage';
 import { useAuthStore } from '../../../store/authStore';
+import { useTermsAndConditions } from '../../legal/hooks/useLegalDocuments';
+import { useLegalAgreements } from '../../legal/hooks/useLegalAgreements';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -50,6 +53,10 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
   const [hasAgreed, setHasAgreed] = useState<boolean>(false);
   const [showHelloBanner, setShowHelloBanner] = useState<boolean>(false);
   const [isChecked, setIsChecked] = useState<boolean>(false);
+  
+  // Legal documents hooks
+  const { content, version, loading: contentLoading, error: contentError, isCached } = useTermsAndConditions();
+  const { submitAgreement } = useLegalAgreements();
   
   // Refs
   const scrollViewRef = useRef<ScrollView>(null);
@@ -180,6 +187,16 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
       }),
     ]).start(async () => {
       try {
+        // Submit agreement to backend
+        if (version) {
+          const success = await submitAgreement('terms', version);
+          if (!success) {
+            Alert.alert('Error', 'Failed to submit agreement. Please try again.');
+            return;
+          }
+        }
+        
+        // Also update local storage (for backward compatibility)
         await setTermsAgreed(true);
         setHasAgreed(true);
         setShowHelloBanner(false);
@@ -210,117 +227,9 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
         }, 300);
       } catch (error) {
         console.error('Error saving terms agreement:', error);
+        Alert.alert('Error', 'Failed to submit agreement. Please try again.');
       }
     });
-  };
-
-  const getTermsContent = (): string => {
-    return `TERMS AND CONDITIONS
-
-Last update: Yesterday
-
-Welcome to ADRYD Marketing Co. ("ADRYD," "we," "our," or "us"). These Terms and Conditions ("Terms") govern your access to and use of our website https://adryd.app, our mobile application, and all related services (collectively referred to as the "Platform").
-
-By using ADRYD, you agree to these Terms. Please read them carefully before accessing or using our services.
-
-1. Company Information
-
-ADRYD Marketing Co. is a registered business in Pakistan under Registration No. 3520028592305.
-Registered Office: Lahore, Pakistan.
-All operations comply with applicable Pakistani laws, including digital advertising and e-commerce regulations.
-
-2. Acceptance of Terms
-
-By accessing or using ADRYD's website, app, or services, you confirm that you:
-• Are at least 18 years old,
-• Agree to comply with these Terms, and
-• Provide accurate and truthful information when using our services.
-
-If you disagree with any part of these Terms, please discontinue using our Platform.
-
-3. Services Provided
-
-ADRYD offers branding, marketing, and advertising solutions — including but not limited to:
-• Outdoor and digital advertising campaigns,
-• Brand strategy and creative design,
-• Business marketing consultancy, and
-• Technology-driven media placement through our app.
-
-We reserve the right to modify, suspend, or discontinue any service at our discretion, without prior notice.
-
-4. User Accounts
-
-To access certain services, you may need to register an account.
-• You are responsible for maintaining the confidentiality of your login details.
-• You agree to notify ADRYD immediately of any unauthorized use of your account.
-• ADRYD reserves the right to suspend or terminate accounts for fraudulent or unlawful activity.
-
-5. Payments and Refunds
-
-• All payments are made in Pakistani Rupees (PKR) in compliance with the State Bank of Pakistan.
-• Service fees and advertising costs are non-refundable once work begins.
-• Refunds (if applicable) are processed only when ADRYD fails to deliver the agreed service due to internal issues.
-
-6. Intellectual Property Rights
-
-All content, branding, visuals, code, and data on ADRYD are intellectual property of ADRYD Marketing Co.
-
-Users may not copy, reproduce, or distribute any content without written consent from ADRYD.
-
-7. User Conduct
-
-Users agree not to:
-• Upload or share false, illegal, or misleading information,
-• Attempt unauthorized access to ADRYD systems, or
-• Violate any applicable Pakistani laws, including the Prevention of Electronic Crimes Act (PECA) 2016.
-
-Any violation may lead to account termination or legal action.
-
-8. Data and Privacy
-
-Your privacy is important to us. ADRYD collects only necessary data to operate its services, in line with Pakistan's Personal Data Protection Bill.
-
-Please review our Privacy Policy to learn more about how your information is collected and used.
-
-9. Limitation of Liability
-
-ADRYD is not liable for:
-• Any loss of profits or business opportunities,
-• Errors or interruptions in services caused by third parties, or
-• Unauthorized access or data breaches beyond our control.
-
-Our liability shall not exceed the total amount paid by you for the service in question.
-
-10. Indemnification
-
-You agree to indemnify and hold ADRYD, its directors, employees, and affiliates harmless against any claims, losses, or damages arising from your misuse of the Platform or violation of these Terms.
-
-11. Third-Party Links
-
-Our Platform may contain links to external sites for convenience. ADRYD does not endorse or take responsibility for third-party content or services.
-
-12. Governing Law and Jurisdiction
-
-These Terms are governed by the laws of Pakistan.
-
-All disputes shall fall under the exclusive jurisdiction of the courts in Lahore, Pakistan.
-
-13. Modifications to Terms
-
-ADRYD reserves the right to modify or update these Terms at any time. The updated version will be posted on our website. Continued use of our services after any change means you accept the revised Terms.
-
-14. Refund Policy
-
-• If your advertisement is approved and its advertising has started, no refund will be issued under any circumstances.
-• If your advertisement is not approved yet and you cancel the ad before approval, your payment will be refunded within 7 to 10 business days.
-• Refunds will be made through the same payment method used during the transaction.
-• ADRYD reserves the right to withhold refunds if a user violates any of our Terms or submits fraudulent activity.
-
-15. Contact Us
-
-For any questions regarding these Terms, please contact:
-📧 support@adryd.app
-📍 ADRYD Marketing Co., Lahore, Pakistan`;
   };
 
   const requestStoragePermission = async (): Promise<boolean> => {
@@ -353,14 +262,17 @@ For any questions regarding these Terms, please contact:
 
   const handleDownload = async () => {
     try {
-      const termsContent = getTermsContent();
-      const fileName = 'ADRYD_Terms_and_Conditions.txt';
-      
-      // Verify content is not empty
-      if (!termsContent || termsContent.trim().length === 0) {
-        Alert.alert('Error', 'Terms and Conditions content is empty.');
+      // Use fetched content from API
+      if (!content || content.trim().length === 0) {
+        Alert.alert(
+          'Error',
+          'Terms and Conditions content is not available. Please check your internet connection and try again.'
+        );
         return;
       }
+      
+      const termsContent = content;
+      const fileName = 'ADRYD_Terms_and_Conditions.txt';
 
       // For both platforms, create a file and share it
       // This is more reliable than direct file system access
@@ -513,206 +425,39 @@ For any questions regarding these Terms, please contact:
         <View style={styles.contentContainer}>
           <Text style={styles.title}>Terms and Conditions</Text>
           <View style={styles.lastUpdateContainer}>
-            <Text style={styles.lastUpdate}>Last update: Yesterday</Text>
+            <Text style={styles.lastUpdate}>
+              {version ? `Version: ${version}` : 'Last update: Yesterday'}
+            </Text>
+            {isCached && (
+              <Text style={[styles.lastUpdate, { fontSize: 10, color: '#999', marginTop: 4 }]}>
+                (Showing cached version)
+              </Text>
+            )}
           </View>
 
-          <View style={styles.termsContent}>
-            <Text style={styles.introText}>
-              Welcome to ADRYD Marketing Co.
-               ("ADRYD," "we," "our," or "us"). These Terms and
-              Conditions ("Terms") govern your access to and use of our website{' '}
-              <Text style={styles.link}>https://adryd.app</Text>, our mobile application, and all
-              related services (collectively referred to as the "Platform").
-            </Text>
-            <Text style={styles.introText}>
-              By using ADRYD, you agree to these Terms. Please read them carefully before accessing
-              or using our services.
-            </Text>
-
-            {/* Section 1 */}
-            <Text style={styles.sectionTitle}>1. Company Information</Text>
-            <Text style={styles.paragraph}>
-              ADRYD Marketing Co. is a registered business in Pakistan under Registration No.{' '}
-              <Text style={styles.boldText}>3520028592305</Text>.
-            </Text>
-            <Text style={styles.paragraph}>Registered Office: Lahore, Pakistan.</Text>
-            <Text style={styles.paragraph}>
-              All operations comply with applicable Pakistani laws, including digital advertising and
-              e-commerce regulations.
-            </Text>
-
-            {/* Section 2 */}
-            <Text style={styles.sectionTitle}>2. Acceptance of Terms</Text>
-            <Text style={styles.paragraph}>
-              By accessing or using ADRYD's website, app, or services, you confirm that you:
-            </Text>
-            <Text style={styles.bulletPoint}>• Are at least 18 years old,</Text>
-            <Text style={styles.bulletPoint}>• Agree to comply with these Terms, and</Text>
-            <Text style={styles.bulletPoint}>
-              • Provide accurate and truthful information when using our services.
-            </Text>
-            <Text style={styles.paragraph}>
-              If you disagree with any part of these Terms, please discontinue using our Platform.
-            </Text>
-
-            {/* Section 3 */}
-            <Text style={styles.sectionTitle}>3. Services Provided</Text>
-            <Text style={styles.paragraph}>
-              ADRYD offers branding, marketing, and advertising solutions — including but not
-              limited to:
-            </Text>
-            <Text style={styles.bulletPoint}>• Outdoor and digital advertising campaigns,</Text>
-            <Text style={styles.bulletPoint}>• Brand strategy and creative design,</Text>
-            <Text style={styles.bulletPoint}>• Business marketing consultancy, and</Text>
-            <Text style={styles.bulletPoint}>
-              • Technology-driven media placement through our app.
-            </Text>
-            <Text style={styles.paragraph}>
-              We reserve the right to modify, suspend, or discontinue any service at our discretion,
-              without prior notice.
-            </Text>
-
-            {/* Section 4 */}
-            <Text style={styles.sectionTitle}>4. User Accounts</Text>
-            <Text style={styles.paragraph}>
-              To access certain services, you may need to register an account.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • You are responsible for maintaining the confidentiality of your login details.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • You agree to notify ADRYD immediately of any unauthorized use of your account.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • ADRYD reserves the right to suspend or terminate accounts for fraudulent or unlawful
-              activity.
-            </Text>
-
-            {/* Section 5 */}
-            <Text style={styles.sectionTitle}>5. Payments and Refunds</Text>
-            <Text style={styles.bulletPoint}>
-              • All payments are made in Pakistani Rupees (PKR) in compliance with the State Bank of
-              Pakistan.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Service fees and advertising costs are non-refundable once work begins.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Refunds (if applicable) are processed only when ADRYD fails to deliver the agreed
-              service due to internal issues.
-            </Text>
-
-            {/* Section 6 */}
-            <Text style={styles.sectionTitle}>6. Intellectual Property Rights</Text>
-            <Text style={styles.paragraph}>
-              All content, branding, visuals, code, and data on ADRYD are intellectual property of
-              ADRYD Marketing Co.
-            </Text>
-            <Text style={styles.paragraph}>
-              Users may not copy, reproduce, or distribute any content without written consent from
-              ADRYD.
-            </Text>
-
-            {/* Section 7 */}
-            <Text style={styles.sectionTitle}>7. User Conduct</Text>
-            <Text style={styles.paragraph}>Users agree not to:</Text>
-            <Text style={styles.bulletPoint}>
-              • Upload or share false, illegal, or misleading information,
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Attempt unauthorized access to ADRYD systems, or
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Violate any applicable Pakistani laws, including the Prevention of Electronic Crimes
-              Act (PECA) 2016.
-            </Text>
-            <Text style={styles.paragraph}>
-              Any violation may lead to account termination or legal action.
-            </Text>
-
-            {/* Section 8 */}
-            <Text style={styles.sectionTitle}>8. Data and Privacy</Text>
-            <Text style={styles.paragraph}>
-              Your privacy is important to us. ADRYD collects only necessary data to operate its
-              services, in line with Pakistan's Personal Data Protection Bill.
-            </Text>
-            <Text style={styles.paragraph}>
-              Please review our Privacy Policy to learn more about how your information is collected
-              and used.
-            </Text>
-
-            {/* Section 9 */}
-            <Text style={styles.sectionTitle}>9. Limitation of Liability</Text>
-            <Text style={styles.paragraph}>ADRYD is not liable for:</Text>
-            <Text style={styles.bulletPoint}>• Any loss of profits or business opportunities,</Text>
-            <Text style={styles.bulletPoint}>
-              • Errors or interruptions in services caused by third parties, or
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Unauthorized access or data breaches beyond our control.
-            </Text>
-            <Text style={styles.paragraph}>
-              Our liability shall not exceed the total amount paid by you for the service in
-              question.
-            </Text>
-
-            {/* Section 10 */}
-            <Text style={styles.sectionTitle}>10. Indemnification</Text>
-            <Text style={styles.paragraph}>
-              You agree to indemnify and hold ADRYD, its directors, employees, and affiliates
-              harmless against any claims, losses, or damages arising from your misuse of the
-              Platform or violation of these Terms.
-            </Text>
-
-            {/* Section 11 */}
-            <Text style={styles.sectionTitle}>11. Third-Party Links</Text>
-            <Text style={styles.paragraph}>
-              Our Platform may contain links to external sites for convenience. ADRYD does not
-              endorse or take responsibility for third-party content or services.
-            </Text>
-
-            {/* Section 12 */}
-            <Text style={styles.sectionTitle}>12. Governing Law and Jurisdiction</Text>
-            <Text style={styles.paragraph}>These Terms are governed by the laws of Pakistan.</Text>
-            <Text style={styles.paragraph}>
-              All disputes shall fall under the exclusive jurisdiction of the courts in Lahore,
-              Pakistan.
-            </Text>
-
-            {/* Section 13 */}
-            <Text style={styles.sectionTitle}>13. Modifications to Terms</Text>
-            <Text style={styles.paragraph}>
-              ADRYD reserves the right to modify or update these Terms at any time. The updated
-              version will be posted on our website. Continued use of our services after any change
-              means you accept the revised Terms.
-            </Text>
-
-            {/* Section 14 */}
-            <Text style={styles.sectionTitle}>14. Refund Policy</Text>
-            <Text style={styles.bulletPoint}>
-              • If your advertisement is approved and its advertising has started, no refund will be
-              issued under any circumstances.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • If your advertisement is not approved yet and you cancel the ad before approval,
-              your payment will be refunded within 7 to 10 business days.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Refunds will be made through the same payment method used during the transaction.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • ADRYD reserves the right to withhold refunds if a user violates any of our Terms
-              or submits fraudulent activity.
-            </Text>
-
-            {/* Section 15 */}
-            <Text style={styles.sectionTitle}>15. Contact Us</Text>
-            <Text style={styles.paragraph}>
-              For any questions regarding these Terms, please contact:
-            </Text>
-            <Text style={styles.bulletPoint}>📧 support@adryd.app</Text>
-            <Text style={styles.bulletPoint}>📍 ADRYD Marketing Co., Lahore, Pakistan</Text>
-          </View>
+          {contentLoading && !content ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#C539A5" />
+              <Text style={styles.loadingText}>Loading Terms & Conditions...</Text>
+            </View>
+          ) : contentError && !content ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>Error loading content: {contentError}</Text>
+              <Text style={styles.errorText}>
+                Please check your internet connection and try again.
+              </Text>
+            </View>
+          ) : content ? (
+            <View style={styles.termsContent}>
+              <Text style={styles.paragraph}>{content}</Text>
+            </View>
+          ) : (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>
+                No content available. Please check your internet connection and try again.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -844,7 +589,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: wp(4),
-    paddingTop: hp(2),
+    paddingTop: hp(8),
     backgroundColor: '#F5F5F5',
   },
   title: {
@@ -962,6 +707,26 @@ const styles = StyleSheet.create({
   downloadButton: {
     width: '60%',
     alignSelf: 'center',
+  },
+  loadingContainer: {
+    paddingVertical: hp(5),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: hp(2),
+    fontSize: 14,
+    color: '#70737D',
+  },
+  errorContainer: {
+    paddingVertical: hp(3),
+    paddingHorizontal: wp(4),
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#FF3B30',
+    marginBottom: hp(1),
+    textAlign: 'center',
   },
 });
 

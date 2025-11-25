@@ -73,7 +73,7 @@
     },
     "drawer": {
       "security": "Security",
-      "securitySubtitle": "Password",
+      "securitySubtitle": "Change Password",
       "companies": "Companies",
       "companiesSubtitle": "Saved Your Business",
       "favorite": "Favorite",

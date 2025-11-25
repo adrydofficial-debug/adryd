@@ -79,6 +79,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
   const { user } = useAuthStore();
   const logout = useAuthStore(s => s.logout);
   const setIsVisible = useDrawerStore(s => s.setIsVisible);
+  const setNavigatedFromDrawer = useDrawerStore(s => s.setNavigatedFromDrawer);
+  const reopenDrawerCallback = useDrawerStore(s => s.reopenDrawerCallback);
   const translateX = useRef(new Animated.Value(-OFFSCREEN_X)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const [isContactModalVisible, setIsContactModalVisible] = useState(false);
@@ -143,6 +145,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
     setIsVisible(visible);
     if (!visible) {
       setIsContactModalVisible(false);
+    } else {
+      setNavigatedFromDrawer(false);
     }
     if (visible) {
       Animated.parallel([
@@ -184,6 +188,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       subtitle: t('drawer.securitySubtitle'),
       onPress: () => {
         try {
+          setNavigatedFromDrawer(true);
           navigation.navigate('ChangePassword' as never);
           console.log('✅ Navigation to ChangePassword successful');
           setTimeout(() => onClose(), 100);
@@ -201,6 +206,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       subtitle: t('drawer.companiesSubtitle'),
       onPress: () => {
         try {
+          setNavigatedFromDrawer(true);
           (navigation as any).navigate('PreviousCompanyScreen', {
             isSelectable: true,
           });
@@ -216,28 +222,12 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
     },
 
     {
-      id: 4,
-      title: t('drawer.favorite'),
-      subtitle: t('drawer.favoriteSubtitle'),
-      onPress: () => {
-        try {
-          navigation.navigate('FavouritesScreen' as never);
-          console.log('✅ Navigation to FavouritesScreen successful');
-          setTimeout(() => onClose(), 100);
-        } catch (error) {
-          console.error('❌ Navigation error:', error);
-          onClose();
-        }
-      },
-      // color: '#FF5722',
-      icon: 'favorite',
-    },
-    {
       id: 5,
       title: t('drawer.invite'),
       subtitle: t('drawer.inviteSubtitle'),
       onPress: () => {
         try {
+          setNavigatedFromDrawer(true);
           navigation.navigate('InviteLink' as never);
           console.log('✅ Navigation to InviteLink successful');
           setTimeout(() => onClose(), 100);
@@ -257,6 +247,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       title: t('drawer.help'),
       onPress: () => {
         try {
+          setNavigatedFromDrawer(true);
           navigation.navigate('HelpFAQsScreen' as never);
           console.log('✅ Navigation to HelpFAQsScreen successful');
           setTimeout(() => onClose(), 100);
@@ -273,6 +264,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       title: t('drawer.terms'),
       onPress: () => {
         try {
+          setNavigatedFromDrawer(true);
           navigation.navigate('TermsPrivacyOptions' as never);
           console.log('✅ Navigation to TermsPrivacyOptions successful');
           setTimeout(() => onClose(), 100);
@@ -387,13 +379,14 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
                   activeOpacity={0.7}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="chevron-back" size={28} color="#70737D" />
+                  <Ionicons name="arrow-back" size={width * 0.06} color="#70737D" />
                 </TouchableOpacity>
                 <View style={styles.headerSpacer} />
                 <TouchableOpacity
                   style={styles.headerButton}
                   onPress={() => {
                     try {
+                      setNavigatedFromDrawer(true);
                       navigation.navigate('HelpFAQsScreen' as never);
                       console.log('✅ Navigation to HelpFAQsScreen successful');
                       setTimeout(() => onClose(), 100);
@@ -451,6 +444,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
               activeOpacity={0.7}
               onPress={() => {
                 try {
+                  setNavigatedFromDrawer(true);
                   navigation.navigate('UpdateProfile' as never);
                   console.log('✅ Navigation to UpdateProfile successful');
                   setTimeout(() => onClose(), 100);
@@ -677,10 +671,12 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'transparent',
+    width: width * 0.10,
+    height: width * 0.10,
+    borderRadius: width * 0.07,
+    backgroundColor: '#fff',
+    borderWidth: 0.7,
+    borderColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -785,12 +781,22 @@ const styles = StyleSheet.create({
   },
   menuItemCenter: { flex: 1 },
   menuItemTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#3D3D3D',
+    fontSize: 14,
+    fontWeight: '400',
+    fontFamily: 'Inter',
+    lineHeight: 19.5,
+    letterSpacing: 0,
+    color: '#18181B',
     marginBottom: 2,
   },
-  menuItemSubtitle: { fontSize: 11, color: '#9E9E9E' },
+  menuItemSubtitle: {
+    fontSize: 10,
+    fontWeight: '300',
+    fontFamily: 'Inter',
+    lineHeight: 16,
+    letterSpacing: 0,
+    color: '#70737D',
+  },
   menuItemRight: { width: width * 0.06, alignItems: 'center' },
   arrowIcon: { fontSize: 20, color: '#BDBDBD', fontWeight: '300' },
   languageToggleContainer: {

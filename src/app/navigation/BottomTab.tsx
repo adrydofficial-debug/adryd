@@ -18,6 +18,8 @@ import {
   GrayMsgIcon,
   PinkProfileIcon,
   GrayProfileIcon,
+  HeartIcon,
+  FavoriteIcon,
   Images,
 } from '../../assets/images';
 import HomeScreen from '../../features/boards/screens/HomeScreen';
@@ -82,7 +84,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
     { name: 'Home', icon: GrayHomeIcon, activeIcon: PinkHomeIcon },
     { name: 'Boards', icon: GrayActiveIcon, activeIcon: PinkActiveIcon },
     { name: 'Add', icon: AddIcon, isFAB: true },
-    { name: 'Chat', icon: GrayMsgIcon, activeIcon: PinkMsgIcon },
+    { name: 'Chat', icon: HeartIcon, activeIcon: FavoriteIcon },
     { name: 'Profile', icon: GrayProfileIcon, activeIcon: PinkProfileIcon },
   ];
 
@@ -90,6 +92,8 @@ const BottomTab: React.FC<BottomTabProps> = () => {
     const isActive = activeTab === tab.name;
     const isFAB = tab.isFAB;
     const IconComponent = isActive ? tab.activeIcon : tab.icon;
+    // Check if it's an image source (number) or SVG component (function)
+    const isImageSource = typeof IconComponent === 'number' || (typeof IconComponent !== 'function' && IconComponent !== null && IconComponent !== undefined);
 
     if (isFAB) {
       return (
@@ -115,7 +119,15 @@ const BottomTab: React.FC<BottomTabProps> = () => {
         onPress={() => handleTabPress(tab.name)}
         activeOpacity={0.7}
       >
-        <IconComponent width={24} height={24} />
+        {isImageSource ? (
+          <Image 
+            source={IconComponent} 
+            style={styles.tabIconImage}
+            resizeMode="contain"
+          />
+        ) : (
+          <IconComponent width={24} height={24} />
+        )}
       </TouchableOpacity>
     );
   };
@@ -298,6 +310,10 @@ const styles = StyleSheet.create({
     zIndex: 99999,
   },
   addIconImage: {
+    width: 24,
+    height: 24,
+  },
+  tabIconImage: {
     width: 24,
     height: 24,
   },

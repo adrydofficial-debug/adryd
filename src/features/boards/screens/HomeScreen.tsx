@@ -19,6 +19,7 @@ import { PinkLocationIcon, Images } from '../../../assets/images';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
 import { useAuthStore } from '../../../store/authStore';
+import { useDrawerStore } from '../../../store/drawerStore';
 import type { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
 import { useProfile } from '../../profile/hooks/useProfile';
@@ -85,6 +86,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }, []),
   );
 
+  const setReopenDrawerCallback = useDrawerStore(s => s.setReopenDrawerCallback);
+  const navigatedFromDrawer = useDrawerStore(s => s.navigatedFromDrawer);
+  const setNavigatedFromDrawer = useDrawerStore(s => s.setNavigatedFromDrawer);
+
   const handleProfilePress = () => {
     setDrawerVisible(true);
   };
@@ -92,6 +97,25 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const handleCloseDrawer = () => {
     setDrawerVisible(false);
   };
+
+  // Set the reopen drawer callback in the store
+  React.useEffect(() => {
+    setReopenDrawerCallback(() => {
+      setDrawerVisible(true);
+    });
+    return () => {
+      setReopenDrawerCallback(null);
+    };
+  }, [setReopenDrawerCallback]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (navigatedFromDrawer) {
+        setNavigatedFromDrawer(false);
+        setDrawerVisible(true);
+      }
+    }, [navigatedFromDrawer, setNavigatedFromDrawer])
+  );
 
   const {
     data: boardFiltersData,

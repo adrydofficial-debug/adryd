@@ -325,9 +325,7 @@ const CompanyEmptyState: React.FC<CompanyEmptyStateProps> = ({
   return (
     <View style={styles.container}>
       {/* Back Button */}
-      <View >
-        <BackButton />
-      </View>
+      <BackButton style={styles.backButtonOverride} />
 
       {/* Centered Content Container */}
       <View style={styles.centeredContent}>
@@ -426,7 +424,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-
   centeredContent: {
     flex: 1,
     justifyContent: 'center',
@@ -484,6 +481,9 @@ const styles = StyleSheet.create({
   button: {
     minWidth: 180,
     // padding: 5,
+  },
+  backButtonOverride: {
+    top: 0,
   },
 });
 

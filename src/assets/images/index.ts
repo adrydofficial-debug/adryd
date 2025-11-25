@@ -56,7 +56,7 @@ export { default as GrayMsgIcon } from './GrayMsg.svg';
 export { default as GrayNotifyIcon } from './grayNotify.svg';
 export { default as GrayProfileIcon } from './grayProfile.svg';
 export { default as GreenTickIcon } from './GreenTick.svg';
-export { default as HeartIcon } from './Heart.svg';
+export { default as HeartIcon } from './heart.png';
 export { default as HelpIcon } from './help.svg';
 export { default as InviteIcon } from './Invite.svg';
 export { default as LocationPinkIcon } from './location-pinkSVG.svg';
