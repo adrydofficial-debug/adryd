@@ -190,8 +190,9 @@ const styles = StyleSheet.create({
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
+    backgroundColor: '#fff',
   },
   itemText: {
     fontSize: 12,
@@ -220,9 +221,9 @@ const styles = StyleSheet.create({
   },
   separatorLine: {
     height: 1,
-    backgroundColor: '#D9D9D9',
+    backgroundColor: '#E5E7EB',
     marginHorizontal: 20,
-    marginVertical: 6,
+    marginVertical: 8,
   },
 });
 

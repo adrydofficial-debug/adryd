@@ -58,7 +58,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     .toString()
     .trim();
 
-  const initial = displayName.charAt(0).toUpperCase() || 'U';
   const [avatarError, setAvatarError] = useState(false);
 
   useEffect(() => {
@@ -205,7 +204,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       )}
 
       <LinearGradient
-        colors={['#FAF9F6', '#fff']}
+        colors={['#F8F8F8', '#F8F8F8']}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.fixedHeader}
@@ -219,11 +218,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 onError={() => setAvatarError(true)}
               />
             ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarInitial} numberOfLines={1}>
-                  {initial}
-                </Text>
-              </View>
+              <Image
+                source={Images.frame}
+                style={styles.avatar}
+                resizeMode="cover"
+              />
             )}
           </TouchableOpacity>
           <View style={styles.nameWrap}>
@@ -425,8 +424,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  scroll: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#F8F8F8' },
+  scroll: { flex: 1, backgroundColor: '#F8F8F8' },
   scrollContent: { paddingTop: 0, paddingBottom: 120 },
   fixedHeader: {
     width,
@@ -444,28 +443,16 @@ const styles = StyleSheet.create({
     writingDirection: 'ltr',
     flexShrink: 0,
     minHeight: width * 0.13,
+    backgroundColor: '#F8F8F8',
   },
   avatar: {
     width: width * 0.13,
     height: width * 0.13,
     borderRadius: width * 0.085,
-    borderWidth: 0.7,
-    borderColor: '#E5E7EB',
-    
-  },
-  avatarPlaceholder: {
-    backgroundColor: '#FDE7FB',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderWidth: 3,
+    borderColor: 'transparent',
     overflow: 'hidden',
-  },
-  avatarInitial: {
-    color: '#C539A5',
-    fontSize: width * 0.06,
-    fontWeight: '700',
-    textAlign: 'center',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
   },
   nameWrap: { flex: 1, paddingHorizontal: 6, minWidth: 0 },
   greeting: { fontSize: 12, color: '#222', fontWeight: '400' },
@@ -487,10 +474,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.03,
     paddingVertical: 6,
     marginRight: width * 0.01,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     minHeight: 32,
@@ -532,6 +515,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     overflow: 'hidden',
     alignSelf: 'center',
+    backgroundColor: '#F8F8F8',
   },
   bannerImage: {
     width: '100%',
