@@ -10,7 +10,9 @@ import { supabase } from '../services/supabase';
 interface AuthState {
   user: User | null;
   loading: boolean;
+  referrerCode: string | null;
   setUser: (user: User | null) => void;
+  setReferrerCode: (code: string | null) => void;
   initializeSession: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -23,9 +25,13 @@ export const useAuthStore = create<AuthState>()(
     set => ({
       user: null,
       loading: true,
+      referrerCode: null,
 
       // ✅ Set user manually (after login/register)
       setUser: user => set({ user }),
+
+      // ✅ Set referral code when user comes via referral link
+      setReferrerCode: code => set({ referrerCode: code }),
 
       // ✅ Load Supabase session on app startup
       initializeSession: async () => {
@@ -62,13 +68,16 @@ export const useAuthStore = create<AuthState>()(
         } catch (err) {
           console.error('Logout error:', err);
         } finally {
-          set({ user: null });
+          set({ user: null, referrerCode: null });
         }
       },
     }),
     {
       name: 'auth-storage', // key in AsyncStorage / localStorage
-      partialize: state => ({ user: state.user }), // only persist user
+      partialize: state => ({
+        user: state.user,
+        referrerCode: state.referrerCode,
+      }), // persist user + referral code
     },
   ),
 );

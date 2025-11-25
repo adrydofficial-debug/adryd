@@ -17,23 +17,34 @@ export const useRegister = () => {
       fullName: string;
     }) => {
       console.log('📱 checking phone', phone);
+
       // 1) Check if user already exists using public lookup table
       const { exists } = await checkUserExistsRequest(phone);
-
       if (exists) {
         throw new Error('User already exists with this phone');
       }
 
-      // 2) Kick off OTP (creates auth user if doesn't exist)
+      // 2) Get referral code from authStore
+      const { referrerCode, setReferrerCode } = useAuthStore.getState();
+
+      // 3) Kick off OTP (creates auth user if doesn't exist)
       const { data, error: otpError } = await supabase.auth.signInWithOtp({
         phone,
         options: {
-          data: { full_name: fullName },
+          data: {
+            full_name: fullName,
+            ...(referrerCode ? { referrer: referrerCode } : {}), // include only if present
+          },
         },
       });
 
       if (otpError) {
         throw new Error(`Registration failed: ${otpError.message}`);
+      }
+
+      // 4) Clear referral code after sending
+      if (referrerCode) {
+        setReferrerCode(null);
       }
 
       return data;

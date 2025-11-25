@@ -1,4 +1,6 @@
 import { NavigationContainer } from '@react-navigation/native';
+import { Linking } from 'react-native';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
 import 'react-native-get-random-values';
@@ -52,7 +54,35 @@ const AuthGate = () => {
   useEffect(() => {
     initializeSession();
     checkOnboardingAndLanguage();
+    // Listener for links while app is open
+    const linkingListener = Linking.addEventListener(
+      'url',
+      (event: { url: string }) => {
+        handleReferralLink(event.url);
+      },
+    );
+    // Check if app was opened from a link
+    Linking.getInitialURL().then(url => {
+      if (url) handleReferralLink(url);
+    });
+    return () => {
+      linkingListener.remove();
+    };
   }, [initializeSession]);
+
+  // --------------------
+  // Referral Handling
+  // --------------------
+  const handleReferralLink = (url: string) => {
+    const referralPrefix = 'https://adryd.app/invite/';
+    if (url.startsWith(referralPrefix)) {
+      const referralCode = url.substring(referralPrefix.length);
+      console.log('Referral code detected:', referralCode);
+
+      // Store in auth store
+      useAuthStore.getState().setReferrerCode(referralCode);
+    }
+  };
 
   const checkOnboardingAndLanguage = async () => {
     try {
