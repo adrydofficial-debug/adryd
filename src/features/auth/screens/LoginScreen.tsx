@@ -125,21 +125,13 @@ const LoginScreen: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
           <View style={styles.mainContainer}>
             <View style={styles.header}>
               {/* <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.7}> */}
               <Text style={styles.title}>{t('login.title')}</Text>
               {/* </TouchableOpacity> */}
               <Text style={styles.subtitle}>
-                {t('login.subtitle')}{' '}
-                <Text style={styles.highlight}>{t('login.highlight')}</Text>{' '}
-                {'\n'}
-                {t('login.subtitleEnd')}
+                {t('login.subtitle')}
               </Text>
             </View>
             <Formik<LoginCredentials>
@@ -266,7 +258,6 @@ const LoginScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
       </KeyboardAvoidingView>
 
       <NoInternet />
@@ -278,12 +269,7 @@ const LoginScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   keyboardAvoidingView: { flex: 1 },
-  mainContainer: { paddingHorizontal: 30 },
-  scrollContent: {
-    paddingHorizontal: wp(6),
-    paddingBottom: hp(25),
-    minHeight: height + hp(10),
-  },
+  mainContainer: { paddingHorizontal: 47 },
   header: { marginTop: hp(15), marginBottom: hp(4.5) },
   title: {
     fontSize: 26,

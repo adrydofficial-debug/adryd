@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Platform,
@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { Image } from 'react-native';
 import { Images } from '../../../assets/images';
 import BackButton from '../../../components/BackButton';
+import PrimaryButton from '../../../components/PrimaryButton';
 
 const BASE_WIDTH = 375;
 const BASE_HEIGHT = 812;
@@ -38,6 +39,7 @@ const InviteLink: React.FC = () => {
   const navigation = useNavigation();
   const { t } = useTranslation('profile');
   const referralLink = 'https://invite.adrydmarketingco.co/invite?';
+  const [inviteCount] = useState(0); // TODO: Replace with actual API call to get invite count
   const styles = useMemo(() => createStyles(width, height), [width, height]);
 
   const handleCopyLink = () => {
@@ -67,21 +69,26 @@ const InviteLink: React.FC = () => {
       style={styles.gradient}
     >
       <SafeAreaView style={styles.safeArea}>
+        <View style={styles.headerContainer}>
+          <View style={styles.backButtonWrapper}>
+            <BackButton style={styles.backButtonOverride}/>
+          </View>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={handleShareInvite}
+            accessibilityRole="button"
+            accessibilityLabel={t('inviteScreen.shareA11y')}
+          >
+            <View style={styles.iconButtonContent}>
+              <Ionicons name="person" size={20} color="#C539A5" />
+              <Text style={styles.iconButtonText}>{inviteCount}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.headerRow}>
-            <BackButton/>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={handleShareInvite}
-              accessibilityRole="button"
-              accessibilityLabel={t('inviteScreen.shareA11y')}
-            >
-               <Ionicons name="help-circle-outline" size={24} color="#70737D" />
-            </TouchableOpacity>
-          </View>
 
           <View style={styles.badgeCloud}>
             <Text style={styles.headlineTop}>{t('inviteScreen.headlineTop')}</Text>
@@ -98,8 +105,12 @@ const InviteLink: React.FC = () => {
 
           <View style={styles.textBlock}>
             <Text style={styles.description}>
-              <Text style={styles.heroHighlight}>{t('inviteScreen.ctaHighlight')} </Text>
-              {t('inviteScreen.ctaText')}
+              <Text style={styles.noWrap}>
+                {t('inviteScreen.ctaText')}
+                <Text style={styles.heroHighlight}>{t('inviteScreen.ctaHighlight')}</Text>
+                {' and earn'}
+              </Text>
+              {t('inviteScreen.ctaTextAfter')}
             </Text>
           </View>
 
@@ -118,13 +129,11 @@ const InviteLink: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.ctaButton}
+          <PrimaryButton
+            title={t('inviteScreen.primaryCta')}
             onPress={handleShareInvite}
-            activeOpacity={0.9}
-          >
-            <Text style={styles.ctaText}>{t('inviteScreen.primaryCta')}</Text>
-          </TouchableOpacity>
+            buttonStyle={styles.ctaButton}
+          />
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -150,23 +159,47 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
     scrollContent: {
       paddingHorizontal: wp(6),
       paddingBottom: hp(4),
+      paddingTop: hp(1),
     },
-    headerRow: {
+    headerContainer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      width: '100%',
+      paddingHorizontal: wp(6),
+      paddingTop: hp(1),
       marginBottom: hp(2.5),
     },
+    backButtonWrapper: {
+      position: 'relative',
+    },
+    backButtonOverride: {
+      position: 'relative',
+      left: 0,
+      top: 0,
+    },
     iconButton: {
-      width: wp(10),
-      height: wp(10),
-      borderRadius: wp(6),
-      // backgroundColor: 'rgba(255,255,255,0.95)',
+      backgroundColor: '#FFFFFF',
+      borderRadius: 12,
+      paddingHorizontal: wp(3),
+      paddingVertical: hp(0.8),
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: hp(1.9),
-      
-    
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    iconButtonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: wp(1.5),
+    },
+    iconButtonText: {
+      color: '#C539A5',
+      fontSize: 14,
+      fontWeight: '600',
     },
     badgeCloud: {
       justifyContent: 'center',
@@ -206,30 +239,33 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
       paddingHorizontal: wp(4),
     },
     headlineTop: {
-      fontSize: 18,
-      color: '#1F1F1F',
-      fontWeight: '600',
+      fontSize: 22,
+      color: '#18181B',
+      fontWeight: '700',
       textAlign: 'center',
       marginBottom: hp(0.1),
     },
     headlineBottom: {
-      fontSize: 18,
-      color: '#000',
-      fontWeight: '600',
+      fontSize: 22,
+      color: '#18181B',
+      fontWeight: '700',
       textAlign: 'center',
       marginTop: 0,
     },
     description: {
       fontSize: 16,
-      color: '#4B5563',
+      color: '#1F2937',
       textAlign: 'center',
       marginBottom: hp(0.4),
-      lineHeight: scaleHeight(20),
-      paddingHorizontal: wp(15),
+      lineHeight: scaleHeight(22),
+      paddingHorizontal: wp(4),
+    },
+    noWrap: {
+      flexShrink: 0,
     },
     heroHighlight: {
-      color: '#C026D3',
-      fontWeight: '700',
+      color: '#C539A5',
+      fontWeight: '600',
       textDecorationLine: 'underline',
     },
     helper: {
@@ -242,12 +278,12 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
       alignItems: 'center',
       backgroundColor: '#FFFFFF',
       borderRadius: 15,
-      paddingHorizontal: wp(6),
+      paddingHorizontal: wp(5),
       paddingVertical: hp(1.5),
       borderWidth: 1,
       borderColor: '#E5E7EB',
       marginBottom: hp(2),
-      width:"95%",
+      width:"90%",
       justifyContent:"center",
       alignContent:"center",
       alignSelf:"center",
@@ -262,24 +298,13 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
       width: wp(10),
       height: wp(8),
       borderRadius: wp(4),
-      backgroundColor: '#FDF2F8',
       justifyContent: 'center',
       alignItems: 'center',
-      marginLeft: wp(2),
     },
     ctaButton: {
-      backgroundColor: '#C539A5',
-      borderRadius: 12,
-      paddingVertical: hp(1.8),
-      alignItems: 'center',
-     width:"95%",
-      alignSelf:"center",
+      width: "90%",
+      alignSelf: "center",
       marginTop: hp(1.8),
-    },
-    ctaText: {
-      color: '#FFFFFF',
-      fontSize: scaleWidth(16),
-      fontWeight: '700',
     },
   });
 

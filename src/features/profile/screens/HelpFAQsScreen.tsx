@@ -198,14 +198,9 @@ const HelpFAQsScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Header with Back Button */}
+      {/* Back Button */}
 
-      <Header
-        onBackPress={handleBackPress}
-        title=""
-        showBackButton={true}
-        showRightIcon={false}
-      />
+       <BackButton/>
 
       {/* Hero Banner */}
       <LinearGradient
@@ -236,9 +231,6 @@ const HelpFAQsScreen: React.FC = () => {
           end={{ x: 1, y: 1 }}
           style={styles.heroSection}
         >
-          <View style={styles.heroHeader}>
-            <BackButton iconColor="#000" />
-          </View>
           <Text style={styles.greetingTitle}>Hi Umair</Text>
           <Text style={styles.heroSubtitle}>How can we help you?</Text>
           <ScrollView
@@ -455,7 +447,7 @@ const styles = StyleSheet.create({
 
   heroBanner: {
     marginHorizontal: width * 0.04,
-    marginTop: height * 0.01,
+    marginTop: height * 0.11,
     marginBottom: height * 0.02,
     padding: width * 0.06,
     borderRadius: 20,
@@ -502,10 +494,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
   },
-  heroHeader: {
-    width: '100%',
-    alignItems: 'flex-start',
-  },
+
   greetingTitle: {
     fontFamily: 'Inter',
     fontSize: 22,

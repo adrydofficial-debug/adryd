@@ -180,9 +180,9 @@ const FavouritesEmptyState: React.FC<FavouritesEmptyStateProps> = ({
   return (
     <View style={styles.container}>
       {/* Back Button */}
-      <View style={styles.backButtonContainer}>
-        <BackButton iconColor="#000000" />
-      </View>
+   
+        <BackButton  />
+    
 
       {/* Animation Cards Container */}
       <View style={styles.animationContainer}>
@@ -257,12 +257,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingTop: hp(27),
     paddingBottom: hp(0),
-  },
-  backButtonContainer: {
-    position: 'absolute',
-    top: hp(2),
-    left: wp(4),
-    zIndex: 10,
   },
   animationContainer: {
     width: wp(75),

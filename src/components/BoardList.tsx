@@ -465,7 +465,7 @@ const BoardList: React.FC<BoardListProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F8F8',
     borderRadius: 20,
   },
   header: {
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     minHeight: CARD_HEIGHT,
     marginRight: 8,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 15,
     borderWidth: 0.7,
     borderColor: '#E5E7EB',
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   detailsContainer: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     paddingTop: 2,
     paddingHorizontal: 4,
     paddingBottom: 4, 
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   starsContainer: {
     flexDirection: 'row',
@@ -611,12 +611,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     marginTop: 0,
+    width: '100%',
   },
   tag: {
     backgroundColor: '#E5E7EB',
     borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
     marginRight: 4,
     marginBottom: 2,
     flexShrink: 0,

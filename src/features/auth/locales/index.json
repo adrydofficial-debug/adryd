@@ -2,9 +2,7 @@
   "en": {
     "login": {
       "title": "Login",
-      "subtitle": "Login now and turn your",
-      "highlight": "ideas",
-      "subtitleEnd": "into reality.",
+      "subtitle": "Enter your phone number and password to access your account and personalized features.",
       "phoneNumber": "Phone Number",
       "password": "Your Password",
       "forgotPassword": "Forgot Password?",
@@ -51,16 +49,13 @@
     },
     "register": {
       "title": "Register",
-      "subtitle": {
-        "start": "Sign up with ADRYD to unlock exclusive features and get started."
-      
-      },
+      "subtitle": "Sign up with ADRYD to unlock exclusive features and get started.",
       "username": "Username",
       "companyName": "Company Name",
       "password": "Password",
       "createPassword": {
         "title": "Create Password",
-        "description": "Choose a secure password and confirm it to complete your registration."
+        "subtitle": "Choose a secure password and confirm it to complete your registration."
       },
       "registering": "Registering...",
       "cta": "Register",
@@ -179,5 +174,3 @@
     }
   }
 }
-
-

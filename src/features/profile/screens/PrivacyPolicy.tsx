@@ -11,10 +11,14 @@ import {
   Platform,
   Animated,
   Easing,
+  Alert,
+  Share,
+  PermissionsAndroid,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import RNFS from 'react-native-fs';
 import BackButton from '../../../components/BackButton';
 import PrimaryButton from '../../../components/PrimaryButton';
 import { getTermsAgreed, setTermsAgreed } from '../../../services/storage';
@@ -205,9 +209,244 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = () => {
     });
   };
 
+  const getPrivacyContent = (): string => {
+    return `PRIVACY POLICY
+
+Last update: Yesterday
+
+This Privacy Policy explains how ADRYD Marketing Co. ("ADRYD," "we," "our," or "us") collects, uses, and protects your personal information when you use our website https://adryd.app and our mobile application (collectively referred to as the "Platform"). By using our Platform, you agree to the collection and use of your information in accordance with this Privacy Policy.
+
+1. Information We Collect
+
+We collect information that you provide directly to us, including:
+• Personal identification information (name, email address, phone number)
+• Business information (company name, registration number, address)
+• Payment information (processed securely through third-party payment processors)
+• Account credentials and profile information
+• Content you submit through our Platform (advertisements, campaigns, etc.)
+
+2. How We Use Your Information
+
+We use the information we collect to:
+• Provide, maintain, and improve our services
+• Process transactions and send related information
+• Send you technical notices, updates, and support messages
+• Respond to your comments, questions, and requests
+• Monitor and analyze trends, usage, and activities
+• Detect, prevent, and address technical issues and fraudulent activity
+
+3. Information Sharing and Disclosure
+
+We do not sell, trade, or rent your personal information to third parties. We may share your information only:
+• With your consent
+• To comply with legal obligations
+• To protect our rights and safety
+• With service providers who assist us in operating our Platform (under strict confidentiality agreements)
+
+4. Data Security
+
+We implement appropriate technical and organizational security measures to protect your personal information. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.
+
+5. Data Retention
+
+We retain your personal information for as long as necessary to provide our services and comply with legal obligations. When we no longer need your information, we will securely delete or anonymize it.
+
+6. Your Rights
+
+Under Pakistan's Personal Data Protection Bill, you have the right to:
+• Access your personal information
+• Correct inaccurate data
+• Request deletion of your data
+• Object to processing of your data
+• Data portability
+
+To exercise these rights, please contact us at support@adryd.app.
+
+7. Cookies and Tracking Technologies
+
+We use cookies and similar tracking technologies to track activity on our Platform and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent.
+
+8. Third-Party Links
+
+Our Platform may contain links to third-party websites. We are not responsible for the privacy practices of these external sites. We encourage you to review the privacy policies of any third-party sites you visit.
+
+9. Children's Privacy
+
+Our Platform is not intended for individuals under the age of 18. We do not knowingly collect personal information from children. If you believe we have collected information from a child, please contact us immediately.
+
+10. Changes to This Privacy Policy
+
+We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last update" date.
+
+11. Contact Us
+
+For any questions about this Privacy Policy, please contact us at:
+📧 support@adryd.app
+📍 ADRYD Marketing Co., Lahore, Pakistan`;
+  };
+
+  const requestStoragePermission = async (): Promise<boolean> => {
+    if (Platform.OS === 'android') {
+      try {
+        // Android 13+ (API 33+) doesn't require WRITE_EXTERNAL_STORAGE permission
+        const androidVersion = Platform.Version;
+        if (androidVersion >= 33) {
+          return true;
+        }
+        
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          {
+            title: 'Storage Permission',
+            message: 'App needs access to storage to download Privacy Policy',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.warn(err);
+        return false;
+      }
+    }
+    return true; // iOS doesn't need this permission
+  };
+
+  const handleDownload = async () => {
+    try {
+      const privacyContent = getPrivacyContent();
+      const fileName = 'ADRYD_Privacy_Policy.txt';
+      
+      // Verify content is not empty
+      if (!privacyContent || privacyContent.trim().length === 0) {
+        Alert.alert('Error', 'Privacy Policy content is empty.');
+        return;
+      }
+
+      // For both platforms, create a file and share it
+      // This is more reliable than direct file system access
+      try {
+        // Create file in a temporary/cache directory first
+        const tempDir = Platform.OS === 'android' 
+          ? RNFS.CachesDirectoryPath 
+          : RNFS.DocumentDirectoryPath;
+        const tempFilePath = `${tempDir}/${fileName}`;
+        
+        // Remove file if it exists
+        const fileExists = await RNFS.exists(tempFilePath);
+        if (fileExists) {
+          await RNFS.unlink(tempFilePath);
+        }
+        
+        // Write the file with full content
+        await RNFS.writeFile(tempFilePath, privacyContent, 'utf8');
+        
+        // Verify file was written correctly
+        const fileExistsAfter = await RNFS.exists(tempFilePath);
+        if (!fileExistsAfter) {
+          throw new Error('File was not created');
+        }
+        
+        // Read back to verify content
+        const fileContent = await RNFS.readFile(tempFilePath, 'utf8');
+        if (!fileContent || fileContent.length === 0) {
+          throw new Error('File was created but is empty');
+        }
+        
+        // For Android, also try to save to Downloads if permission granted
+        if (Platform.OS === 'android') {
+          const hasPermission = await requestStoragePermission();
+          if (hasPermission) {
+            try {
+              const downloadPath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
+              // Copy to Downloads folder
+              await RNFS.copyFile(tempFilePath, downloadPath);
+              
+              // Verify the copy
+              const downloadExists = await RNFS.exists(downloadPath);
+              const downloadContent = await RNFS.readFile(downloadPath, 'utf8');
+              
+              if (downloadExists && downloadContent.length > 0) {
+                const fileStats = await RNFS.stat(downloadPath);
+                Alert.alert(
+                  'Download Complete',
+                  `Privacy Policy has been saved to your Downloads folder.\n\nFile: ${fileName}\nSize: ${(fileStats.size / 1024).toFixed(2)} KB`,
+                  [{ text: 'OK' }]
+                );
+                return; // Success, exit early
+              }
+            } catch (downloadError) {
+              console.log('Could not save to Downloads, will use Share instead:', downloadError);
+              // Continue to Share API as fallback
+            }
+          }
+        }
+        
+        // Share the file - this allows users to save it wherever they want
+        // On Android, users can save to Downloads from the share menu
+        // On iOS, users can save to Files app from the share menu
+        const fileUri = Platform.OS === 'android' 
+          ? `file://${tempFilePath}` 
+          : `file://${tempFilePath}`;
+        
+        const result = await Share.share({
+          url: fileUri,
+          title: 'ADRYD Privacy Policy',
+          message: Platform.OS === 'android' ? 'ADRYD Privacy Policy' : undefined,
+        });
+        
+        if (result.action === Share.sharedAction) {
+          Alert.alert(
+            'Shared',
+            'Privacy Policy has been shared. You can save it to your preferred location from the share menu.',
+            [{ text: 'OK' }]
+          );
+        } else if (result.action === Share.dismissedAction && Platform.OS === 'ios') {
+          Alert.alert(
+            'Saved',
+            'Privacy Policy file is ready. You can save it to Files app from the share menu.',
+            [{ text: 'OK' }]
+          );
+        }
+      } catch (fileError: any) {
+        console.error('Error creating file:', fileError);
+        
+        // Final fallback: share as text
+        try {
+          const result = await Share.share({
+            message: privacyContent,
+            title: 'ADRYD Privacy Policy',
+          });
+          if (result.action === Share.sharedAction) {
+            Alert.alert(
+              'Shared',
+              'Privacy Policy has been shared as text. You can copy and save it.',
+              [{ text: 'OK' }]
+            );
+          }
+        } catch (shareError) {
+          console.error('Share error:', shareError);
+          Alert.alert(
+            'Error',
+            `Unable to download or share. Please try again.\n\nError: ${fileError?.message || 'Unknown error'}`,
+            [{ text: 'OK' }]
+          );
+        }
+      }
+    } catch (error: any) {
+      console.error('Error downloading Privacy Policy:', error);
+      Alert.alert(
+        'Download Failed',
+        `Unable to download Privacy Policy. Please try again.\n\nError: ${error?.message || 'Unknown error'}`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
       
       {/* Header with Back Button */}
       {!fromAuth && (
@@ -241,193 +480,97 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = () => {
 
           <View style={styles.termsContent}>
             <Text style={styles.introText}>
-            This Privacy Policy explains how ADRYD Marketing Co. (“ADRYD,” “we,” “our,” or “us”) collects, uses, and protects your personal information when you use our website https://adryd.app and our mobile application (collectively referred to as the “Platform”). By using our Platform, you agree to the collection and use of your information in accordance with this Privacy Policy.
-            </Text>
-            <Text style={styles.introText}>
-              By using ADRYD, you agree to these Terms. Please read them carefully before accessing
-              or using our services.
+              This Privacy Policy explains how ADRYD Marketing Co. ("ADRYD," "we," "our," or "us") collects, uses, and protects your personal information when you use our website{' '}
+              <Text style={styles.link}>https://adryd.app</Text> and our mobile application (collectively referred to as the "Platform"). By using our Platform, you agree to the collection and use of your information in accordance with this Privacy Policy.
             </Text>
 
             {/* Section 1 */}
-            <Text style={styles.sectionTitle}>1. Company Information</Text>
+            <Text style={styles.sectionTitle}>1. Information We Collect</Text>
             <Text style={styles.paragraph}>
-              ADRYD Marketing Co. is a registered business in Pakistan under Registration No.{' '}
-              <Text style={styles.boldText}>3520028592305</Text>.
+              We collect information that you provide directly to us, including:
             </Text>
-            <Text style={styles.paragraph}>Registered Office: Lahore, Pakistan.</Text>
-            <Text style={styles.paragraph}>
-              All operations comply with applicable Pakistani laws, including digital advertising and
-              e-commerce regulations.
-            </Text>
+            <Text style={styles.bulletPoint}>• Personal identification information (name, email address, phone number)</Text>
+            <Text style={styles.bulletPoint}>• Business information (company name, registration number, address)</Text>
+            <Text style={styles.bulletPoint}>• Payment information (processed securely through third-party payment processors)</Text>
+            <Text style={styles.bulletPoint}>• Account credentials and profile information</Text>
+            <Text style={styles.bulletPoint}>• Content you submit through our Platform (advertisements, campaigns, etc.)</Text>
 
             {/* Section 2 */}
-            <Text style={styles.sectionTitle}>2. Acceptance of Terms</Text>
+            <Text style={styles.sectionTitle}>2. How We Use Your Information</Text>
             <Text style={styles.paragraph}>
-              By accessing or using ADRYD's website, app, or services, you confirm that you:
+              We use the information we collect to:
             </Text>
-            <Text style={styles.bulletPoint}>• Are at least 18 years old,</Text>
-            <Text style={styles.bulletPoint}>• Agree to comply with these Terms, and</Text>
-            <Text style={styles.bulletPoint}>
-              • Provide accurate and truthful information when using our services.
-            </Text>
-            <Text style={styles.paragraph}>
-              If you disagree with any part of these Terms, please discontinue using our Platform.
-            </Text>
+            <Text style={styles.bulletPoint}>• Provide, maintain, and improve our services</Text>
+            <Text style={styles.bulletPoint}>• Process transactions and send related information</Text>
+            <Text style={styles.bulletPoint}>• Send you technical notices, updates, and support messages</Text>
+            <Text style={styles.bulletPoint}>• Respond to your comments, questions, and requests</Text>
+            <Text style={styles.bulletPoint}>• Monitor and analyze trends, usage, and activities</Text>
+            <Text style={styles.bulletPoint}>• Detect, prevent, and address technical issues and fraudulent activity</Text>
 
             {/* Section 3 */}
-            <Text style={styles.sectionTitle}>3. Services Provided</Text>
+            <Text style={styles.sectionTitle}>3. Information Sharing and Disclosure</Text>
             <Text style={styles.paragraph}>
-              ADRYD offers branding, marketing, and advertising solutions — including but not
-              limited to:
+              We do not sell, trade, or rent your personal information to third parties. We may share your information only:
             </Text>
-            <Text style={styles.bulletPoint}>• Outdoor and digital advertising campaigns,</Text>
-            <Text style={styles.bulletPoint}>• Brand strategy and creative design,</Text>
-            <Text style={styles.bulletPoint}>• Business marketing consultancy, and</Text>
-            <Text style={styles.bulletPoint}>
-              • Technology-driven media placement through our app.
-            </Text>
-            <Text style={styles.paragraph}>
-              We reserve the right to modify, suspend, or discontinue any service at our discretion,
-              without prior notice.
-            </Text>
+            <Text style={styles.bulletPoint}>• With your consent</Text>
+            <Text style={styles.bulletPoint}>• To comply with legal obligations</Text>
+            <Text style={styles.bulletPoint}>• To protect our rights and safety</Text>
+            <Text style={styles.bulletPoint}>• With service providers who assist us in operating our Platform (under strict confidentiality agreements)</Text>
 
             {/* Section 4 */}
-            <Text style={styles.sectionTitle}>4. User Accounts</Text>
+            <Text style={styles.sectionTitle}>4. Data Security</Text>
             <Text style={styles.paragraph}>
-              To access certain services, you may need to register an account.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • You are responsible for maintaining the confidentiality of your login details.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • You agree to notify ADRYD immediately of any unauthorized use of your account.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • ADRYD reserves the right to suspend or terminate accounts for fraudulent or unlawful
-              activity.
+              We implement appropriate technical and organizational security measures to protect your personal information. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.
             </Text>
 
             {/* Section 5 */}
-            <Text style={styles.sectionTitle}>5. Payments and Refunds</Text>
-            <Text style={styles.bulletPoint}>
-              • All payments are made in Pakistani Rupees (PKR) in compliance with the State Bank of
-              Pakistan.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Service fees and advertising costs are non-refundable once work begins.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Refunds (if applicable) are processed only when ADRYD fails to deliver the agreed
-              service due to internal issues.
+            <Text style={styles.sectionTitle}>5. Data Retention</Text>
+            <Text style={styles.paragraph}>
+              We retain your personal information for as long as necessary to provide our services and comply with legal obligations. When we no longer need your information, we will securely delete or anonymize it.
             </Text>
 
             {/* Section 6 */}
-            <Text style={styles.sectionTitle}>6. Intellectual Property Rights</Text>
+            <Text style={styles.sectionTitle}>6. Your Rights</Text>
             <Text style={styles.paragraph}>
-              All content, branding, visuals, code, and data on ADRYD are intellectual property of
-              ADRYD Marketing Co.
+              Under Pakistan's Personal Data Protection Bill, you have the right to:
             </Text>
+            <Text style={styles.bulletPoint}>• Access your personal information</Text>
+            <Text style={styles.bulletPoint}>• Correct inaccurate data</Text>
+            <Text style={styles.bulletPoint}>• Request deletion of your data</Text>
+            <Text style={styles.bulletPoint}>• Object to processing of your data</Text>
+            <Text style={styles.bulletPoint}>• Data portability</Text>
             <Text style={styles.paragraph}>
-              Users may not copy, reproduce, or distribute any content without written consent from
-              ADRYD.
+              To exercise these rights, please contact us at support@adryd.app.
             </Text>
 
             {/* Section 7 */}
-            <Text style={styles.sectionTitle}>7. User Conduct</Text>
-            <Text style={styles.paragraph}>Users agree not to:</Text>
-            <Text style={styles.bulletPoint}>
-              • Upload or share false, illegal, or misleading information,
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Attempt unauthorized access to ADRYD systems, or
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Violate any applicable Pakistani laws, including the Prevention of Electronic Crimes
-              Act (PECA) 2016.
-            </Text>
+            <Text style={styles.sectionTitle}>7. Cookies and Tracking Technologies</Text>
             <Text style={styles.paragraph}>
-              Any violation may lead to account termination or legal action.
+              We use cookies and similar tracking technologies to track activity on our Platform and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent.
             </Text>
 
             {/* Section 8 */}
-            <Text style={styles.sectionTitle}>8. Data and Privacy</Text>
+            <Text style={styles.sectionTitle}>8. Third-Party Links</Text>
             <Text style={styles.paragraph}>
-              Your privacy is important to us. ADRYD collects only necessary data to operate its
-              services, in line with Pakistan's Personal Data Protection Bill.
-            </Text>
-            <Text style={styles.paragraph}>
-              Please review our Privacy Policy to learn more about how your information is collected
-              and used.
+              Our Platform may contain links to third-party websites. We are not responsible for the privacy practices of these external sites. We encourage you to review the privacy policies of any third-party sites you visit.
             </Text>
 
             {/* Section 9 */}
-            <Text style={styles.sectionTitle}>9. Limitation of Liability</Text>
-            <Text style={styles.paragraph}>ADRYD is not liable for:</Text>
-            <Text style={styles.bulletPoint}>• Any loss of profits or business opportunities,</Text>
-            <Text style={styles.bulletPoint}>
-              • Errors or interruptions in services caused by third parties, or
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Unauthorized access or data breaches beyond our control.
-            </Text>
+            <Text style={styles.sectionTitle}>9. Children's Privacy</Text>
             <Text style={styles.paragraph}>
-              Our liability shall not exceed the total amount paid by you for the service in
-              question.
+              Our Platform is not intended for individuals under the age of 18. We do not knowingly collect personal information from children. If you believe we have collected information from a child, please contact us immediately.
             </Text>
 
             {/* Section 10 */}
-            <Text style={styles.sectionTitle}>10. Indemnification</Text>
+            <Text style={styles.sectionTitle}>10. Changes to This Privacy Policy</Text>
             <Text style={styles.paragraph}>
-              You agree to indemnify and hold ADRYD, its directors, employees, and affiliates
-              harmless against any claims, losses, or damages arising from your misuse of the
-              Platform or violation of these Terms.
+              We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last update" date.
             </Text>
 
             {/* Section 11 */}
-            <Text style={styles.sectionTitle}>11. Third-Party Links</Text>
+            <Text style={styles.sectionTitle}>11. Contact Us</Text>
             <Text style={styles.paragraph}>
-              Our Platform may contain links to external sites for convenience. ADRYD does not
-              endorse or take responsibility for third-party content or services.
-            </Text>
-
-            {/* Section 12 */}
-            <Text style={styles.sectionTitle}>12. Governing Law and Jurisdiction</Text>
-            <Text style={styles.paragraph}>These Terms are governed by the laws of Pakistan.</Text>
-            <Text style={styles.paragraph}>
-              All disputes shall fall under the exclusive jurisdiction of the courts in Lahore,
-              Pakistan.
-            </Text>
-
-            {/* Section 13 */}
-            <Text style={styles.sectionTitle}>13. Modifications to Terms</Text>
-            <Text style={styles.paragraph}>
-              ADRYD reserves the right to modify or update these Terms at any time. The updated
-              version will be posted on our website. Continued use of our services after any change
-              means you accept the revised Terms.
-            </Text>
-
-            {/* Section 14 */}
-            <Text style={styles.sectionTitle}>14. Refund Policy</Text>
-            <Text style={styles.bulletPoint}>
-              • If your advertisement is approved and its advertising has started, no refund will be
-              issued under any circumstances.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • If your advertisement is not approved yet and you cancel the ad before approval,
-              your payment will be refunded within 7 to 10 business days.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • Refunds will be made through the same payment method used during the transaction.
-            </Text>
-            <Text style={styles.bulletPoint}>
-              • ADRYD reserves the right to withhold refunds if a user violates any of our Terms
-              or submits fraudulent activity.
-            </Text>
-
-            {/* Section 15 */}
-            <Text style={styles.sectionTitle}>15. Contact Us</Text>
-            <Text style={styles.paragraph}>
-              For any questions regarding these Terms, please contact:
+              For any questions about this Privacy Policy, please contact:
             </Text>
             <Text style={styles.bulletPoint}>📧 support@adryd.app</Text>
             <Text style={styles.bulletPoint}>📍 ADRYD Marketing Co., Lahore, Pakistan</Text>
@@ -494,6 +637,15 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = () => {
           </Animated.View>
         </Animated.View>
       )}
+
+      {/* Download Button - Always visible at bottom when viewing privacy policy */}
+      <View style={styles.downloadButtonContainer}>
+        <PrimaryButton
+          title="Download"
+          onPress={handleDownload}
+          buttonStyle={styles.downloadButton}
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -501,12 +653,13 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#F5F5F5',
   },
   header: {
     paddingHorizontal: wp(4),
     paddingTop: Platform.OS === 'ios' ? 0 : hp(2),
     zIndex: 10,
+    backgroundColor: '#F5F5F5',
   },
   helloBanner: {
     marginLeft: 17, 
@@ -546,19 +699,20 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F5F5',
   },
   scrollContent: {
-    paddingBottom: hp(20),
+    paddingBottom: hp(15),
   },
   contentContainer: {
     paddingHorizontal: wp(4),
     paddingTop: hp(2),
+    backgroundColor: '#F5F5F5',
   },
   title: {
-    fontSize: 26,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#000000',
+    color: '#18181B',
     marginBottom: hp(1),
   },
   lastUpdateContainer: {
@@ -580,16 +734,16 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#000000',
+    color: '#18181B',
     marginTop: hp(2.5),
     marginBottom: hp(1),
   },
   paragraph: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '400',
-    color: '#000000',
+    color: '#18181B',
     lineHeight: 22,
     marginBottom: hp(1.5),
   },
@@ -654,6 +808,22 @@ const styles = StyleSheet.create({
   agreeButton: {
     alignSelf: 'center',
     width: '50%',
+  },
+  downloadButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: wp(4),
+    paddingBottom: Platform.OS === 'ios' ? hp(3) : hp(4),
+    paddingTop: hp(2),
+    backgroundColor: '#F5F5F5',
+    borderTopWidth: 0,
+    zIndex: 5,
+  },
+  downloadButton: {
+    width: '60%',
+    alignSelf: 'center',
   },
 });
 

@@ -9,7 +9,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
-import Header from '../../../components/Header';
+import BackButton from '../../../components/BackButton';
 
 
 const TermsPrivacyOptions: React.FC = () => {
@@ -38,11 +38,7 @@ const TermsPrivacyOptions: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-  <Header
-  title={t('termsPrivacyOptions.title')}
-  onBackPress={handleBackPress}   // same back function
-  showRightIcon={false}           // because you had an empty right spacer
-/>
+<BackButton/>
 
 
       <View style={styles.card}>
@@ -73,23 +69,13 @@ const styles = StyleSheet.create({
     
   },
 
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
   card: {
     // backgroundColor: '#FFFFFF',
     // borderRadius: 14,
    
     // borderColor: '#E5E7EB',
     // overflow: 'hidden',
+    marginTop:70,
   },
   optionRow: {
     flexDirection: 'row',

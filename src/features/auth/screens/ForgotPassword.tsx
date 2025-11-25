@@ -9,7 +9,6 @@ import {
   I18nManager,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -218,7 +217,7 @@ const ForgotPassword: React.FC = () => {
       ) {
         message = (error as any).message;
       }
-      Alert.alert('OTP Verification Failed', message);
+      // Alert.alert('OTP Verification Failed', message);
       throw error;
     }
   };
@@ -253,270 +252,260 @@ const ForgotPassword: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bounces
-          scrollEventThrottle={16}
+        <View
+          style={styles.mainContainer}
+          key={`main-${isRTL}-${languageKey}`}
         >
-          <BackButton />
+          <View style={styles.header}>
+            <Text
+              style={styles.title}
+              key={`title-${languageKey}-${currentLanguage}`}
+            >
+              {currentStep === 'phone'
+                ? t('forgot.title', { lng: currentLanguage })
+                : t('forgot.createPassword.title', { lng: currentLanguage })}
+            </Text>
+            <Text
+              style={styles.subtitle}
+              key={`subtitle-${languageKey}-${currentLanguage}`}
+            >
+              {currentStep === 'phone'
+                ? t('forgot.subtitle', { lng: currentLanguage })
+                : t('forgot.createPassword.description', {
+                  lng: currentLanguage,
+                })}
+            </Text>
+          </View>
 
-          <View
-            style={styles.mainContainer}
-            key={`main-${isRTL}-${languageKey}`}
-          >
-            <View style={styles.header}>
-              <Text
-                style={styles.title}
-                key={`title-${languageKey}-${currentLanguage}`}
-              >
-                {currentStep === 'phone'
-                  ? t('forgot.title', { lng: currentLanguage })
-                  : t('forgot.createPassword.title', { lng: currentLanguage })}
-              </Text>
-              <Text
-                style={styles.subtitle}
-                key={`subtitle-${languageKey}-${currentLanguage}`}
-              >
-                {currentStep === 'phone'
-                  ? t('forgot.subtitle', { lng: currentLanguage })
-                  : t('forgot.createPassword.description', {
-                      lng: currentLanguage,
-                    })}
-              </Text>
-            </View>
+          {currentStep === 'phone' ? (
+            <Formik
+              initialValues={{
+                phoneNumber: '+92',
+              }}
+              validationSchema={phoneValidationSchema}
+              onSubmit={(values, formikHelpers) => {
+                handlePhoneSubmit(values, formikHelpers);
+              }}
+            >
+              {({
+                handleBlur,
+                handleSubmit: formikSubmit,
+                values,
+                errors,
+                touched,
+                isSubmitting,
+                setFieldValue,
+              }) => {
+                const shouldShowError = (fieldName: 'phoneNumber') => {
+                  if (!validationAttempted && !touched[fieldName])
+                    return false;
+                  const isEmpty =
+                    !values[fieldName] || values[fieldName].trim() === '';
+                  const hasValidationError =
+                    touched[fieldName] && errors[fieldName];
+                  return isEmpty || hasValidationError;
+                };
 
-            {currentStep === 'phone' ? (
-              <Formik
-                initialValues={{
-                  phoneNumber: '+92',
-                }}
-                validationSchema={phoneValidationSchema}
-                onSubmit={(values, formikHelpers) => {
-                  handlePhoneSubmit(values, formikHelpers);
-                }}
-              >
-                {({
-                  handleBlur,
-                  handleSubmit: formikSubmit,
-                  values,
-                  errors,
-                  touched,
-                  isSubmitting,
-                  setFieldValue,
-                }) => {
-                  const shouldShowError = (fieldName: 'phoneNumber') => {
-                    if (!validationAttempted && !touched[fieldName])
-                      return false;
-                    const isEmpty =
-                      !values[fieldName] || values[fieldName].trim() === '';
-                    const hasValidationError =
-                      touched[fieldName] && errors[fieldName];
-                    return isEmpty || hasValidationError;
-                  };
-
-                  return (
-                    <>
-                      <CustomInput
-                        label={t('login.phoneNumber', { lng: currentLanguage })}
-                        placeholder="3XXXXXXXXX"
-                        isPhoneNumber={true}
-                        value={values.phoneNumber}
-                        onChangeText={text => {
-                          const cleaned = text.replace(/[^0-9+]/g, '');
-                          if (!cleaned.startsWith('+92')) {
-                            setFieldValue('phoneNumber', '+92');
-                            return;
-                          }
-                          if (cleaned.length <= 13) {
-                            setFieldValue('phoneNumber', cleaned);
-                          }
-                        }}
-                        onBlur={() => handleBlur('phoneNumber')}
-                        onFocus={() => setFocusedField('phoneNumber')}
-                        focused={focusedField === 'phoneNumber'}
-                        error={shouldShowError('phoneNumber')}
-                        errorMessage={
-                          shouldShowError('phoneNumber')
-                            ? t('forgot.errors.phoneNumber', {
-                                lng: currentLanguage,
-                              })
-                            : undefined
+                return (
+                  <>
+                    <CustomInput
+                      label={t('login.phoneNumber', { lng: currentLanguage })}
+                      placeholder="3XXXXXXXXX"
+                      isPhoneNumber={true}
+                      value={values.phoneNumber}
+                      onChangeText={text => {
+                        const cleaned = text.replace(/[^0-9+]/g, '');
+                        if (!cleaned.startsWith('+92')) {
+                          setFieldValue('phoneNumber', '+92');
+                          return;
                         }
-                        showErrorText={false}
-                      />
-
-                      <PrimaryButton
-                        title={
-                          isSubmitting || forgotPassword.isPending
-                            ? t('forgot.sending', { lng: currentLanguage })
-                            : t('forgot.cta', { lng: currentLanguage })
+                        if (cleaned.length <= 13) {
+                          setFieldValue('phoneNumber', cleaned);
                         }
-                        onPress={formikSubmit as any}
-                        loading={isSubmitting || forgotPassword.isPending}
-                        buttonStyle={{
-                          alignSelf: 'center',
-                          width: 161,
-                          height: 50,
-                          marginTop: hp(2),
-                        }}
-                      />
-                      {(isSubmitting || forgotPassword.isPending) && <Loader />}
-                    </>
-                  );
-                }}
-              </Formik>
-            ) : (
-              <Formik
-                initialValues={{
-                  newPassword: '',
-                  confirmPassword: '',
-                }}
-                validationSchema={passwordValidationSchema}
-                onSubmit={(values, formikHelpers) => {
-                  handlePasswordSubmit(values, formikHelpers);
-                }}
-              >
-                {({
-                  handleChange,
-                  handleBlur,
-                  handleSubmit: formikSubmit,
-                  values,
-                  errors,
-                  touched,
-                  isSubmitting,
-                }) => {
-                  const shouldShowError = (
-                    fieldName: 'newPassword' | 'confirmPassword',
-                  ) => {
-                    if (!validationAttempted && !touched[fieldName])
-                      return false;
-                    const isEmpty =
-                      !values[fieldName] || values[fieldName].trim() === '';
-                    const hasValidationError =
-                      touched[fieldName] && errors[fieldName];
-                    return isEmpty || hasValidationError;
-                  };
-
-                  return (
-                    <>
-                      {/* New Password */}
-                      <View>
-                        <CustomInput
-                          label={t('forgot.newPassword', {
+                      }}
+                      onBlur={() => handleBlur('phoneNumber')}
+                      onFocus={() => setFocusedField('phoneNumber')}
+                      focused={focusedField === 'phoneNumber'}
+                      error={shouldShowError('phoneNumber')}
+                      errorMessage={
+                        shouldShowError('phoneNumber')
+                          ? t('forgot.errors.phoneNumber', {
                             lng: currentLanguage,
-                          })}
-                          placeholder={t('forgot.newPassword', {
-                            lng: currentLanguage,
-                          })}
-                          isPassword={true}
-                          value={values.newPassword}
-                          onChangeText={handleChange('newPassword')}
-                          onBlur={() => handleBlur('newPassword')}
-                          onFocus={() => setFocusedField('newPassword')}
-                          focused={focusedField === 'newPassword'}
-                          error={shouldShowError('newPassword')}
-                          errorMessage={
-                            shouldShowError('newPassword')
-                              ? t('forgot.errors.newPassword', {
-                                  lng: currentLanguage,
-                                })
-                              : undefined
-                          }
-                        />
-                        {focusedField === 'newPassword' && (
-                          <PasswordRequirements
-                            password={values.newPassword}
-                            namespace="forgot"
-                          />
-                        )}
-                      </View>
+                          })
+                          : undefined
+                      }
+                      showErrorText={false}
+                    />
 
-                      {/* Confirm Password */}
+                    <PrimaryButton
+                      title={
+                        isSubmitting || forgotPassword.isPending
+                          ? t('forgot.sending', { lng: currentLanguage })
+                          : t('forgot.cta', { lng: currentLanguage })
+                      }
+                      onPress={formikSubmit as any}
+                      loading={isSubmitting || forgotPassword.isPending}
+                      buttonStyle={{
+                        alignSelf: 'center',
+                        width: 161,
+                        height: 50,
+                        marginTop: hp(2),
+                      }}
+                    />
+                    {(isSubmitting || forgotPassword.isPending) && <Loader />}
+                  </>
+                );
+              }}
+            </Formik>
+          ) : (
+            <Formik
+              initialValues={{
+                newPassword: '',
+                confirmPassword: '',
+              }}
+              validationSchema={passwordValidationSchema}
+              onSubmit={(values, formikHelpers) => {
+                handlePasswordSubmit(values, formikHelpers);
+              }}
+            >
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit: formikSubmit,
+                values,
+                errors,
+                touched,
+                isSubmitting,
+              }) => {
+                const shouldShowError = (
+                  fieldName: 'newPassword' | 'confirmPassword',
+                ) => {
+                  if (!validationAttempted && !touched[fieldName])
+                    return false;
+                  const isEmpty =
+                    !values[fieldName] || values[fieldName].trim() === '';
+                  const hasValidationError =
+                    touched[fieldName] && errors[fieldName];
+                  return isEmpty || hasValidationError;
+                };
+
+                return (
+                  <>
+                    {/* New Password */}
+                    <View>
                       <CustomInput
-                        label={t('forgot.confirmPassword', {
+                        label={t('forgot.newPassword', {
                           lng: currentLanguage,
                         })}
-                        placeholder={t('forgot.confirmPassword', {
+                        placeholder={t('forgot.newPassword', {
                           lng: currentLanguage,
                         })}
                         isPassword={true}
-                        value={values.confirmPassword}
-                        onChangeText={handleChange('confirmPassword')}
-                        onBlur={() => handleBlur('confirmPassword')}
-                        onFocus={() => setFocusedField('confirmPassword')}
-                        focused={focusedField === 'confirmPassword'}
-                        error={shouldShowError('confirmPassword')}
+                        value={values.newPassword}
+                        onChangeText={handleChange('newPassword')}
+                        onBlur={() => handleBlur('newPassword')}
+                        onFocus={() => setFocusedField('newPassword')}
+                        focused={focusedField === 'newPassword'}
+                        error={shouldShowError('newPassword')}
                         errorMessage={
-                          shouldShowError('confirmPassword')
-                            ? t('forgot.errors.confirmPassword', {
-                                lng: currentLanguage,
-                              })
+                          shouldShowError('newPassword')
+                            ? t('forgot.errors.newPassword', {
+                              lng: currentLanguage,
+                            })
                             : undefined
                         }
                       />
+                      {focusedField === 'newPassword' && (
+                        <PasswordRequirements
+                          password={values.newPassword}
+                          namespace="forgot"
+                        />
+                      )}
+                    </View>
 
-                      <PrimaryButton
-                        title={
-                          isSubmitting || updatePassword.isPending
-                            ? t('forgot.updating', { lng: currentLanguage }) !==
-                              'forgot.updating'
-                              ? t('forgot.updating', { lng: currentLanguage })
-                              : 'Updating...'
-                            : t('forgot.updatePassword', {
-                                lng: currentLanguage,
-                              }) !== 'forgot.updatePassword'
+                    {/* Confirm Password */}
+                    <CustomInput
+                      label={t('forgot.confirmPassword', {
+                        lng: currentLanguage,
+                      })}
+                      placeholder={t('forgot.confirmPassword', {
+                        lng: currentLanguage,
+                      })}
+                      isPassword={true}
+                      value={values.confirmPassword}
+                      onChangeText={handleChange('confirmPassword')}
+                      onBlur={() => handleBlur('confirmPassword')}
+                      onFocus={() => setFocusedField('confirmPassword')}
+                      focused={focusedField === 'confirmPassword'}
+                      error={shouldShowError('confirmPassword')}
+                      errorMessage={
+                        shouldShowError('confirmPassword')
+                          ? t('forgot.errors.confirmPassword', {
+                            lng: currentLanguage,
+                          })
+                          : undefined
+                      }
+                    />
+
+                    <PrimaryButton
+                      title={
+                        isSubmitting || updatePassword.isPending
+                          ? t('forgot.updating', { lng: currentLanguage }) !==
+                            'forgot.updating'
+                            ? t('forgot.updating', { lng: currentLanguage })
+                            : 'Updating...'
+                          : t('forgot.updatePassword', {
+                            lng: currentLanguage,
+                          }) !== 'forgot.updatePassword'
                             ? t('forgot.updatePassword', {
-                                lng: currentLanguage,
-                              })
+                              lng: currentLanguage,
+                            })
                             : 'Update Password'
-                        }
-                        onPress={formikSubmit as any}
-                        loading={isSubmitting || updatePassword.isPending}
-                        buttonStyle={{
-                          alignSelf: 'center',
-                          width: 161,
-                          height: 50,
-                          marginTop: hp(2),
-                        }}
-                      />
-                      {(isSubmitting || updatePassword.isPending) && <Loader />}
-                    </>
-                  );
-                }}
-              </Formik>
-            )}
-            <View style={styles.grayLine} />
+                      }
+                      onPress={formikSubmit as any}
+                      loading={isSubmitting || updatePassword.isPending}
+                      buttonStyle={{
+                        alignSelf: 'center',
+                        width: 161,
+                        height: 50,
+                        marginTop: hp(2),
+                      }}
+                    />
+                    {(isSubmitting || updatePassword.isPending) && <Loader />}
+                  </>
+                );
+              }}
+            </Formik>
+          )}
+          <View style={styles.grayLine} />
 
-            {currentStep === 'phone' && (
-              <View
-                style={[
-                  styles.footer,
-                  { flexDirection: isRTL ? 'row-reverse' : 'row' },
-                ]}
+          {currentStep === 'phone' && (
+            <View
+              style={[
+                styles.footer,
+                { flexDirection: isRTL ? 'row-reverse' : 'row' },
+              ]}
+            >
+              <Text
+                style={styles.footerText}
+                key={`footer-${languageKey}-${currentLanguage}`}
+              >
+                {t('forgot.remember', { lng: currentLanguage })}{' '}
+              </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('LoginScreen')}
               >
                 <Text
-                  style={styles.footerText}
-                  key={`footer-${languageKey}-${currentLanguage}`}
+                  style={styles.loginLink}
+                  key={`login-link-${languageKey}-${currentLanguage}`}
                 >
-                  {t('forgot.remember', { lng: currentLanguage })}{' '}
+                  {t('login.title', { lng: currentLanguage })}
                 </Text>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('LoginScreen')}
-                >
-                  <Text
-                    style={styles.loginLink}
-                    key={`login-link-${languageKey}-${currentLanguage}`}
-                  >
-                    {t('login.title', { lng: currentLanguage })}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </ScrollView>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
       </KeyboardAvoidingView>
 
       <OTPModal
@@ -535,13 +524,16 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   keyboardAvoidingView: { flex: 1 },
   scrollView: { flex: 1 },
-  mainContainer: { paddingHorizontal: 30 },
+  mainContainer: {
+    paddingHorizontal: 47,
+
+  },
   scrollContent: {
     paddingHorizontal: wp(6),
     paddingBottom: hp(25),
     minHeight: height + hp(10),
   },
-  header: { marginTop: hp(5), marginBottom: hp(4.5) },
+  header: { marginTop: hp(15), marginBottom: hp(4.5) },
   title: {
     fontSize: 26,
     fontWeight: '700',
