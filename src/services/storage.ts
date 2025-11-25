@@ -124,3 +124,111 @@ export async function getTermsAgreed(): Promise<boolean> {
     }
   }
 }
+
+const TERMS_CACHE_KEY = 'legal_documents_terms';
+const PRIVACY_CACHE_KEY = 'legal_documents_privacy';
+
+export interface CachedLegalDocument {
+  content: string;
+  version: string;
+  last_updated: string;
+  cached_at: string;
+}
+
+// Cache Terms document
+export async function cacheTermsDocument(
+  content: string,
+  version: string,
+  last_updated: string
+): Promise<void> {
+  const cached: CachedLegalDocument = {
+    content,
+    version,
+    last_updated,
+    cached_at: new Date().toISOString(),
+  };
+  try {
+    await storage.setItem(TERMS_CACHE_KEY, JSON.stringify(cached));
+    console.log('✅ Terms document cached');
+  } catch (err) {
+    console.error('Error caching terms:', err);
+    try {
+      await AsyncStorage.setItem(TERMS_CACHE_KEY, JSON.stringify(cached));
+      console.log('📥 Cached terms using AsyncStorage fallback');
+    } catch (fallbackErr) {
+      console.error('Error caching terms with fallback:', fallbackErr);
+    }
+  }
+}
+
+// Get cached Terms document
+export async function getCachedTermsDocument(): Promise<CachedLegalDocument | null> {
+  try {
+    const data = await storage.getItem(TERMS_CACHE_KEY);
+    if (!data) {
+      return null;
+    }
+    return JSON.parse(data) as CachedLegalDocument;
+  } catch (err) {
+    console.error('Error reading cached terms:', err);
+    try {
+      const data = await AsyncStorage.getItem(TERMS_CACHE_KEY);
+      if (!data) {
+        return null;
+      }
+      return JSON.parse(data) as CachedLegalDocument;
+    } catch (fallbackErr) {
+      console.error('Error reading cached terms with fallback:', fallbackErr);
+      return null;
+    }
+  }
+}
+
+// Cache Privacy Policy document
+export async function cachePrivacyDocument(
+  content: string,
+  version: string,
+  last_updated: string
+): Promise<void> {
+  const cached: CachedLegalDocument = {
+    content,
+    version,
+    last_updated,
+    cached_at: new Date().toISOString(),
+  };
+  try {
+    await storage.setItem(PRIVACY_CACHE_KEY, JSON.stringify(cached));
+    console.log('✅ Privacy document cached');
+  } catch (err) {
+    console.error('Error caching privacy:', err);
+    try {
+      await AsyncStorage.setItem(PRIVACY_CACHE_KEY, JSON.stringify(cached));
+      console.log('📥 Cached privacy using AsyncStorage fallback');
+    } catch (fallbackErr) {
+      console.error('Error caching privacy with fallback:', fallbackErr);
+    }
+  }
+}
+
+// Get cached Privacy Policy document
+export async function getCachedPrivacyDocument(): Promise<CachedLegalDocument | null> {
+  try {
+    const data = await storage.getItem(PRIVACY_CACHE_KEY);
+    if (!data) {
+      return null;
+    }
+    return JSON.parse(data) as CachedLegalDocument;
+  } catch (err) {
+    console.error('Error reading cached privacy:', err);
+    try {
+      const data = await AsyncStorage.getItem(PRIVACY_CACHE_KEY);
+      if (!data) {
+        return null;
+      }
+      return JSON.parse(data) as CachedLegalDocument;
+    } catch (fallbackErr) {
+      console.error('Error reading cached privacy with fallback:', fallbackErr);
+      return null;
+    }
+  }
+}

@@ -19,7 +19,6 @@ import CampaignEmptyState from '../components/CampaignEmptyState';
 import StatusCard from '../components/StatusCard';
 import { SUPABASE_URL } from '../../../config';
 import { AdvertisementStatus } from '../domain/entities';
-import BackButton from '../../../components/BackButton';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -776,18 +775,9 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
     );
   };
 
-  const handleBackPress = () => {
-    navigation.goBack();
-  };
-
   return (
   <View style={styles.container}>
       <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
-      {/* Back Button */}
-      <View style={styles.backButtonContainer}>
-        <BackButton iconColor="#000000" />
-      </View>
-      
       {/* Header with Campaign Tabs */}
       <View style={styles.header}>
         <CampaignTabs
@@ -865,12 +855,6 @@ const styles = StyleSheet.create({
      resizeMode: 'contain',
      borderRadius:2,
     marginRight:10},
-   backButtonContainer: {
-    position: 'absolute',
-    top: hp(4),
-    left: wp(5),
-    zIndex: 10,
-  },
    header: {
     flexDirection: 'row',
     alignItems: 'center',

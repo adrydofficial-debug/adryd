@@ -70,7 +70,7 @@ const InviteLink: React.FC = () => {
     >
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.headerContainer}>
-          <View style={styles.backButtonWrapper}>
+          <View >
             <BackButton style={styles.backButtonOverride}/>
           </View>
           <TouchableOpacity
@@ -108,7 +108,6 @@ const InviteLink: React.FC = () => {
               <Text style={styles.noWrap}>
                 {t('inviteScreen.ctaText')}
                 <Text style={styles.heroHighlight}>{t('inviteScreen.ctaHighlight')}</Text>
-                {' and earn'}
               </Text>
               {t('inviteScreen.ctaTextAfter')}
             </Text>
@@ -176,7 +175,7 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
     backButtonOverride: {
       position: 'relative',
       left: 0,
-      top: 0,
+      top: 13,
     },
     iconButton: {
       backgroundColor: '#FFFFFF',
@@ -185,11 +184,7 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
       paddingVertical: hp(0.8),
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      marginTop: 26,
     },
     iconButtonContent: {
       flexDirection: 'row',
@@ -253,7 +248,7 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
       marginTop: 0,
     },
     description: {
-      fontSize: 16,
+      fontSize: 15,
       color: '#1F2937',
       textAlign: 'center',
       marginBottom: hp(0.4),
@@ -266,7 +261,6 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
     heroHighlight: {
       color: '#C539A5',
       fontWeight: '600',
-      textDecorationLine: 'underline',
     },
     helper: {
       fontSize: scaleWidth(12),
