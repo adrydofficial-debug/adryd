@@ -56,10 +56,11 @@
       "continueBusiness": "Continue this business"
     },
     "inviteScreen": {
-      "headlineTop": "Discover Outdoor",
-      "headlineBottom": "Spaces place your ads",
-      "ctaHighlight": "Be a hero",
-      "ctaText": "and invite using your unique referral link.",
+      "headlineTop": "Bring your friends",
+      "headlineBottom": "and claim rewards",
+      "ctaHighlight": "Referral link",
+      "ctaText": "Share your ",
+      "ctaTextAfter": " and earn exclusive rewards when others sign up!",
       "helper": "Share the link with friends, teammates and partners to unlock rewards together.",
       "primaryCta": "Invite",
       "shareMessage": "Join me on Adryd Marketing Co. and reserve outdoor spaces:",
@@ -72,7 +73,7 @@
     },
     "drawer": {
       "security": "Security",
-      "securitySubtitle": "Phone number & Password",
+      "securitySubtitle": "Password",
       "companies": "Companies",
       "companiesSubtitle": "Saved Your Business",
       "favorite": "Favorite",
@@ -151,8 +152,9 @@
     "inviteScreen": {
       "headlineTop": "آؤٹ ڈور اسپیسز دریافت کریں",
       "headlineBottom": "جہاں آپ کے اشتہارات جگہ پاتے ہیں",
-      "ctaHighlight": "ہیرو بنیں",
-      "ctaText": "اور اپنے منفرد ریفرل لنک کے ذریعے دوسروں کو مدعو کریں۔",
+      "ctaHighlight": "ریفرل لنک",
+      "ctaText": "اپنا ",
+      "ctaTextAfter": " شیئر کریں اور دوسروں کے سائن اپ پر خصوصی انعامات حاصل کریں!",
       "helper": "اس لنک کو دوستوں اور ساتھیوں کے ساتھ شیئر کریں اور مل کر انعامات حاصل کریں۔",
       "primaryCta": "دعوت دیں",
       "shareMessage": "Adryd Marketing Co پر میرے ساتھ شامل ہوں اور آؤٹ ڈور اسپیس بک کریں:",

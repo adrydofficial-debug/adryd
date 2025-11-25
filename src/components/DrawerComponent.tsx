@@ -183,12 +183,13 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       title: t('drawer.security'),
       subtitle: t('drawer.securitySubtitle'),
       onPress: () => {
-        onClose();
         try {
           navigation.navigate('ChangePassword' as never);
           console.log('✅ Navigation to ChangePassword successful');
+          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation error:', error);
+          onClose();
         }
       },
       // color: '#E91E63',
@@ -199,14 +200,15 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       title: t('drawer.companies'),
       subtitle: t('drawer.companiesSubtitle'),
       onPress: () => {
-        onClose(); // Close the drawer first
         try {
           (navigation as any).navigate('PreviousCompanyScreen', {
             isSelectable: true,
           });
           console.log('✅ Navigation to CompanyListScreen successful');
+          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation error:', error);
+          onClose();
         }
       },
       // color: '#9C27B0',
@@ -218,12 +220,13 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       title: t('drawer.favorite'),
       subtitle: t('drawer.favoriteSubtitle'),
       onPress: () => {
-        onClose(); // Close the drawer first
         try {
           navigation.navigate('FavouritesScreen' as never);
           console.log('✅ Navigation to FavouritesScreen successful');
+          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation error:', error);
+          onClose();
         }
       },
       // color: '#FF5722',
@@ -234,12 +237,13 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       title: t('drawer.invite'),
       subtitle: t('drawer.inviteSubtitle'),
       onPress: () => {
-        onClose();
         try {
           navigation.navigate('InviteLink' as never);
           console.log('✅ Navigation to InviteLink successful');
+          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation to InviteLink failed:', error);
+          onClose();
         }
       },
       // color: '#4CAF50',
@@ -252,12 +256,13 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       id: 6,
       title: t('drawer.help'),
       onPress: () => {
-        onClose();
         try {
           navigation.navigate('HelpFAQsScreen' as never);
           console.log('✅ Navigation to HelpFAQsScreen successful');
+          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation error:', error);
+          onClose();
         }
       },
       //  color: '#607D8B',
@@ -267,12 +272,13 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       id: 7,
       title: t('drawer.terms'),
       onPress: () => {
-        onClose();
         try {
           navigation.navigate('TermsPrivacyOptions' as never);
           console.log('✅ Navigation to TermsPrivacyOptions successful');
+          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation error:', error);
+          onClose();
         }
       },
       //  color: '#795548',
@@ -387,12 +393,13 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
                 <TouchableOpacity
                   style={styles.headerButton}
                   onPress={() => {
-                    onClose();
                     try {
                       navigation.navigate('HelpFAQsScreen' as never);
                       console.log('✅ Navigation to HelpFAQsScreen successful');
+                      setTimeout(() => onClose(), 100);
                     } catch (error) {
                       console.error('❌ Navigation error:', error);
+                      onClose();
                     }
                   }}
                   activeOpacity={0.7}
@@ -418,18 +425,11 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
                     style={styles.profileImageAvatar}
                   />
                 ) : (
-                  <Text style={styles.profileImageText}>
-                    {(
-                      profile?.full_name ||
-                      user?.user_metadata?.full_name ||
-                      user?.user_metadata?.name ||
-                      user?.user_metadata?.username ||
-                      user?.email?.split('@')[0] ||
-                      'U'
-                    )
-                      ?.charAt(0)
-                      .toUpperCase()}
-                  </Text>
+                  <Image
+                    source={Images.frame}
+                    style={styles.profileImageAvatar}
+                    resizeMode="cover"
+                  />
                 )}
               </View>
             </View>
@@ -450,12 +450,13 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
               style={styles.editButton}
               activeOpacity={0.7}
               onPress={() => {
-                onClose(); // Close the drawer first
                 try {
                   navigation.navigate('UpdateProfile' as never);
                   console.log('✅ Navigation to UpdateProfile successful');
+                  setTimeout(() => onClose(), 100);
                 } catch (error) {
                   console.error('❌ Navigation error:', error);
+                  onClose();
                 }
               }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -714,17 +715,12 @@ const styles = StyleSheet.create({
     width: width * 0.15,
     height: width * 0.15,
     borderRadius: width * 0.075,
-    backgroundColor: '#E8D5F2',
+    backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: 'transparent',
     overflow: 'hidden',
-  },
-  profileImageText: {
-    color: '#C539A5',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   profileImageAvatar: {
     width: '100%',

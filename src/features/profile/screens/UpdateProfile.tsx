@@ -48,7 +48,7 @@ const UpdateProfile: React.FC = () => {
   >(undefined);
   const [avatarUri, setAvatarUri] = useState<string | undefined>(undefined);
   const [originalAvatarUri, setOriginalAvatarUri] = useState<string | undefined>(undefined);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(true);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const nameInputRef = useRef<TextInput>(null);
 
@@ -62,6 +62,11 @@ const UpdateProfile: React.FC = () => {
     return () => {
       i18n.off('languageChanged', handleLanguageChange);
     };
+  }, []);
+
+  // Ensure edit mode is enabled on mount
+  useEffect(() => {
+    setIsEditMode(true);
   }, []);
   const handleBackPress = () => {
     navigation.goBack();
@@ -85,6 +90,8 @@ const UpdateProfile: React.FC = () => {
       setRefreshKey(prev => prev + 1);
       refetch();
       setLanguageKey(prev => prev + 1);
+      // Ensure edit mode is enabled when screen is focused
+      setIsEditMode(true);
     }, [refetch]),
   );
 
@@ -230,7 +237,17 @@ const UpdateProfile: React.FC = () => {
                       title={t('updateProfile.cancel')}
                       onPress={handleCancel}
                       variant="outline"
-                      buttonStyle={{ width: '100%' }}
+                      buttonStyle={{
+                        width: '100%',
+                        backgroundColor: '#F5F6F7',
+                        borderWidth: 0.5,
+                        borderColor: '#E5E7EB',
+                      }}
+                      textStyle={{
+                        color: '#3D3D3D',
+                        fontSize: 14,
+                        fontWeight: '500',
+                      }}
                       disabled={updateProfile.isPending}
                     />
                   </View>
@@ -278,7 +295,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(2.5),
   },
   form: { marginTop: hp(1) },
-  smallLabel: { fontSize: 12, color: '#000000', marginBottom: 4, marginTop: 10 },
+  smallLabel: { fontSize: 12, color:'#E5E7EB',marginBottom: 4, marginTop: 10 },
   inputContainerFix: { marginBottom: hp(0.6) },
   noteText: { fontSize: 12, color: '#999', marginTop: -8 },
   buttonWrap: { marginTop: hp(4) },
