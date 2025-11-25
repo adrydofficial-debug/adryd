@@ -69,24 +69,26 @@ const InviteLink: React.FC = () => {
       style={styles.gradient}
     >
       <SafeAreaView style={styles.safeArea}>
+        <View style={styles.headerContainer}>
+          <View style={styles.backButtonWrapper}>
+            <BackButton style={styles.backButtonOverride}/>
+          </View>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={handleShareInvite}
+            accessibilityRole="button"
+            accessibilityLabel={t('inviteScreen.shareA11y')}
+          >
+            <View style={styles.iconButtonContent}>
+              <Ionicons name="person" size={20} color="#C539A5" />
+              <Text style={styles.iconButtonText}>{inviteCount}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.headerRow}>
-            <BackButton/>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={handleShareInvite}
-              accessibilityRole="button"
-              accessibilityLabel={t('inviteScreen.shareA11y')}
-            >
-              <View style={styles.iconButtonContent}>
-                <Ionicons name="person" size={20} color="#C539A5" />
-                <Text style={styles.iconButtonText}>{inviteCount}</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
 
           <View style={styles.badgeCloud}>
             <Text style={styles.headlineTop}>{t('inviteScreen.headlineTop')}</Text>
@@ -157,12 +159,24 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
     scrollContent: {
       paddingHorizontal: wp(6),
       paddingBottom: hp(4),
+      paddingTop: hp(1),
     },
-    headerRow: {
+    headerContainer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      width: '100%',
+      paddingHorizontal: wp(6),
+      paddingTop: hp(1),
       marginBottom: hp(2.5),
+    },
+    backButtonWrapper: {
+      position: 'relative',
+    },
+    backButtonOverride: {
+      position: 'relative',
+      left: 0,
+      top: 0,
     },
     iconButton: {
       backgroundColor: '#FFFFFF',
@@ -171,7 +185,6 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
       paddingVertical: hp(0.8),
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: hp(3),
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
