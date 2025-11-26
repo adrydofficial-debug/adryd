@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useMutation } from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useCities, useLocations } from '../hooks/hooks';
@@ -46,6 +46,7 @@ interface AreaHistory {
 
 const SearchLocation: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const [searchQuery, setSearchQuery] = useState('');
   const [draftSelectedFilters, setDraftSelectedFilters] = useState<Set<string>>(new Set());
   const [appliedFilters, setAppliedFilters] = useState<Set<string>>(new Set());
@@ -69,11 +70,13 @@ const SearchLocation: React.FC = () => {
   const [isLocationDropdownVisible, setIsLocationDropdownVisible] = useState(false);
   const [isCitiesDropdownOpen, setIsCitiesDropdownOpen] = useState(false);
   const [isFilterSectionVisible, setIsFilterSectionVisible] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [areaHistory, setAreaHistory] = useState<AreaHistory[]>([
     { id: '1', name: 'Mall Road' },
     { id: '2', name: 'Gulberg' },
     { id: '3', name: 'Model Town' },
   ]);
+  const tagsScrollViewRef = useRef<ScrollView>(null);
 
   const {
     data: citiesData = [],
@@ -121,6 +124,24 @@ const SearchLocation: React.FC = () => {
       }
     }
   }, [cities, selectedLocation, selectedCityId, isLocationExplicitlySelected]);
+
+  useEffect(() => {
+    const params = route?.params;
+    if (params) {
+      if (params.openLocationModal === true) {
+        setIsLocationDropdownVisible(true);
+        refetchCities();
+        setDraftSelectedArea(selectedArea);
+        setDraftSelectedLocationId(selectedLocationId);
+        setIsCitiesDropdownOpen(false);
+      }
+      
+      if (params.openFilters === true) {
+        setIsFilterSectionVisible(true);
+        refetchBoardFilters();
+      }
+    }
+  }, [route?.params, selectedArea, selectedLocationId, refetchCities, refetchBoardFilters]);
 
   // Select a city
   const selectCity = (city: City) => {
@@ -259,6 +280,34 @@ const SearchLocation: React.FC = () => {
     setDraftSelectedFilters(prev => {
       const newSet = new Set(prev);
       
+      // Handle "See All" special case
+      if (filterId === 'see-all') {
+        const isSeeAllSelected = prev.has('see-all');
+        
+        if (isSeeAllSelected) {
+          // Deselect "See All", "Recommended" and all category filters
+          newSet.delete('see-all');
+          newSet.delete('recommended');
+          // Remove all category filters (keep only special filters if any)
+          filterGroups.forEach(group => {
+            group.categories.forEach(cat => {
+              newSet.delete(cat.slug);
+            });
+          });
+        } else {
+          // Select "See All", "Recommended" and all category filters
+          newSet.add('see-all');
+          newSet.add('recommended');
+          // Add all category filters from all groups
+          filterGroups.forEach(group => {
+            group.categories.forEach(cat => {
+              newSet.add(cat.slug);
+            });
+          });
+        }
+        return newSet;
+      }
+      
       if (isGroup) {
         // If it's a group, toggle all its children
         const childSlugs = getGroupChildSlugs(filterId);
@@ -267,22 +316,56 @@ const SearchLocation: React.FC = () => {
         if (allSelected) {
           // Deselect all children
           childSlugs.forEach(slug => newSet.delete(slug));
+          // Also deselect "See All" and "Recommended" if they were selected
+          newSet.delete('see-all');
+          newSet.delete('recommended');
         } else {
           // Select all children
           childSlugs.forEach(slug => newSet.add(slug));
+          // Check if all categories are now selected, if so, also select "See All" and "Recommended"
+          const allCategoriesSelected = filterGroups.every(group => 
+            group.categories.every(cat => {
+              if (group.slug === filterId) {
+                // For the current group, check if all are selected after adding
+                return newSet.has(cat.slug);
+              }
+              return prev.has(cat.slug);
+            })
+          );
+          if (allCategoriesSelected) {
+            newSet.add('see-all');
+            newSet.add('recommended');
+          }
         }
       } else {
         // Regular toggle for individual filters
         if (newSet.has(filterId)) {
           newSet.delete(filterId);
+          // If deselecting a category, also deselect "See All" and "Recommended"
+          newSet.delete('see-all');
+          newSet.delete('recommended');
         } else {
           newSet.add(filterId);
+          // Check if all categories are now selected, if so, also select "See All" and "Recommended"
+          const allCategoriesSelected = filterGroups.every(group => 
+            group.categories.every(cat => {
+              if (cat.slug === filterId) {
+                // For the current category, check if it's selected after adding
+                return newSet.has(cat.slug);
+              }
+              return prev.has(cat.slug);
+            })
+          );
+          if (allCategoriesSelected) {
+            newSet.add('see-all');
+            newSet.add('recommended');
+          }
         }
       }
       
       return newSet;
     });
-  }, [getGroupChildSlugs]);
+  }, [getGroupChildSlugs, filterGroups]);
 
   // Reset all filters
   const resetAllFilters = () => {
@@ -307,6 +390,16 @@ const SearchLocation: React.FC = () => {
       .filter(Boolean)
       .map(option => option!.name);
   }, [draftSelectedFilters, filterOptionsMap]);
+
+  // Auto-scroll to latest tag when a new filter is selected
+  useEffect(() => {
+    if (selectedFilterNames.length > 0 && tagsScrollViewRef.current) {
+      // Small delay to ensure the tag is rendered
+      setTimeout(() => {
+        tagsScrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [selectedFilterNames.length]);
 
   const appliedFilterTags = useMemo(() => {
     return appliedFilterOrder
@@ -503,11 +596,7 @@ const SearchLocation: React.FC = () => {
     filterGroups,
   ]);
 
-  const handleApplyFilters = useCallback(async () => {
-    if (isApplyingFilters) {
-      return;
-    }
-
+  const buildFilterPayload = useCallback((page: number = DEFAULT_PAGE): FilterBoardsParams => {
     const trimmedSearch = searchQuery.trim();
     const sortedIds = sortedDraftFilterIds;
     
@@ -525,7 +614,7 @@ const SearchLocation: React.FC = () => {
     // Build payload based on what filters are selected
     const payload: FilterBoardsParams = {
       // Pagination
-      page: DEFAULT_PAGE,
+      page,
       limit: DEFAULT_LIMIT,
       // Search
       search: trimmedSearch || undefined,
@@ -549,6 +638,37 @@ const SearchLocation: React.FC = () => {
       // Only send city_id if user explicitly selected a city (not just default)
       payload.city_id = selectedCityId;
     }
+
+    return payload;
+  }, [
+    searchQuery,
+    sortedDraftFilterIds,
+    selectedLocationId,
+    selectedCityId,
+    isLocationExplicitlySelected,
+    filterGroups,
+  ]);
+
+  const handleApplyFilters = useCallback(async () => {
+    if (isApplyingFilters) {
+      return;
+    }
+
+    const trimmedSearch = searchQuery.trim();
+    const sortedIds = sortedDraftFilterIds;
+    
+    // Filter out special filter IDs and group slugs - only send category slugs
+    const validCategorySlugs = sortedIds.filter(id => {
+      // Exclude special filters (they don't have real slugs)
+      if (id === 'see-all' || id === 'recommended') {
+        return false;
+      }
+      // Exclude group slugs - only include category slugs
+      const isGroupSlug = filterGroups.some(g => g.slug === id);
+      return !isGroupSlug;
+    });
+
+    const payload = buildFilterPayload(DEFAULT_PAGE);
 
     console.log('[SearchLocation] Applying filters payload:', JSON.stringify(payload, null, 2));
 
@@ -585,6 +705,53 @@ const SearchLocation: React.FC = () => {
     selectedCityId,
     isLocationExplicitlySelected,
     filterGroups,
+    buildFilterPayload,
+  ]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (isLoadingMore || isApplyingFilters) {
+      return;
+    }
+
+    const nextPage = filterPagination.page + 1;
+    if (nextPage > filterPagination.totalPages) {
+      return; // No more pages to load
+    }
+
+    setIsLoadingMore(true);
+    setApiError(null);
+
+    try {
+      const payload = buildFilterPayload(nextPage);
+      const response = await runFilterRequest(payload);
+      const mapped = mapFilteredBoards(response);
+      const total = response.pagination?.total ?? filterPagination.total;
+      const limit = response.pagination?.limit ?? DEFAULT_LIMIT;
+
+      // Append new boards to existing ones
+      setFilteredBoards(prev => [
+        ...prev,
+        ...mapped.boards.map(convertBoardToBoardItem),
+      ]);
+      setFilterPagination({
+        page: mapped.page,
+        totalPages: mapped.totalPages,
+        total,
+        limit,
+      });
+    } catch (error) {
+      console.error('[SearchLocation] Failed to load more boards:', error);
+      setApiError('Unable to load more boards. Please try again.');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [
+    isLoadingMore,
+    isApplyingFilters,
+    filterPagination,
+    buildFilterPayload,
+    runFilterRequest,
+    convertBoardToBoardItem,
   ]);
 
   return (
@@ -656,57 +823,20 @@ const SearchLocation: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Main Scrollable Content */}
-      <ScrollView
-        style={styles.mainScrollView}
-        contentContainerStyle={styles.mainScrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {(appliedFilterTags.length > 0 || appliedSearchQuery) && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.appliedChipsScroll}
-            contentContainerStyle={styles.appliedChipsContent}
-          >
-            {appliedFilterTags.map(tag => (
-              <View key={tag.id} style={styles.appliedChip}>
-                <Text style={styles.appliedChipText}>{tag.name}</Text>
-              </View>
-            ))}
-            {appliedSearchQuery ? (
-              <View style={styles.appliedChip}>
-                <Text style={styles.appliedChipText}>
-                  Search: {appliedSearchQuery}
-                </Text>
-              </View>
-            ) : null}
-          </ScrollView>
-        )}
-
-        {isApplyingFilters && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#C538A5" />
-            <Text style={styles.loadingText}>Applying filters…</Text>
-          </View>
-        )}
-
-        {apiError && (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorBannerText}>{apiError}</Text>
-          </View>
-        )}
-
+      {/* Main Content */}
+      <View style={styles.mainContainer}>
         {/* Set Filter Section - Only visible when filter icon is clicked */}
-        {isFilterSectionVisible && (
+        {isFilterSectionVisible ? (
           <>
-            <View style={styles.filterSectionContainer}>
+            {/* Fixed Header and Tags */}
+            <View style={styles.filterHeaderContainer}>
               <View style={styles.filterHeader}>
                 <Text style={styles.filterTitle}>Set Filter</Text>
                 {draftSelectedFilters.size > 0 && (
                   <TouchableOpacity
                     style={styles.resetButton}
                     onPress={resetAllFilters}
+                    activeOpacity={0.7}
                   >
                     <Text style={styles.resetButtonText}>Reset All</Text>
                   </TouchableOpacity>
@@ -715,27 +845,43 @@ const SearchLocation: React.FC = () => {
 
               {/* Selected Filter Tags - displayed just below Set Filter heading */}
               {selectedFilterNames.length > 0 && (
-                <View style={styles.tagsContainer}>
-                  {selectedFilterNames.map((name, index) => (
-                    <View key={index} style={styles.tag}>
-                      <Text style={styles.tagText}>{name}</Text>
-                      <TouchableOpacity
-                        style={styles.tagClose}
-                        onPress={() => {
-                          const filterId = filterOptions.find(
-                            f => f.name === name,
-                          )?.id;
-                          if (filterId) toggleFilter(filterId);
-                        }}
-                      >
-                        <Ionicons name="close" size={16} color="#1c1b1cff" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
+                <View style={styles.tagsWrapper}>
+                  <ScrollView
+                    ref={tagsScrollViewRef}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.tagsContainer}
+                    contentContainerStyle={styles.tagsContainerContent}
+                  >
+                    {selectedFilterNames.map((name, index) => (
+                      <View key={index} style={styles.tag}>
+                        <Text style={styles.tagText}>{name}</Text>
+                        <TouchableOpacity
+                          style={styles.tagClose}
+                          onPress={() => {
+                            const filterId = filterOptions.find(
+                              f => f.name === name,
+                            )?.id;
+                            if (filterId) toggleFilter(filterId);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="close" size={14} color="#C538A5" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </ScrollView>
                 </View>
               )}
+            </View>
 
-              {/* Filter Options List */}
+            {/* Scrollable Filter Options List */}
+            <ScrollView
+              style={styles.filterOptionsScrollView}
+              contentContainerStyle={styles.filterOptionsScrollContent}
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+            >
               <View style={styles.optionsListContent}>
                 {isBoardFiltersLoading ? (
                   <ActivityIndicator size="small" color="#C538A5" />
@@ -756,43 +902,54 @@ const SearchLocation: React.FC = () => {
                 ) : (
                   <>
                     {/* Special Filters Section */}
-                    {specialFilters
-                      .filter(option => 
-                        !searchQuery.trim() || 
-                        option.name.toLowerCase().includes(searchQuery.toLowerCase())
-                      )
-                      .map(option => {
-                        const isSelected = draftSelectedFilters.has(option.id);
-                        return (
-                          <TouchableOpacity
-                            key={option.id}
-                            style={[
-                              styles.filterOption,
-                              isSelected && styles.filterOptionSelected,
-                            ]}
-                            onPress={() => toggleFilter(option.id, false)}
-                          >
-                            <View
-                              style={[
-                                styles.checkbox,
-                                isSelected && styles.checkboxSelected,
-                              ]}
-                            >
-                              {isSelected && (
-                                <Ionicons name="checkmark" size={12} color="#fff" />
-                              )}
-                            </View>
-                            <Text
-                              style={[
-                                styles.filterOptionText,
-                                isSelected && styles.filterOptionTextSelected,
-                              ]}
-                            >
-                              {option.name}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                    {specialFilters.filter(option => 
+                      !searchQuery.trim() || 
+                      option.name.toLowerCase().includes(searchQuery.toLowerCase())
+                    ).length > 0 && (
+                      <View style={styles.filterSectionCard}>
+                        {specialFilters
+                          .filter(option => 
+                            !searchQuery.trim() || 
+                            option.name.toLowerCase().includes(searchQuery.toLowerCase())
+                          )
+                          .map((option, index, array) => {
+                            const isSelected = draftSelectedFilters.has(option.id);
+                            const isFirst = index === 0;
+                            const isLast = index === array.length - 1;
+                            return (
+                              <TouchableOpacity
+                                key={option.id}
+                                style={[
+                                  styles.filterOption,
+                                  isFirst && styles.filterOptionFirst,
+                                  isLast && styles.filterOptionLast,
+                                  isSelected && styles.filterOptionSelected,
+                                ]}
+                                onPress={() => toggleFilter(option.id, false)}
+                              >
+                                <View
+                                  style={[
+                                    styles.checkbox,
+                                    isSelected && styles.checkboxSelected,
+                                  ]}
+                                >
+                                  {isSelected && (
+                                    <Ionicons name="checkmark" size={11} color="#fff" />
+                                  )}
+                                </View>
+                                <Text
+                                  style={[
+                                    styles.filterOptionText,
+                                    isSelected && styles.filterOptionTextSelected,
+                                  ]}
+                                >
+                                  {option.name}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                      </View>
+                    )}
 
                     {/* Group Filters Section */}
                     {filterGroups
@@ -809,14 +966,19 @@ const SearchLocation: React.FC = () => {
                           draftSelectedFilters.has(cat.slug)
                         );
                         const isGroupIndeterminate = hasSomeChildrenSelected && !allChildrenSelected;
+                        const filteredCategories = group.categories.filter(cat => 
+                          !searchQuery.trim() || 
+                          cat.name.toLowerCase().includes(searchQuery.toLowerCase())
+                        );
                         
                         return (
-                          <View key={group.slug} style={styles.filterGroupContainer}>
+                          <View key={group.slug} style={styles.filterSectionCard}>
                             {/* Group Header */}
                             <TouchableOpacity
                               style={[
                                 styles.filterOption,
                                 styles.filterGroupHeader,
+                                filteredCategories.length === 0 && styles.filterOptionLast,
                                 (allChildrenSelected || isGroupIndeterminate) && styles.filterOptionSelected,
                               ]}
                               onPress={() => toggleFilter(group.slug, true)}
@@ -830,7 +992,7 @@ const SearchLocation: React.FC = () => {
                                 {(allChildrenSelected || isGroupIndeterminate) && (
                                   <Ionicons 
                                     name={isGroupIndeterminate ? "remove" : "checkmark"} 
-                                    size={12} 
+                                    size={11} 
                                     color="#fff" 
                                   />
                                 )}
@@ -846,45 +1008,42 @@ const SearchLocation: React.FC = () => {
                             </TouchableOpacity>
 
                             {/* Group Categories (Children) */}
-                            {group.categories
-                              .filter(cat => 
-                                !searchQuery.trim() || 
-                                cat.name.toLowerCase().includes(searchQuery.toLowerCase())
-                              )
-                              .map(category => {
-                                const isSelected = draftSelectedFilters.has(category.slug);
-                                return (
-                                  <TouchableOpacity
-                                    key={category.slug}
+                            {filteredCategories.map((category, index) => {
+                              const isSelected = draftSelectedFilters.has(category.slug);
+                              const isLast = index === filteredCategories.length - 1;
+                              return (
+                                <TouchableOpacity
+                                  key={category.slug}
+                                  style={[
+                                    styles.filterOption,
+                                    styles.filterCategoryItem,
+                                    isLast && styles.filterOptionLast,
+                                    isSelected && styles.filterOptionSelected,
+                                  ]}
+                                  onPress={() => toggleFilter(category.slug, false)}
+                                >
+                                  <View
                                     style={[
-                                      styles.filterOption,
-                                      styles.filterCategoryItem,
-                                      isSelected && styles.filterOptionSelected,
+                                      styles.checkbox,
+                                      isSelected && styles.checkboxSelected,
                                     ]}
-                                    onPress={() => toggleFilter(category.slug, false)}
                                   >
-                                    <View
-                                      style={[
-                                        styles.checkbox,
-                                        isSelected && styles.checkboxSelected,
-                                      ]}
-                                    >
-                                      {isSelected && (
-                                        <Ionicons name="checkmark" size={12} color="#fff" />
-                                      )}
-                                    </View>
-                                    <View/>
-                                    <Text
-                                      style={[
-                                        styles.filterOptionText,
-                                        isSelected && styles.filterOptionTextSelected,
-                                      ]}
-                                    >
-                                      {category.name}
-                                    </Text>
-                                  </TouchableOpacity>
-                                );
-                              })}
+                                    {isSelected && (
+                                      <Ionicons name="checkmark" size={12} color="#fff" />
+                                    )}
+                                  </View>
+                                  <View/>
+                                  <Text
+                                    style={[
+                                      styles.filterOptionText,
+                                      isSelected && styles.filterOptionTextSelected,
+                                    ]}
+                                  >
+                                    {category.name}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
                           </View>
                         );
                       })}
@@ -903,13 +1062,50 @@ const SearchLocation: React.FC = () => {
                   </>
                 )}
               </View>
-            </View>
+            </ScrollView>
           </>
-        )}
+        ) : (
+          <ScrollView
+            style={styles.mainScrollView}
+            contentContainerStyle={styles.mainScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {(appliedFilterTags.length > 0 || appliedSearchQuery) && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.appliedChipsScroll}
+                contentContainerStyle={styles.appliedChipsContent}
+              >
+                {appliedFilterTags.map(tag => (
+                  <View key={tag.id} style={styles.appliedChip}>
+                    <Text style={styles.appliedChipText}>{tag.name}</Text>
+                  </View>
+                ))}
+                {appliedSearchQuery ? (
+                  <View style={styles.appliedChip}>
+                    <Text style={styles.appliedChipText}>
+                      Search: {appliedSearchQuery}
+                    </Text>
+                  </View>
+                ) : null}
+              </ScrollView>
+            )}
 
-        {/* Boards Results - Only show when filter section is NOT visible */}
-        {!isFilterSectionVisible && (
-          <>
+            {isApplyingFilters && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#C538A5" />
+                <Text style={styles.loadingText}>Applying filters…</Text>
+              </View>
+            )}
+
+            {apiError && (
+              <View style={styles.errorBanner}>
+                <Text style={styles.errorBannerText}>{apiError}</Text>
+              </View>
+            )}
+
+            {/* Boards Results */}
             {filteredBoards.length > 0 && (
               <View style={styles.resultsSection}>
                 {/* <Text style={styles.resultsHeading}>Filtered Boards</Text> */}
@@ -925,6 +1121,23 @@ const SearchLocation: React.FC = () => {
                   Showing {filteredBoards.length} of {filterPagination.total}{' '}
                   results
                 </Text>
+                {filteredBoards.length < filterPagination.total && (
+                  <TouchableOpacity
+                    style={[
+                      styles.loadMoreButton,
+                      isLoadingMore && styles.loadMoreButtonLoading,
+                    ]}
+                    onPress={handleLoadMore}
+                    disabled={isLoadingMore}
+                    activeOpacity={0.7}
+                  >
+                    {isLoadingMore ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.loadMoreButtonText}>Load More</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
               </View>
             )}
 
@@ -938,7 +1151,7 @@ const SearchLocation: React.FC = () => {
                   </Text>
                 </View>
               )}
-          </>
+          </ScrollView>
         )}
 
         {/* Location Modal - Bottom Sheet */}
@@ -1153,7 +1366,7 @@ const SearchLocation: React.FC = () => {
             </View>
           </View>
         </Modal>
-      </ScrollView>
+      </View>
 
       {/* Footer Actions - Only visible when filter section is open */}
       {isFilterSectionVisible && (
@@ -1265,6 +1478,10 @@ const styles = StyleSheet.create({
     borderWidth:0.7,
     borderColor:"#E5E7EB",
   },
+  // Main Container
+  mainContainer: {
+    flex: 1,
+  },
   // Main Scroll View
   mainScrollView: {
     flex: 1,
@@ -1331,6 +1548,26 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: hp(1),
     textAlign: 'center',
+  },
+  loadMoreButton: {
+    marginTop: hp(2),
+    paddingVertical: hp(1.5),
+    paddingHorizontal: wp(6),
+    backgroundColor: '#C538A5',
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    minWidth: wp(30),
+    minHeight: 48,
+  },
+  loadMoreButtonLoading: {
+    opacity: 0.8,
+  },
+  loadMoreButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   noResultsContainer: {
     paddingHorizontal: wp(4),
@@ -1568,68 +1805,102 @@ const styles = StyleSheet.create({
   areaTagClose: {
     padding: 2,
   },
-  filterSectionContainer: {
+  filterHeaderContainer: {
     backgroundColor: '#FFFFFF',
-    marginTop: hp(2),
     paddingTop: hp(2),
-    paddingBottom: hp(1),
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    paddingBottom: hp(1.5),
+    marginBottom: hp(2),
+    borderBottomWidth: 0,
+    borderBottomColor: 'transparent',
+    zIndex: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    minHeight: hp(6),
+  },
+  filterOptionsScrollView: {
+    flex: 1,
+  },
+  filterOptionsScrollContent: {
+    paddingBottom: hp(3),
   },
   filterHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: wp(4),
-    paddingVertical: hp(2),
+    paddingBottom: hp(1.8),
+    paddingTop: 0,
+    height: hp(7),
+    minHeight: hp(7),
   },
   filterTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+    letterSpacing: -0.5,
+    lineHeight: 28,
   },
   resetButton: {
     paddingHorizontal: wp(4),
     paddingVertical: hp(1),
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   resetButtonText: {
-    fontSize: 11,
-    color: '#1F2937',
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
+  tagsWrapper: {
+    paddingTop: hp(1),
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    marginTop: hp(0.5),
   },
   tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     paddingHorizontal: wp(4),
-    paddingBottom: hp(1.5),
-    marginTop: hp(-1), // Bring it closer to Set Filter heading
+    paddingTop: hp(1.2),
+    paddingBottom: hp(0.8),
+  },
+  tagsContainerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: wp(4),
   },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ECBDF3',
+    backgroundColor: '#FCE7F3',
     borderRadius: 20,
     paddingHorizontal: wp(3),
     paddingVertical: hp(0.8),
     marginRight: wp(2),
-    marginBottom: hp(1),
+    marginBottom: hp(0.5),
   },
   tagText: {
-    fontSize: 11,
-    color: '#000',
+    fontSize: 12,
+    color: '#C538A5',
     marginRight: wp(1.5),
-
- },
+    fontWeight: '500',
+  },
   tagClose: {
     padding: 2,
   },
   optionsListContent: {
     paddingHorizontal: wp(4),
-    paddingTop: hp(0.5),
-    paddingBottom: hp(1),
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   noOptionsText: {
     fontSize: 14,
@@ -1637,14 +1908,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: hp(1),
   },
+  filterSectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginBottom: hp(1.5),
+    marginHorizontal: wp(0.4),
+    overflow: 'hidden',
+    borderWidth: 0,
+    borderColor: 'transparent',
+  },
   filterOption: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     paddingTop: 6,
     paddingBottom: 6,
     paddingLeft: 12,
@@ -1652,16 +1928,22 @@ const styles = StyleSheet.create({
     height: 54,
     borderWidth: 0.7,
     borderColor: '#E5E7EB',
-  },
-  filterGroupContainer: {
     marginBottom: 0,
+  },
+  filterOptionFirst: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  filterOptionLast: {
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   filterGroupHeader: {
     backgroundColor: '#F5F5F5',
   },
   filterCategoryItem: {
     paddingLeft: 12, 
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F5F5F5',
     marginTop: 0,
   },
   filterOptionSelected: {
@@ -1669,8 +1951,8 @@ const styles = StyleSheet.create({
     borderColor: '#F2BCE9',
   },
   checkbox: {
-    width: 14,
-    height: 14,
+    width: 16,
+    height: 16,
     borderRadius: 4,
     borderWidth: 1.5,
     borderColor: '#D1D5DB',

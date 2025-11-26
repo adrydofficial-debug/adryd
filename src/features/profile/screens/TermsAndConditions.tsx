@@ -521,14 +521,16 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
         </Animated.View>
       )}
 
-      {/* Download Button - Always visible at bottom when viewing terms */}
-      <View style={styles.downloadButtonContainer}>
-        <PrimaryButton
-          title="Download"
-          onPress={handleDownload}
-          buttonStyle={styles.downloadButton}
-        />
-      </View>
+      {/* Download Button - Only visible when NOT from auth flow */}
+      {!fromAuth && (
+        <View style={styles.downloadButtonContainer}>
+          <PrimaryButton
+            title="Download"
+            onPress={handleDownload}
+            buttonStyle={styles.downloadButton}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 };
