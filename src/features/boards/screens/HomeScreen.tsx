@@ -308,6 +308,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               onPress={() =>
                 navigation.navigate('SearchLocation', {
                   city: selectedCity,
+                  openFilters: true,
                 })
               }
             >
