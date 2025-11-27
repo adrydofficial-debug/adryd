@@ -41,6 +41,7 @@ export const Images = {
   campaignEmptyState2: require('./campaign_empty_state2.png'),
   cart1: require('./cart1.png'),
   cart2: require('./cart2.png'),
+  dp: require('./dp.png'),
 };
 
 /* SVG exports */
@@ -68,6 +69,7 @@ export {
   default as PinkLocationIcon,
 } from './PinkkLocation.svg';
 export { default as PinkMsgIcon } from './PinkMsg.svg';
+export { default as PinkNotifyIcon } from './pinkNotify.svg';
 export { default as PinkProfileIcon } from './pinkProfile.svg';
 export { default as SecurityIcon } from './security.svg';
 export { default as TermsIcon } from './Terms.svg';

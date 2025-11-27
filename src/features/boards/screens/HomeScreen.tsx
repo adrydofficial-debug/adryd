@@ -15,7 +15,7 @@ import {
   default as LinearGradientLib,
 } from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
-import { PinkLocationIcon, Images } from '../../../assets/images';
+import { PinkLocationIcon, Images, GrayNotifyIcon, PinkNotifyIcon } from '../../../assets/images';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
 import { useAuthStore } from '../../../store/authStore';
@@ -36,6 +36,8 @@ const RIGHT_ACTIONS_WIDTH = width * 0.38;
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { t } = useTranslation('boards');
+  // Styling state - set to true to show active state (with badge), false for default state
+  const [hasUnreadNotifications] = useState(true);
   const [, setSelectedTab] = useState<Tab | null>(null);
 
   const { user } = useAuthStore();
@@ -315,10 +317,20 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <Image source={Images.search} style={styles.FilterIcon} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.bellBtn}
+              style={[
+                styles.bellBtn,
+                hasUnreadNotifications && styles.bellBtnActive,
+              ]}
               onPress={() => navigation.navigate('Notifications')}
             >
-              <Image style={styles.bellIcon} source={Images.pinkBell} />
+              {hasUnreadNotifications ? (
+                <>
+                  <PinkNotifyIcon width={width * 0.05} height={width * 0.047} />
+                  <View style={styles.notificationBadge} />
+                </>
+              ) : (
+                <Image style={styles.bellIcon} source={Images.pinkBell} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -523,11 +535,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     textAlign: 'center',
+    position: 'relative',
+  },
+  bellBtnActive: {
+    borderColor: '#C539A5',
   },
   bellIcon: {
     width: width * 0.05,
     height: width * 0.047,
     resizeMode: 'contain',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#C539A5',
+    borderWidth: 1.5,
+    borderColor: '#fff',
   },
   FilterIcon: {
     width: width * 0.04,
