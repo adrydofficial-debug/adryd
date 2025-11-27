@@ -35,29 +35,43 @@ export const useAuthStore = create<AuthState>()(
 
       // ✅ Load Supabase session on app startup
       initializeSession: async () => {
+
         try {
-          const { data, error } = await supabase.auth.getSession();
-          if (error) console.error('Session error:', error);
+          const { data, error } = await supabase.auth.refreshSession();
+
+          if (error) {
+            console.error('[Auth] Session error:', error);
+          } else {
+            console.log('[Auth] Raw session:', data);
+          }
 
           const session = data.session;
           const user = session?.user ?? null;
 
-          // Must be verified
-          const isVerified = user?.user_metadata?.isVerified === true;
+          console.log('[Auth] session.user:', user);
 
-          // Must have completed password setup
-          const hasPassword = user?.user_metadata?.hasPassword === true;
+          const hasPassword = user?.user_metadata?.has_password === true;
 
-          // User is considered "logged in" only if BOTH conditions are satisfied
-          const isFullyOnboarded = isVerified && hasPassword;
+          console.log('[Auth] user_metadata:', user?.user_metadata);
+          console.log('[Auth] hasPassword:', hasPassword);
+
+          const isFullyOnboarded = hasPassword;
+          console.log('[Auth] isFullyOnboarded:', isFullyOnboarded);
 
           set({
             user: isFullyOnboarded ? user : null,
             loading: false,
           });
+
+          console.log(
+            `[Auth] Final state -> user: ${
+              isFullyOnboarded ? 'LOGGED-IN' : 'NOT LOGGED-IN'
+            }, loading: false`,
+          );
         } catch (err) {
-          console.error('initializeSession error:', err);
+          console.error('[Auth] initializeSession exception:', err);
           set({ user: null, loading: false });
+          console.log('[Auth] Final state -> user: null, loading: false');
         }
       },
 
@@ -73,7 +87,7 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'auth-storage', // key in AsyncStorage / localStorage
+      name: 'auth-storage',
       partialize: state => ({
         user: state.user,
         referrerCode: state.referrerCode,

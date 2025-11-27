@@ -15,7 +15,7 @@ import UpdateProfile from '../../features/profile/screens/UpdateProfile';
 import ChatScreen from '../../features/chat/screens/ChatScreen';  
 import ChangePassword from '../../features/profile/screens/ChangePassword';
 import PreviousCompanyScreen from '../../features/profile/screens/PreviousCompany';
-import InviteLink from '../../features/profile/screens/InviteLink';
+import InviteLink from '../../features/invite/screens/InviteLink';
 //  import UpdateProfile from '../../features/profile/screens/UpdateProfile';
 import CompanyWithInfoScreen from '../../features/advertisments/screens/CompanyWithInfoScreen';
 import AdvertismentCongratulateScreen from '../../features/advertisments/screens/AdvertismentCongratulateScreen';
