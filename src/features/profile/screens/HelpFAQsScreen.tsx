@@ -433,6 +433,7 @@ const styles = StyleSheet.create({
 
   scrollView: {
     flex: 1,
+    overflow: 'visible',
   },
   scrollContent: {
     paddingBottom: height * 0.1,
@@ -443,6 +444,7 @@ const styles = StyleSheet.create({
     paddingBottom: 36,
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
+    overflow: 'visible',
   },
 
   greetingTitle: {
@@ -467,11 +469,12 @@ const styles = StyleSheet.create({
     marginLeft: -32,
     paddingLeft: 32,
     marginRight: 0,
+    overflow: 'visible',
   },
   highlightRow: {
     marginTop: 18,
     paddingVertical: 6,
-    paddingRight: 32,
+    paddingRight: 40,
     paddingLeft: 0,
   },
   highlightCard: {

@@ -126,7 +126,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
             resizeMode="contain"
           />
         ) : (
-          <IconComponent width={24} height={24} />
+          <IconComponent width={20} height={20} />
         )}
       </TouchableOpacity>
     );
@@ -310,12 +310,12 @@ const styles = StyleSheet.create({
     zIndex: 99999,
   },
   addIconImage: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
   },
   tabIconImage: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
   },
 });
 
