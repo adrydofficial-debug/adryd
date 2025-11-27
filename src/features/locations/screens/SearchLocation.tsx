@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Modal,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useMutation } from '@tanstack/react-query';
@@ -23,6 +24,8 @@ import { fetchFilteredBoards } from '../../boards/api/api';
 import { FilterBoardsParams } from '../../boards/api/types/requests';
 import { FilteredBoardsResponse } from '../../boards/api/types/responses';
 import { mapFilteredBoards } from '../../boards/domain/mappers';
+
+const filterIcon = require('../../../assets/icons/filter_button.png');
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -815,10 +818,10 @@ const SearchLocation: React.FC = () => {
             }
           }}
         >
-          <Ionicons
-            name="options"
-            size={20}
-            color={isFilterSectionVisible ? '#70737D' : '#333'}
+          <Image
+            source={filterIcon}
+            style={styles.filterIconImage}
+            resizeMode="contain"
           />
         </TouchableOpacity>
       </View>
@@ -933,9 +936,6 @@ const SearchLocation: React.FC = () => {
                                     isSelected && styles.checkboxSelected,
                                   ]}
                                 >
-                                  {isSelected && (
-                                    <Ionicons name="checkmark" size={11} color="#fff" />
-                                  )}
                                 </View>
                                 <Text
                                   style={[
@@ -989,13 +989,6 @@ const SearchLocation: React.FC = () => {
                                   (allChildrenSelected || isGroupIndeterminate) && styles.checkboxSelected,
                                 ]}
                               >
-                                {(allChildrenSelected || isGroupIndeterminate) && (
-                                  <Ionicons 
-                                    name={isGroupIndeterminate ? "remove" : "checkmark"} 
-                                    size={11} 
-                                    color="#fff" 
-                                  />
-                                )}
                               </View>
                               <Text
                                 style={[
@@ -1028,9 +1021,6 @@ const SearchLocation: React.FC = () => {
                                       isSelected && styles.checkboxSelected,
                                     ]}
                                   >
-                                    {isSelected && (
-                                      <Ionicons name="checkmark" size={12} color="#fff" />
-                                    )}
                                   </View>
                                   <View/>
                                   <Text
@@ -1173,121 +1163,96 @@ const SearchLocation: React.FC = () => {
                 showsVerticalScrollIndicator={true}
                 nestedScrollEnabled={true}
               >
-                {/* Close Button */}
-                <TouchableOpacity
-                  style={styles.modalCloseButton}
-                  onPress={() => setIsLocationDropdownVisible(false)}
-                >
-                  <Ionicons name="close" size={20} color="#000" />
-                </TouchableOpacity>
-
                 {/* Title */}
                 <Text style={styles.modalTitle}>Set Location</Text>
 
-                {/* City Selection */}
-                <TouchableOpacity
-                style={styles.locationInputContainer}
-                onPress={() => {
-                  setIsCitiesDropdownOpen(prev => !prev);
-                  if (!isCitiesDropdownOpen) {
-                    refetchCities();
-                  }
-                }}
-              >
-                <Text style={styles.locationInputText}>{selectedLocation}</Text>
-                <Ionicons
-                  name={isCitiesDropdownOpen ? 'chevron-up' : 'chevron-down'}
-                  size={20}
-                  color="#666"
-                />
-                </TouchableOpacity>
+                {/* City Selection Container */}
+                <View style={styles.citySelectionContainer}>
+                  <TouchableOpacity
+                    style={styles.locationInputContainer}
+                    onPress={() => {
+                      setIsCitiesDropdownOpen(prev => !prev);
+                      if (!isCitiesDropdownOpen) {
+                        refetchCities();
+                      }
+                    }}
+                  >
+                    <Text style={styles.locationInputText}>{selectedLocation}</Text>
+                    <Ionicons
+                      name={isCitiesDropdownOpen ? 'chevron-down' : 'chevron-up'}
+                      size={20}
+                      color="#666"
+                    />
+                  </TouchableOpacity>
 
-                {/* Cities List */}
-                {isCitiesDropdownOpen && (
-                  <View style={styles.citiesList}>
-                    {isCitiesLoading && (
-                      <View style={{ padding: hp(2), alignItems: 'center' }}>
-                        <ActivityIndicator size="small" color="#C538A5" />
-                      </View>
-                    )}
-                    {citiesError && !isCitiesLoading && (
-                      <View style={{ padding: hp(2) }}>
-                        <Text style={styles.errorText}>
-                          Unable to load cities. Tap the location again to retry.
-                        </Text>
-                      </View>
-                    )}
-                    {!isCitiesLoading && !citiesError && (
-                      <ScrollView
-                        showsVerticalScrollIndicator={true}
-                        nestedScrollEnabled={true}
-                      >
-                        {filteredCities.map(city => {
-                          const isSelected = city.id === selectedCityId;
-                          return (
-                            <TouchableOpacity
-                              key={city.id}
-                              style={[
-                                styles.cityItem,
-                                isSelected && styles.cityItemSelected,
-                              ]}
-                              onPress={() => selectCity(city)}
-                            >
-                              <View style={styles.radioButton}>
-                                {isSelected && (
-                                  <View style={styles.radioButtonSelected} />
-                                )}
-                              </View>
-                              <Text
-                                style={[
-                                  styles.cityItemText,
-                                  isSelected && styles.cityItemTextSelected,
-                                ]}
-                              >
-                                {city.name}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                        {filteredCities.length === 0 && (
-                          <View style={{ padding: hp(2) }}>
-                            <Text style={styles.noResultsText}>No cities found.</Text>
+                  {/* Cities Dropdown - Fixed Height Container */}
+                  <View 
+                    style={[
+                      styles.citiesDropdownWrapper,
+                      isCitiesDropdownOpen && styles.citiesDropdownWrapperOpen,
+                    ]}
+                  >
+                    {isCitiesDropdownOpen && (
+                      <View style={styles.citiesList}>
+                        {isCitiesLoading && (
+                          <View style={{ padding: hp(2), alignItems: 'center' }}>
+                            <ActivityIndicator size="small" color="#C538A5" />
                           </View>
                         )}
-                      </ScrollView>
+                        {citiesError && !isCitiesLoading && (
+                          <View style={{ padding: hp(2) }}>
+                            <Text style={styles.errorText}>
+                              Unable to load cities. Tap the location again to retry.
+                            </Text>
+                          </View>
+                        )}
+                        {!isCitiesLoading && !citiesError && (
+                          <ScrollView
+                            style={styles.citiesListScrollView}
+                            showsVerticalScrollIndicator={true}
+                            nestedScrollEnabled={true}
+                          >
+                            {filteredCities.map(city => {
+                              const isSelected = city.id === selectedCityId;
+                              return (
+                                <TouchableOpacity
+                                  key={city.id}
+                                  style={[
+                                    styles.cityItem,
+                                    isSelected && styles.cityItemSelected,
+                                  ]}
+                                  onPress={() => selectCity(city)}
+                                >
+                                  <View style={styles.radioButton}>
+                                    {isSelected && (
+                                      <View style={styles.radioButtonSelected} />
+                                    )}
+                                  </View>
+                                  <Text
+                                    style={[
+                                      styles.cityItemText,
+                                      isSelected && styles.cityItemTextSelected,
+                                    ]}
+                                  >
+                                    {city.name}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                            {filteredCities.length === 0 && (
+                              <View style={{ padding: hp(2) }}>
+                                <Text style={styles.noResultsText}>No cities found.</Text>
+                              </View>
+                            )}
+                          </ScrollView>
+                        )}
+                      </View>
                     )}
                   </View>
-                )}
+                </View>
 
                 {/* Area History Section */}
-                {areaHistory.length > 0 && (
-                  <View style={styles.areaHistorySection}>
-                  <View style={styles.areaHistoryHeader}>
-                    <Text style={styles.areaHistoryTitle}>Your Area History</Text>
-                    <TouchableOpacity
-                      style={styles.resetAllButton}
-                      onPress={resetAreaHistory}
-                    >
-                      <Text style={styles.resetAllButtonText}>Reset All</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Area History Tags */}
-                  <View style={styles.areaHistoryTags}>
-                    {areaHistory.map(area => (
-                      <View key={area.id} style={styles.areaTag}>
-                        <Text style={styles.areaTagText}>{area.name}</Text>
-                        <TouchableOpacity
-                          style={styles.areaTagClose}
-                          onPress={() => removeAreaFromHistory(area.id)}
-                        >
-                          <Ionicons name="close" size={14} color="#C538A5" />
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                  </View>
-                  </View>
-                )}
+              
 
                 {/* Select Area Section */}
                 {selectedCityId && (
@@ -1302,67 +1267,70 @@ const SearchLocation: React.FC = () => {
                     </Text>
                   )}
                   {!isAreasLoading && !areasError && (
-                    <ScrollView
-                      style={styles.areasList}
-                      showsVerticalScrollIndicator={false}
-                      nestedScrollEnabled={true}
-                    >
-                      {areasData.map((area: Location) => {
-                        const isSelected = area.id === draftSelectedLocationId;
-                        return (
-                          <TouchableOpacity
-                            key={area.id}
-                            style={[
-                              styles.areaItem,
-                              isSelected && styles.areaItemSelected,
-                            ]}
-                            onPress={() => selectArea(area)}
-                          >
-                            <View
+                    <View style={styles.areasListContainer}>
+                      <ScrollView
+                        style={styles.areasList}
+                        showsVerticalScrollIndicator={false}
+                        nestedScrollEnabled={true}
+                      >
+                        {areasData.map((area: Location, index: number) => {
+                          const isSelected = area.id === draftSelectedLocationId;
+                          const isFirst = index === 0;
+                          const isLast = index === areasData.length - 1;
+                          return (
+                            <TouchableOpacity
+                              key={area.id}
                               style={[
-                                styles.checkbox,
-                                isSelected && styles.checkboxSelected,
+                                styles.areaItem,
+                                isFirst && styles.areaItemFirst,
+                                isLast && styles.areaItemLast,
+                                isSelected && styles.areaItemSelected,
                               ]}
+                              onPress={() => selectArea(area)}
                             >
-                              {isSelected && (
-                                <Ionicons name="checkmark" size={12} color="#fff" />
-                              )}
-                            </View>
-                            <Text
-                              style={[
-                                styles.areaItemText,
-                                isSelected && styles.areaItemTextSelected,
-                              ]}
-                            >
-                              {area.name}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                      {areasData.length === 0 && (
-                        <Text style={styles.noResultsText}>No areas found.</Text>
-                      )}
-                    </ScrollView>
+                              <View
+                                style={[
+                                  styles.checkbox,
+                                  isSelected && styles.checkboxSelected,
+                                ]}
+                              >
+                              </View>
+                              <Text
+                                style={[
+                                  styles.areaItemText,
+                                  isSelected && styles.areaItemTextSelected,
+                                ]}
+                              >
+                                {area.name}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                        {areasData.length === 0 && (
+                          <Text style={styles.noResultsText}>No areas found.</Text>
+                        )}
+                      </ScrollView>
+                    </View>
                   )}
                   </View>
                 )}
-
-                {/* Footer Actions */}
-                <View style={styles.modalFooterActions}>
-                  <TouchableOpacity
-                    style={styles.modalCancelButton}
-                    onPress={handleCancelLocation}
-                  >
-                    <Text style={styles.modalCancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.modalApplyButton}
-                    onPress={handleApplyLocation}
-                  >
-                    <Text style={styles.modalApplyButtonText}>Apply</Text>
-                  </TouchableOpacity>
-                </View>
               </ScrollView>
+              
+              {/* Footer Actions - Fixed at Bottom */}
+              <View style={styles.modalFooterActions}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={handleCancelLocation}
+                >
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalApplyButton}
+                  onPress={handleApplyLocation}
+                >
+                  <Text style={styles.modalApplyButtonText}>Apply</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
@@ -1405,7 +1373,7 @@ const SearchLocation: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F8F8',
   },
   topBar: {
     flexDirection: 'row',
@@ -1477,6 +1445,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth:0.7,
     borderColor:"#E5E7EB",
+  },
+  filterIconImage: {
+    width: 40,
+    height: 40,
   },
   // Main Container
   mainContainer: {
@@ -1588,13 +1560,22 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: height * 0.9,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: height * 0.92,
+    minHeight: height * 0.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 16,
+    flex: 1,
+    flexDirection: 'column',
   },
   modalScrollView: {
     paddingHorizontal: wp(4),
-    paddingBottom: hp(2),
+    paddingBottom: hp(3),
+    flex: 1,
   },
   modalCloseButton: {
     alignSelf: 'center',
@@ -1609,46 +1590,68 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: hp(2),
-    paddingHorizontal: wp(2),
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: hp(1),
+    paddingTop: hp(4),
+    paddingHorizontal: 0,
+    letterSpacing: -0.3,
   },
   locationInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
-    marginBottom: hp(2),
+    paddingVertical: hp(1.2),
+    minHeight: 48,
+    width: '100%',
   },
   locationInputText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#000',
-    fontWeight: '500',
+    fontWeight: '400',
+    padding: 0,
+    margin: 0,
+  },
+  citySelectionContainer: {
+    // marginBottom: hp(2),
+  },
+  citiesDropdownWrapper: {
+    maxHeight: 0,
+    overflow: 'hidden',
+    marginTop: 0,
+    marginBottom: 0,
+    minHeight: 0,
+  },
+  citiesDropdownWrapperOpen: {
+    maxHeight: height * 0.32,
+    marginTop: hp(1),
+    marginBottom: hp(2),
   },
   citiesList: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    marginTop: hp(1),
-    marginBottom: hp(2),
-    maxHeight: height * 0.35,
     overflow: 'hidden',
+    height: height * 0.32,
+  },
+  citiesListScrollView: {
+    flex: 1,
   },
   cityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: hp(1.5),
+    paddingVertical: hp(1.8),
     paddingHorizontal: wp(4),
     borderBottomWidth: 1,
     borderBottomColor: '#F5F5F5',
     backgroundColor: '#FFFFFF',
+    minHeight: 54,
   },
   cityItemSelected: {
     backgroundColor: '#FCE7F3',
@@ -1679,32 +1682,50 @@ const styles = StyleSheet.create({
     backgroundColor: '#C538A5',
   },
   selectAreaSection: {
-    marginTop: hp(2),
-    paddingTop: hp(2),
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    paddingTop: hp(2.5),
   },
   selectAreaTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: hp(1.5),
+    fontWeight: '500',
+    color: '#111827',
+    marginBottom: hp(1),
+    paddingHorizontal: 0,
+    letterSpacing: -0.2,
+  },
+  areasListContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginTop: hp(0.5),
+    marginBottom: 0,
+    marginHorizontal: 0,
+    overflow: 'hidden',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    maxHeight: height * 0.35,
   },
   areasList: {
-    maxHeight: height * 0.3,
+    maxHeight: height * 0.35,
   },
   areaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     paddingTop: 6,
     paddingBottom: 6,
-    paddingLeft: 12,
-    paddingRight: 6,
+    paddingLeft: wp(4),
+    paddingRight: wp(4),
     height: 54,
     borderWidth: 0.7,
     borderColor: '#E5E7EB',
     marginBottom: 0,
+  },
+  areaItemFirst: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  areaItemLast: {
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   areaItemSelected: {
     backgroundColor: '#FCE7F3',
@@ -1714,7 +1735,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#70737D',
     fontWeight: '400',
-    marginLeft: 12,
+    marginLeft: 0,
   },
   areaItemTextSelected: {
     color: '#000',
@@ -1755,32 +1776,39 @@ const styles = StyleSheet.create({
     marginVertical: hp(1),
   },
   areaHistorySection: {
-    marginTop: hp(1),
-    paddingTop: hp(2),
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    // marginTop: hp(2.5),
+    paddingTop: hp(2.5),
+    borderTopWidth: 0,
+    borderTopColor: 'transparent',
+    borderBottomWidth: 0,
+    borderBottomColor: 'transparent',
   },
   areaHistoryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: hp(1.5),
+    // marginBottom: hp(1.5),
   },
   areaHistoryTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
+    fontWeight: '500',
+    color: '#111827',
+    paddingHorizontal: 0,
+    letterSpacing: -0.2,
   },
   resetAllButton: {
-    paddingHorizontal: wp(3),
-    paddingVertical: hp(0.8),
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1),
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   resetAllButtonText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   areaHistoryTags: {
     flexDirection: 'row',
@@ -1806,18 +1834,17 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   filterHeaderContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingTop: hp(2),
-    paddingBottom: hp(1.5),
-    marginBottom: hp(2),
+    backgroundColor: '#F8F8F8',
+    paddingTop: hp(1.75),
+    paddingBottom: hp(1.75),
     borderBottomWidth: 0,
     borderBottomColor: 'transparent',
     zIndex: 10,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    elevation: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
     minHeight: hp(6),
   },
   filterOptionsScrollView: {
@@ -1831,17 +1858,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: wp(4),
-    paddingBottom: hp(1.8),
+    paddingBottom: 0,
     paddingTop: 0,
     height: hp(7),
     minHeight: hp(7),
   },
   filterTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     color: '#111827',
     letterSpacing: -0.5,
     lineHeight: 28,
+    marginLeft: wp(2),
   },
   resetButton: {
     paddingHorizontal: wp(4),
@@ -1850,11 +1878,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 0,
     borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
   resetButtonText: {
     fontSize: 13,
@@ -1920,7 +1943,7 @@ const styles = StyleSheet.create({
   filterOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     paddingTop: 6,
     paddingBottom: 6,
     paddingLeft: 12,
@@ -1943,7 +1966,7 @@ const styles = StyleSheet.create({
   },
   filterCategoryItem: {
     paddingLeft: 12, 
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     marginTop: 0,
   },
   filterOptionSelected: {
@@ -1951,12 +1974,12 @@ const styles = StyleSheet.create({
     borderColor: '#F2BCE9',
   },
   checkbox: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
+    width: 12,
+    height: 12,
+    borderRadius: 3,
     borderWidth: 1.5,
     borderColor: '#D1D5DB',
-    marginRight: 12,
+    marginRight:6,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -2024,12 +2047,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: wp(4),
+    paddingHorizontal: wp(6),
     paddingTop: hp(1.5),
     paddingBottom: hp(2),
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
-    marginTop: hp(2),
+    backgroundColor: '#fff',
+    width: '100%',
   },
   modalCancelButton: {
     flex: 1,
