@@ -167,9 +167,11 @@ const FilterCategoryList: React.FC<any> = ({ route, navigation }) => {
       ) : (
         <BoardList
           data={data}
+          heading="All Boards"
           onPressDetail={handleDetailPress}
           navigation={navigation}
           numColumns={2}
+          useWiderCards={true}
         />
       )}
       <NoInternet />

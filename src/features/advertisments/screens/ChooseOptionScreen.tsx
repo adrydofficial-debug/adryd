@@ -4,8 +4,6 @@ import {
   SafeAreaView,
   StatusBar,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +12,7 @@ import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 import BackButton from '../../../components/BackButton';
+import PrimaryButton from '../../../components/PrimaryButton';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -70,19 +69,19 @@ const ChooseOptionScreen: React.FC = () => {
 
       {/* Main Content - Two Buttons */}
       <View style={styles.content}>
-        <TouchableOpacity
-          style={styles.optionButton}
+        <PrimaryButton
+          title="Individual"
           onPress={handleIndividualPress}
-          activeOpacity={0.8}>
-          <Text style={styles.buttonText}>Individual</Text>
-        </TouchableOpacity>
+          buttonStyle={styles.optionButton}
+          textStyle={styles.buttonText}
+        />
 
-        <TouchableOpacity
-          style={styles.optionButton}
+        <PrimaryButton
+          title="Business"
           onPress={handleBusinessPress}
-          activeOpacity={0.8}>
-          <Text style={styles.buttonText}>Business</Text>
-        </TouchableOpacity>
+          buttonStyle={styles.optionButton}
+          textStyle={styles.buttonText}
+        />
       </View>
     </SafeAreaView>
   );
@@ -109,28 +108,15 @@ const styles = StyleSheet.create({
     paddingVertical: hp(4),
   },
   optionButton: {
-    width: '100%',
+    width: '60%',
     maxWidth: scaleWidth(280),
-    height: scaleHeight(60),
-    backgroundColor: '#C539A5',
-    borderRadius: scaleWidth(16),
-    alignItems: 'center',
-    justifyContent: 'center',
+    minHeight: scaleHeight(60),
+    borderRadius: 16,
     marginBottom: hp(3),
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
   },
   buttonText: {
-    fontSize: scaleFont(18),
+    fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
-    textTransform: 'capitalize',
   },
 });
 

@@ -16,11 +16,12 @@ import i18n from '../i18n';
 
 const {width, height} = Dimensions.get('window');
 const CARD_WIDTH = 165;
+const CARD_WIDTH_WIDER = 185; 
 const CARD_HEIGHT = 237;
 
 import { Images } from '../assets/images';
 
-const FALLBACK_IMAGE = Images.bannerBg;
+const FALLBACK_IMAGE = Images.image;
 
 
 
@@ -57,6 +58,7 @@ interface BoardListProps {
   onPressDetail?: (item: BoardItem) => void;
   numColumns?: number; 
   showSeeAll?: boolean;
+  useWiderCards?: boolean; // When true, cards will be wider (for filters and favorites)
 }
 
 const boardData: BoardItem[] = [
@@ -103,7 +105,10 @@ const BoardList: React.FC<BoardListProps> = ({
   onPressDetail,
   numColumns = 1, 
   showSeeAll = true,
+  useWiderCards = false,
 }) => {
+  // Debug: Log the prop value to verify it's being received
+  console.log('BoardList - useWiderCards prop:', useWiderCards, 'heading:', heading);
   const { i18n: i18nInstance } = useTranslation();
   
   // Track current language to force re-renders
@@ -177,12 +182,16 @@ const BoardList: React.FC<BoardListProps> = ({
   const renderItem = ({item}: {item: BoardItem}) => {
     // Render "More" card if flag is set
     if (item.isMore) {
+      // Determine card width for "More" card
+      const moreCardWidth = useWiderCards ? CARD_WIDTH_WIDER : CARD_WIDTH;
+      
       return (
         <TouchableOpacity
           style={[
             styles.card,
             numColumns > 1 && styles.cardGrid,
-            styles.moreCard
+            styles.moreCard,
+            { width: moreCardWidth }, // Always set width based on useWiderCards prop
           ]}
           onPress={() => handleSeeAllPress()}
           activeOpacity={0.9}
@@ -267,8 +276,23 @@ const BoardList: React.FC<BoardListProps> = ({
     const rating = typeof item.rating === 'string' ? parseFloat(item.rating) : (item.rating || 0);
     const reviewCount = item.reviewCount || 112; // Default to 112 if not provided
     // Ensure category is always available - check multiple possible sources
-    const category = item.category || (item as any).category_name || 'Static';
+    const rawCategory = item.category || (item as any).category_name || 'Static';
     const isRecommended = item.isRecommended || false;
+    
+    // Normalize category to only show "Static" or "Dynamic"
+    const normalizeCategory = (cat: string): string => {
+      const normalized = cat.toLowerCase().trim();
+      // Map various category names to "Static" or "Dynamic"
+      if (normalized.includes('dynamic') || normalized.includes('digital')) {
+        return 'Digital';
+      }
+      if (normalized.includes('static') || normalized.includes('statics')) {
+        return 'Static';
+      }
+      // Default fallback
+      return 'Static';
+    };
+    const category = normalizeCategory(rawCategory);
     
     // Determine labels to display - prioritize explicit labels, then fallback
     const labels: string[] = [];
@@ -340,11 +364,14 @@ const BoardList: React.FC<BoardListProps> = ({
     const itemHeight = (item as any).height;
     const sizeTag = formatSizeTag(size, itemWidth, itemHeight);
 
+    // Determine card width based on useWiderCards prop
+    const cardWidth = useWiderCards ? CARD_WIDTH_WIDER : CARD_WIDTH;
     return (
       <TouchableOpacity
         style={[
           styles.card,
           numColumns > 1 && styles.cardGrid, // Apply grid-specific styles
+          { width: cardWidth }, // Always set width based on useWiderCards prop
         ]}
         onPress={() => handleCardPress(item)}
         activeOpacity={0.9}>
@@ -426,16 +453,12 @@ const BoardList: React.FC<BoardListProps> = ({
   }, [data, numColumns]);
 
   return (
-    <View style={styles.container}>
-      {/* {subHeading && <Text style={styles.subHeading}>{subHeading}</Text>} */}
-      <View style={styles.header}>
-        <Text style={styles.heading}>{heading}</Text>
-        {showSeeAll ? (
-          <TouchableOpacity onPress={handleSeeAllPress}>
-            {/* <Text style={styles.seeAll}>See All</Text> */}
-          </TouchableOpacity>
-        ) : null}
-      </View>
+    <View style={[styles.container, useWiderCards && styles.containerWider]}>
+      {!useWiderCards && (
+        <View style={styles.header}>
+          <Text style={styles.heading}>{heading}</Text>
+        </View>
+      )}
       <FlatList
         data={processedData}
         renderItem={renderItem}
@@ -444,9 +467,11 @@ const BoardList: React.FC<BoardListProps> = ({
         numColumns={numColumns > 1 ? numColumns : undefined}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          paddingHorizontal: 15,
+          paddingLeft: useWiderCards ? 5 : 15, // Minimal left padding for wider cards to maximize space
+          paddingRight: useWiderCards ? 5 : 15, // Minimal right padding for wider cards
           ...(numColumns > 1 && {
             alignItems: 'center',
+            justifyContent: 'center',
             paddingVertical: 10,
           }),
         }}
@@ -454,7 +479,8 @@ const BoardList: React.FC<BoardListProps> = ({
           numColumns > 1
             ? {
                 justifyContent: 'center',
-                paddingHorizontal: 5, 
+                paddingLeft: useWiderCards ? 5 : 5, // Minimal padding for wider cards in grid
+                paddingRight: useWiderCards ? 5 : 5, // Minimal padding for wider cards in grid
               }
             : undefined
         }
@@ -468,13 +494,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
     borderRadius: 20,
   },
+  containerWider: {
+    paddingHorizontal: 0, // Can adjust if needed
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 8,
-    marginTop: 20,
+    marginBottom: 3,
+    marginTop: 10,
     marginLeft: 0,
   },
   subHeading: {
@@ -486,8 +515,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   heading: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     color: '#000000',
   },
   seeAll: {
@@ -499,20 +528,21 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     minHeight: CARD_HEIGHT,
-    marginRight: 8,
+    marginRight: 5,
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
+    borderRadius: 19,
     borderWidth: 0.7,
     borderColor: '#E5E7EB',
     paddingTop: 5,
     paddingRight: 5,
-    paddingBottom: 7,
+    paddingBottom: 5,
     paddingLeft: 5,
-    marginBottom: 10,
+    marginBottom: 5,
+    overflow: 'hidden',
   },
   cardGrid: {
-    marginRight: 8,
-    marginBottom: 8,
+    marginRight: 5,
+    marginBottom: 5,
   },
   imageContainer: {
     width: '100%',
@@ -580,7 +610,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '500',
     color: '#222222',
     marginBottom: 4,
     lineHeight: 18,
@@ -615,11 +645,11 @@ const styles = StyleSheet.create({
   },
   tag: {
     backgroundColor: '#E5E7EB',
-    borderRadius: 8,
+    borderRadius: 7,
     paddingHorizontal: 5,
     paddingVertical: 5,
     marginRight: 4,
-    marginBottom: 2,
+    marginBottom: 4,
     flexShrink: 0,
   },
   tagText: {
@@ -628,6 +658,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     includeFontPadding: false,
     textAlignVertical: 'center',
+    paddingHorizontal: 2,
   },
   moreCard: {
     justifyContent: 'center',

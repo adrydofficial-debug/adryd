@@ -650,7 +650,11 @@ const SingleBoardDetail: React.FC = () => {
 
   const renderRatingCard = (variant: 'page' | 'modal' = 'page') => (
     <View style={[styles.ratingCard, variant === 'modal' && styles.ratingCardModal]}>
-      <Text style={styles.ratingCardTitle}>Rate this Board</Text>
+       <View style={{width: '100%', justifyContent: "center", alignItems: "center"}}>
+            <Text style={[styles.ratingTitle, {textAlign: 'center', width: '100%',fontSize: 18}]}>Rate this Static Wall Panels</Text>
+          </View>
+      <Text style={styles.ratingHint}>Rate this Backer and tell others what you think</Text>
+
       <View style={styles.ratingStarRow}>
         {[1, 2, 3, 4, 5].map(star => (
           <TouchableOpacity
@@ -667,7 +671,6 @@ const SingleBoardDetail: React.FC = () => {
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={styles.ratingHint}>Rate this Backer and tell others what you think</Text>
 
       <View style={styles.commentRow}>
         <TextInput
@@ -695,17 +698,10 @@ const SingleBoardDetail: React.FC = () => {
           )}
         </TouchableOpacity>
       </View>
-      <View style={{justifyContent:"center",alignItems:"center",marginTop:10,}}>
-
-       <Text style={styles.ratingTitle}>Statics Wal Panels</Text>
-          <Text style={styles.ratingSubTitle}>Rate this Backer and tell others what you think</Text>
-          </View>
-
       <View style={styles.ratingSummaryRow}>
+        
 
         <View style={styles.ratingSummaryLeft}>
-          {/* <Text style={styles.ratingTitle}>Statics Wal Panels</Text>
-          <Text style={styles.ratingSubTitle}>Rate this Backer and tell others what you think</Text> */}
           <Text style={styles.ratingSummaryNumber}>{averageRating.toFixed(1)}</Text>
           <View style={styles.ratingSummaryStars}>{renderStars(averageRating, 16)}</View>
           <Text style={styles.ratingSummaryCaption}>{totalReviews.toLocaleString()} reviews</Text>
@@ -859,6 +855,7 @@ const SingleBoardDetail: React.FC = () => {
               height: 50,
               borderRadius: 12,
               alignSelf: "center",
+              marginBottom: 12
             }}
             textStyle={{
               fontSize: 14,
@@ -866,6 +863,8 @@ const SingleBoardDetail: React.FC = () => {
               color: "#F8F8F8"
             }}
           />
+
+         
 
           {renderRatingCard()}
 
@@ -1089,7 +1088,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   ratingTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "600",
     color: "#18181B",
   },
@@ -1207,7 +1206,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingVertical: 24,
     paddingHorizontal: 22,
-    marginTop: 32,
+    marginTop: 10,
     marginBottom: 30,
     borderWidth: 1,
     borderColor: '#E6E1F4',
@@ -1230,15 +1229,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 5,
+    marginBottom: 10,
   },
   ratingStarButton: {
     padding: 6,
   },
   ratingHint: {
-    marginTop: 10,
     fontSize: 12,
     fontWeight:"400",
-
+    marginBottom: 10,
     color: '#70737D',
     alignSelf:"center",
   },
@@ -1349,11 +1348,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 18,
     marginTop: 18,
-    shadowColor: '#3F3D56',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.07,
-    shadowRadius: 22,
-    elevation: 4,
   },
   reviewHeader: {
     flexDirection: 'row',
