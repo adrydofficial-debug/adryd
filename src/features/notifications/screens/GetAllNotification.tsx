@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,13 @@ import {
   FlatList,
   TouchableOpacity,
   StatusBar,
+  Image,
 } from 'react-native';
 import { useNotifications } from '../hooks/useNotifications';
 import { markAllNotificationsRead } from '../api/api';
 import Header from '../../../components/Header';
+import { useAuthStore } from '../../../store/authStore';
+import { Images } from '../../../assets/images';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -20,8 +23,8 @@ type Props = {
 };
 
 const GetAllNotification: React.FC<Props> = ({ navigation }) => {
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const { data, isLoading, error, refetch } = useNotifications();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -36,33 +39,64 @@ const GetAllNotification: React.FC<Props> = ({ navigation }) => {
     return () => clearTimeout(timer);
   }, [refetch]);
 
-  const renderNotificationItem = ({ item }: any) => (
-    <TouchableOpacity
-      style={[
-        styles.notificationCard,
-        item.isHighlighted && styles.highlightedCard,
-        selectedItem === item.id && styles.selectedCard,
-      ]}
-      onPress={() => setSelectedItem(selectedItem === item.id ? null : item.id)}
-    >
-      <View style={styles.cardContent}>
-        <View style={[styles.iconContainer, { backgroundColor: '#F5F5F5' }]} />
-        <View style={styles.textContainer}>
-          <View style={styles.titleRow}>
-            <Text style={styles.notificationTitle} numberOfLines={1}>
-              {item.title}
-            </Text>
-            <Text style={styles.notificationDate} numberOfLines={1}>
-              {new Date(item.createdAt).toDateString()}
+  // Create welcome notification object - always visible
+  const welcomeNotification = {
+    id: 'welcome-notification',
+    title: "Welcome to ADRYD!",
+    body: "You're all set! Stay updated with important alerts and offer.",
+    type: 'welcome',
+    read: false,
+    createdAt: new Date().toISOString(),
+    isWelcome: true,
+    isHighlighted: true,
+  };
+
+  // Combine welcome notification with backend notifications - always show welcome notification if user is logged in
+  const allNotifications = user
+    ? [welcomeNotification, ...(data || [])]
+    : (data || []);
+
+  const renderNotificationItem = ({ item }: any) => {
+    const isWelcome = item.isWelcome || item.id === 'welcome-notification';
+    
+    return (
+      <View
+        style={[
+          styles.notificationCard,
+          item.isHighlighted && styles.highlightedCard,
+          isWelcome && styles.welcomeCard,
+        ]}
+      >
+        <View style={styles.cardContent}>
+          <View style={[
+            styles.iconContainer, 
+            isWelcome ? styles.welcomeIconContainer : { backgroundColor: '#F5F5F5' }
+          ]}>
+            {isWelcome ? (
+              <Image
+                source={Images.dp}
+                style={styles.welcomeIcon}
+                resizeMode="contain"
+              />
+            ) : null}
+          </View>
+          <View style={styles.textContainer}>
+            <View style={styles.titleRow}>
+              <Text style={styles.notificationTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+              <Text style={styles.notificationDate} numberOfLines={1}>
+                {isWelcome ? '1 min' : new Date(item.createdAt).toDateString()}
+              </Text>
+            </View>
+            <Text style={styles.notificationDescription} numberOfLines={2}>
+              {item.body}
             </Text>
           </View>
-          <Text style={styles.notificationDescription} numberOfLines={2}>
-            {item.body}
-          </Text>
         </View>
       </View>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -86,7 +120,7 @@ const GetAllNotification: React.FC<Props> = ({ navigation }) => {
           </View>
         ) : (
           <FlatList
-            data={data || []}
+            data={allNotifications}
             renderItem={renderNotificationItem}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
@@ -111,20 +145,23 @@ const styles = StyleSheet.create({
   },
   notificationCard: {
     backgroundColor: '#fff',
-    padding: width * 0.04,
-    height: height * 0.13,
+    paddingHorizontal: width * 0.04,
+    paddingVertical: width * 0.04,
     justifyContent: 'center',
     borderBottomWidth: 1,
     borderTopWidth: 1,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
     borderColor: "#E5E7EB",
   },
   highlightedCard: {
     borderWidth: 1,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
     backgroundColor: "#FDE7FB",
-  },
-  selectedCard: {
-    backgroundColor: '#FDE7FB',
-    borderColor: '#C539A5',
+    borderColor: "#E5E7EB",
   },
   cardContent: {
     flexDirection: 'row',
@@ -159,14 +196,32 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#18181B',
     fontWeight: '500',
-    position: 'absolute',
-    bottom: 10,
-    right: 0
   },
   notificationDescription: {
     fontSize: width * 0.030,
     color: '#18181B',
     lineHeight: width * 0.045,
+  },
+  welcomeCard: {
+    backgroundColor: '#FDE7FB',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    borderColor: '#E5E7EB',
+  },
+  welcomeIconContainer: {
+    backgroundColor: '#C539A5',
+    width: width * 0.12,
+    height: width * 0.12,
+    borderRadius: width * 0.06,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: width * 0.04,
+  },
+  welcomeIcon: {
+    width: width * 0.14,
+    height: width * 0.2,
   },
 });
 
