@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: 0,
-    marginBottom: 8,
+    marginBottom: -8,
     writingDirection: 'ltr',
     flexShrink: 0,
     minHeight: width * 0.13,
@@ -568,6 +568,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignSelf: 'center',
     backgroundColor: '#F8F8F8',
+    // marginBottom: 10,
   },
   bannerImage: {
     width: '100%',
