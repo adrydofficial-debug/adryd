@@ -41,7 +41,7 @@
       }
     },
     "previousCompany": {
-      "select": "Select",
+      "select": "Companies",
       "selectPrevious": "Select previous company",
       "loading": "Loading companies...",
       "error": "Failed to load companies. Please try again.",

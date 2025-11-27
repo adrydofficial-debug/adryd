@@ -295,7 +295,6 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
           onBackPress={handleBackPress}
           showBackButton={true}
           showRightIcon={false}
-        // containerStyle={{ paddingVertical: 5}}
         />
       )}
       {/* Content */}
