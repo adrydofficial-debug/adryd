@@ -14,6 +14,7 @@ import {
   Alert,
   Share,
   PermissionsAndroid,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
@@ -23,6 +24,8 @@ import BackButton from '../../../components/BackButton';
 import PrimaryButton from '../../../components/PrimaryButton';
 import { getTermsAgreed, setTermsAgreed } from '../../../services/storage';
 import { useAuthStore } from '../../../store/authStore';
+import { usePrivacyPolicy } from '../../legal/hooks/useLegalDocuments';
+import { useLegalAgreements } from '../../legal/hooks/useLegalAgreements';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -49,6 +52,11 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = () => {
   const [hasAgreed, setHasAgreed] = useState<boolean>(false);
   const [showHelloBanner, setShowHelloBanner] = useState<boolean>(false);
   const [isChecked, setIsChecked] = useState<boolean>(false);
+  
+  // Legal documents hooks
+  const { content, version, loading: contentLoading, error: contentError, isCached } = usePrivacyPolicy();
+  const { submitAgreement } = useLegalAgreements();
+  
   const scrollViewRef = useRef<ScrollView>(null);
   const checkboxScale = useRef(new Animated.Value(1)).current;
   const checkboxOpacity = useRef(new Animated.Value(0)).current;
@@ -175,6 +183,16 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = () => {
       }),
     ]).start(async () => {
       try {
+        // Submit agreement to backend
+        if (version) {
+          const success = await submitAgreement('privacy', version);
+          if (!success) {
+            Alert.alert('Error', 'Failed to submit agreement. Please try again.');
+            return;
+          }
+        }
+        
+        // Also update local storage (for backward compatibility)
         await setTermsAgreed(true);
         setHasAgreed(true);
         setShowHelloBanner(false);
@@ -204,85 +222,10 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = () => {
           }
         }, 300);
       } catch (error) {
-        console.error('Error saving terms agreement:', error);
+        console.error('Error saving privacy agreement:', error);
+        Alert.alert('Error', 'Failed to submit agreement. Please try again.');
       }
     });
-  };
-
-  const getPrivacyContent = (): string => {
-    return `PRIVACY POLICY
-
-Last update: Yesterday
-
-This Privacy Policy explains how ADRYD Marketing Co. ("ADRYD," "we," "our," or "us") collects, uses, and protects your personal information when you use our website https://adryd.app and our mobile application (collectively referred to as the "Platform"). By using our Platform, you agree to the collection and use of your information in accordance with this Privacy Policy.
-
-1. Information We Collect
-
-We collect information that you provide directly to us, including:
-• Personal identification information (name, email address, phone number)
-• Business information (company name, registration number, address)
-• Payment information (processed securely through third-party payment processors)
-• Account credentials and profile information
-• Content you submit through our Platform (advertisements, campaigns, etc.)
-
-2. How We Use Your Information
-
-We use the information we collect to:
-• Provide, maintain, and improve our services
-• Process transactions and send related information
-• Send you technical notices, updates, and support messages
-• Respond to your comments, questions, and requests
-• Monitor and analyze trends, usage, and activities
-• Detect, prevent, and address technical issues and fraudulent activity
-
-3. Information Sharing and Disclosure
-
-We do not sell, trade, or rent your personal information to third parties. We may share your information only:
-• With your consent
-• To comply with legal obligations
-• To protect our rights and safety
-• With service providers who assist us in operating our Platform (under strict confidentiality agreements)
-
-4. Data Security
-
-We implement appropriate technical and organizational security measures to protect your personal information. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.
-
-5. Data Retention
-
-We retain your personal information for as long as necessary to provide our services and comply with legal obligations. When we no longer need your information, we will securely delete or anonymize it.
-
-6. Your Rights
-
-Under Pakistan's Personal Data Protection Bill, you have the right to:
-• Access your personal information
-• Correct inaccurate data
-• Request deletion of your data
-• Object to processing of your data
-• Data portability
-
-To exercise these rights, please contact us at support@adryd.app.
-
-7. Cookies and Tracking Technologies
-
-We use cookies and similar tracking technologies to track activity on our Platform and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent.
-
-8. Third-Party Links
-
-Our Platform may contain links to third-party websites. We are not responsible for the privacy practices of these external sites. We encourage you to review the privacy policies of any third-party sites you visit.
-
-9. Children's Privacy
-
-Our Platform is not intended for individuals under the age of 18. We do not knowingly collect personal information from children. If you believe we have collected information from a child, please contact us immediately.
-
-10. Changes to This Privacy Policy
-
-We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last update" date.
-
-11. Contact Us
-
-For any questions about this Privacy Policy, please contact us at:
-📧 support@adryd.app
-📍 ADRYD Marketing Co., Lahore, Pakistan`;
   };
 
   const requestStoragePermission = async (): Promise<boolean> => {
@@ -315,14 +258,17 @@ For any questions about this Privacy Policy, please contact us at:
 
   const handleDownload = async () => {
     try {
-      const privacyContent = getPrivacyContent();
-      const fileName = 'ADRYD_Privacy_Policy.txt';
-      
-      // Verify content is not empty
-      if (!privacyContent || privacyContent.trim().length === 0) {
-        Alert.alert('Error', 'Privacy Policy content is empty.');
+      // Use fetched content from API
+      if (!content || content.trim().length === 0) {
+        Alert.alert(
+          'Error',
+          'Privacy Policy content is not available. Please check your internet connection and try again.'
+        );
         return;
       }
+      
+      const privacyContent = content;
+      const fileName = 'ADRYD_Privacy_Policy.txt';
 
       // For both platforms, create a file and share it
       // This is more reliable than direct file system access
@@ -475,106 +421,39 @@ For any questions about this Privacy Policy, please contact us at:
         <View style={styles.contentContainer}>
           <Text style={styles.title}>Privacy Policy</Text>
           <View style={styles.lastUpdateContainer}>
-            <Text style={styles.lastUpdate}>Last update: Yesterday</Text>
+            <Text style={styles.lastUpdate}>
+              {version ? `Version: ${version}` : 'Last update: Yesterday'}
+            </Text>
+            {isCached && (
+              <Text style={[styles.lastUpdate, { fontSize: 10, color: '#999', marginTop: 4 }]}>
+                (Showing cached version)
+              </Text>
+            )}
           </View>
 
-          <View style={styles.termsContent}>
-            <Text style={styles.introText}>
-              This Privacy Policy explains how ADRYD Marketing Co. ("ADRYD," "we," "our," or "us") collects, uses, and protects your personal information when you use our website{' '}
-              <Text style={styles.link}>https://adryd.app</Text> and our mobile application (collectively referred to as the "Platform"). By using our Platform, you agree to the collection and use of your information in accordance with this Privacy Policy.
-            </Text>
-
-            {/* Section 1 */}
-            <Text style={styles.sectionTitle}>1. Information We Collect</Text>
-            <Text style={styles.paragraph}>
-              We collect information that you provide directly to us, including:
-            </Text>
-            <Text style={styles.bulletPoint}>• Personal identification information (name, email address, phone number)</Text>
-            <Text style={styles.bulletPoint}>• Business information (company name, registration number, address)</Text>
-            <Text style={styles.bulletPoint}>• Payment information (processed securely through third-party payment processors)</Text>
-            <Text style={styles.bulletPoint}>• Account credentials and profile information</Text>
-            <Text style={styles.bulletPoint}>• Content you submit through our Platform (advertisements, campaigns, etc.)</Text>
-
-            {/* Section 2 */}
-            <Text style={styles.sectionTitle}>2. How We Use Your Information</Text>
-            <Text style={styles.paragraph}>
-              We use the information we collect to:
-            </Text>
-            <Text style={styles.bulletPoint}>• Provide, maintain, and improve our services</Text>
-            <Text style={styles.bulletPoint}>• Process transactions and send related information</Text>
-            <Text style={styles.bulletPoint}>• Send you technical notices, updates, and support messages</Text>
-            <Text style={styles.bulletPoint}>• Respond to your comments, questions, and requests</Text>
-            <Text style={styles.bulletPoint}>• Monitor and analyze trends, usage, and activities</Text>
-            <Text style={styles.bulletPoint}>• Detect, prevent, and address technical issues and fraudulent activity</Text>
-
-            {/* Section 3 */}
-            <Text style={styles.sectionTitle}>3. Information Sharing and Disclosure</Text>
-            <Text style={styles.paragraph}>
-              We do not sell, trade, or rent your personal information to third parties. We may share your information only:
-            </Text>
-            <Text style={styles.bulletPoint}>• With your consent</Text>
-            <Text style={styles.bulletPoint}>• To comply with legal obligations</Text>
-            <Text style={styles.bulletPoint}>• To protect our rights and safety</Text>
-            <Text style={styles.bulletPoint}>• With service providers who assist us in operating our Platform (under strict confidentiality agreements)</Text>
-
-            {/* Section 4 */}
-            <Text style={styles.sectionTitle}>4. Data Security</Text>
-            <Text style={styles.paragraph}>
-              We implement appropriate technical and organizational security measures to protect your personal information. However, no method of transmission over the Internet or electronic storage is 100% secure, and we cannot guarantee absolute security.
-            </Text>
-
-            {/* Section 5 */}
-            <Text style={styles.sectionTitle}>5. Data Retention</Text>
-            <Text style={styles.paragraph}>
-              We retain your personal information for as long as necessary to provide our services and comply with legal obligations. When we no longer need your information, we will securely delete or anonymize it.
-            </Text>
-
-            {/* Section 6 */}
-            <Text style={styles.sectionTitle}>6. Your Rights</Text>
-            <Text style={styles.paragraph}>
-              Under Pakistan's Personal Data Protection Bill, you have the right to:
-            </Text>
-            <Text style={styles.bulletPoint}>• Access your personal information</Text>
-            <Text style={styles.bulletPoint}>• Correct inaccurate data</Text>
-            <Text style={styles.bulletPoint}>• Request deletion of your data</Text>
-            <Text style={styles.bulletPoint}>• Object to processing of your data</Text>
-            <Text style={styles.bulletPoint}>• Data portability</Text>
-            <Text style={styles.paragraph}>
-              To exercise these rights, please contact us at support@adryd.app.
-            </Text>
-
-            {/* Section 7 */}
-            <Text style={styles.sectionTitle}>7. Cookies and Tracking Technologies</Text>
-            <Text style={styles.paragraph}>
-              We use cookies and similar tracking technologies to track activity on our Platform and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent.
-            </Text>
-
-            {/* Section 8 */}
-            <Text style={styles.sectionTitle}>8. Third-Party Links</Text>
-            <Text style={styles.paragraph}>
-              Our Platform may contain links to third-party websites. We are not responsible for the privacy practices of these external sites. We encourage you to review the privacy policies of any third-party sites you visit.
-            </Text>
-
-            {/* Section 9 */}
-            <Text style={styles.sectionTitle}>9. Children's Privacy</Text>
-            <Text style={styles.paragraph}>
-              Our Platform is not intended for individuals under the age of 18. We do not knowingly collect personal information from children. If you believe we have collected information from a child, please contact us immediately.
-            </Text>
-
-            {/* Section 10 */}
-            <Text style={styles.sectionTitle}>10. Changes to This Privacy Policy</Text>
-            <Text style={styles.paragraph}>
-              We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last update" date.
-            </Text>
-
-            {/* Section 11 */}
-            <Text style={styles.sectionTitle}>11. Contact Us</Text>
-            <Text style={styles.paragraph}>
-              For any questions about this Privacy Policy, please contact:
-            </Text>
-            <Text style={styles.bulletPoint}>📧 support@adryd.app</Text>
-            <Text style={styles.bulletPoint}>📍 ADRYD Marketing Co., Lahore, Pakistan</Text>
-          </View>
+          {contentLoading && !content ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#C539A5" />
+              <Text style={styles.loadingText}>Loading Privacy Policy...</Text>
+            </View>
+          ) : contentError && !content ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>Error loading content: {contentError}</Text>
+              <Text style={styles.errorText}>
+                Please check your internet connection and try again.
+              </Text>
+            </View>
+          ) : content ? (
+            <View style={styles.termsContent}>
+              <Text style={styles.paragraph}>{content}</Text>
+            </View>
+          ) : (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>
+                No content available. Please check your internet connection and try again.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -706,7 +585,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: wp(4),
-    paddingTop: hp(2),
+    paddingTop: hp(8),
     backgroundColor: '#F5F5F5',
   },
   title: {
@@ -824,6 +703,26 @@ const styles = StyleSheet.create({
   downloadButton: {
     width: '60%',
     alignSelf: 'center',
+  },
+  loadingContainer: {
+    paddingVertical: hp(5),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: hp(2),
+    fontSize: 14,
+    color: '#70737D',
+  },
+  errorContainer: {
+    paddingVertical: hp(3),
+    paddingHorizontal: wp(4),
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#FF3B30',
+    marginBottom: hp(1),
+    textAlign: 'center',
   },
 });
 

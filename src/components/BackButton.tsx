@@ -9,6 +9,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useDrawerStore } from '../store/drawerStore';
 
 // Screen width & height
 const { width, height } = Dimensions.get('window');
@@ -26,9 +27,23 @@ interface BackButtonProps {
 
 const BackButton: React.FC<BackButtonProps> = ({ style, iconColor = '#70737D' }) => {
   const navigation = useNavigation<NavigationProp>();
+  const navigatedFromDrawer = useDrawerStore(s => s.navigatedFromDrawer);
+  const setNavigatedFromDrawer = useDrawerStore(s => s.setNavigatedFromDrawer);
+  const reopenDrawerCallback = useDrawerStore(s => s.reopenDrawerCallback);
 
   const handleBackPress = () => {
     try {
+      if (navigatedFromDrawer && reopenDrawerCallback) {
+        reopenDrawerCallback();
+        setNavigatedFromDrawer(false);
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+          return;
+        }
+        navigation.navigate('BottomTab' as never, { tab: 'Home' } as never);
+        return;
+      }
+
       if (navigation.canGoBack()) {
         navigation.goBack();
         return;

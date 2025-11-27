@@ -12,7 +12,6 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {useFavoritesBoards} from '../../boards/hooks/useFavorites';
 import type {BoardItem} from '../../../components/BoardList';
-import BackButton from '../../../components/BackButton';
 import Header from '../../../components/Header';
 import FavouritesEmptyState from '../components/FavouritesEmptyState';
 
@@ -309,6 +308,7 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
          <Header
            title="Favourites"
            onBackPress={() => navigation.goBack()}
+           showBackButton={false}
            showRightIcon={false}
          />
        )}

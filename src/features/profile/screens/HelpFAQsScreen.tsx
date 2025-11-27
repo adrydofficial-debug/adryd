@@ -202,22 +202,6 @@ const HelpFAQsScreen: React.FC = () => {
 
        <BackButton/>
 
-      {/* Hero Banner */}
-      <LinearGradient
-        colors={['#FFF4FD', '#FEF3F9', '#FFFFFF']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.heroBanner}
-      >
-        <View style={styles.heroIconContainer}>
-          <Ionicons name="help-circle" size={40} color="#C539A5" />
-        </View>
-        <Text style={styles.heroTitle}>Help & FAQs</Text>
-        <Text style={styles.heroSubtitle}>
-          Find answers to common questions and get the help you need
-        </Text>
-      </LinearGradient>
-
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
@@ -237,6 +221,8 @@ const HelpFAQsScreen: React.FC = () => {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.highlightRow}
+            style={styles.highlightScrollView}
+            bounces={false}
           >
             {highlightCards.map(card => (
               <TouchableOpacity
@@ -368,7 +354,7 @@ const HelpFAQsScreen: React.FC = () => {
                         <Ionicons
                           name={isExpanded ? 'remove' : 'add'}
                           size={20}
-                          color={isExpanded ? '#4F2D6C' : '#C539A5'}
+                          color={isExpanded ? '#000000' : '#000000'}
                         />
                       </View>
                     </TouchableOpacity>
@@ -445,42 +431,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
 
-  heroBanner: {
-    marginHorizontal: width * 0.04,
-    marginTop: height * 0.11,
-    marginBottom: height * 0.02,
-    padding: width * 0.06,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(197, 57, 165, 0.15)',
-    shadowColor: '#C539A5',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-    overflow: 'hidden',
-    alignItems: 'center',
-  },
-  heroIconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(197, 57, 165, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  heroTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    marginBottom: 8,
-    letterSpacing: 0.5,
-    textAlign: 'center',
-  },
   scrollView: {
     flex: 1,
   },
@@ -513,9 +463,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     marginTop: 4,
   },
+  highlightScrollView: {
+    marginLeft: -32,
+    paddingLeft: 32,
+    marginRight: 0,
+  },
   highlightRow: {
     marginTop: 18,
     paddingVertical: 6,
+    paddingRight: 32,
+    paddingLeft: 0,
   },
   highlightCard: {
     width: 141,
@@ -571,10 +528,10 @@ const styles = StyleSheet.create({
   },
   contentWrapper: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    marginTop: -32,
-    paddingTop: 32,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    marginTop: 0,
+    paddingTop: 24,
     paddingHorizontal: width * 0.06,
     paddingBottom: 8,
   },
@@ -588,20 +545,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: '#6A6D78',
-    marginBottom: 18,
+    marginBottom: 12,
   },
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 300,
-    height: 40,
+    width: '100%',
+    height: 44,
     backgroundColor: '#FFFFFF',
-    borderRadius: 7,
-    borderWidth: 0.7,
+    borderRadius: 8,
+    borderWidth: 0.5,
     borderColor: '#E5E7EB',
-    paddingHorizontal: 10,
-    gap: 5,
-    marginBottom: 8,
+    paddingHorizontal: 12,
+    gap: 8,
+    marginBottom: 16,
   },
   searchIcon: {
     marginRight: 4,
@@ -617,60 +574,73 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   faqSection: {
-    paddingHorizontal: width * 0.04,
+    paddingHorizontal: width * 0.06,
     marginTop: 12,
+    backgroundColor: '#F5F5F5',
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   faqList: {
-    marginTop: 12,
+    marginTop: 0,
   },
   faqCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#ECECF5',
-    marginBottom: 14,
+    borderRadius: 12,
+    borderWidth: 0,
+    marginBottom: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   faqQuestionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    minHeight: 56,
   },
   faqQuestion: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#111111',
-    lineHeight: 22,
+    color: '#000000',
+    lineHeight: 20,
+    marginRight: 12,
   },
   faqIconContainer: {
-    width: 38,
-    height: 38,
+    width: 24,
+    height: 24,
     borderRadius: 12,
-    backgroundColor: '#F3F3F7',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 16,
+    marginLeft: 0,
   },
   faqIconContainerExpanded: {
-    backgroundColor: '#EFD7EC',
+    backgroundColor: 'transparent',
   },
   faqAnswerContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 18,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 0,
   },
   faqAnswerDivider: {
-    height: 1,
-    backgroundColor: '#E4E4EC',
-    marginBottom: 14,
+    height: 0,
+    backgroundColor: 'transparent',
+    marginBottom: 12,
   },
   faqAnswer: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '400',
-    color: '#4C4C54',
-    lineHeight: 22,
+    color: '#666666',
+    lineHeight: 20,
   },
   noResultsContainer: {
     alignItems: 'center',

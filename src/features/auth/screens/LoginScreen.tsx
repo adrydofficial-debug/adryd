@@ -136,8 +136,8 @@ const LoginScreen: React.FC = () => {
             </View>
             <Formik<LoginCredentials>
               initialValues={{
-                phoneNumber: '+923359857379',
-                password: 'Taimoor12@',
+                phoneNumber: '+923074074031',
+                password: 'Umair12@',
               }}
               validationSchema={loginValidationSchema}
               onSubmit={handleLogin}
