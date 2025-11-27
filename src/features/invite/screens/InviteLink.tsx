@@ -1,53 +1,55 @@
-import React, { useMemo, useState } from 'react';
+import Clipboard from '@react-native-clipboard/clipboard';
+import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
+  Image,
   Platform,
   ScrollView,
   Share,
   StyleSheet,
   Text,
+  ToastAndroid,
   TouchableOpacity,
   useWindowDimensions,
   View,
-  ToastAndroid,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import Clipboard from '@react-native-clipboard/clipboard';
-import { useNavigation } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
-import { Image } from 'react-native';
 import { Images } from '../../../assets/images';
 import BackButton from '../../../components/BackButton';
 import PrimaryButton from '../../../components/PrimaryButton';
+import { useReferralCode, useReferredCount } from '../hooks/hooks';
 
 const BASE_WIDTH = 375;
 const BASE_HEIGHT = 812;
 
-const statusBadges = [
-  { label: 'Active', color: '#3DCC8E' },
-  { label: 'Draft', color: '#E5E7EB' },
-  { label: 'In Progress', color: '#FDBA74' },
-  { label: 'Pending', color: '#FCD34D' },
-  { label: 'Complete', color: '#C4B5FD' },
-  { label: 'Blocked', color: '#F28EA6' },
-];
-
 const InviteLink: React.FC = () => {
   const { width, height } = useWindowDimensions();
-  const navigation = useNavigation();
   const { t } = useTranslation('profile');
-  const referralLink = 'https://invite.adrydmarketingco.co/invite?';
-  const [inviteCount] = useState(0); // TODO: Replace with actual API call to get invite count
+
+  // ✅ Use the referral count hook
+  const { data: inviteCount = 0, isLoading: isCountLoading } =
+    useReferredCount();
+
+  // ✅ Use the referral code hook
+  const { data: referralCode, isLoading: isCodeLoading } = useReferralCode();
+
   const styles = useMemo(() => createStyles(width, height), [width, height]);
+
+  // Concatenate referral code with invite URL
+  const referralLink = `https://adryd.app/invite/${referralCode || ''}`;
 
   const handleCopyLink = () => {
     Clipboard.setString(referralLink);
     if (Platform.OS === 'android') {
       ToastAndroid.show(t('inviteScreen.copiedToast'), ToastAndroid.SHORT);
     } else {
-      Alert.alert(t('inviteScreen.copiedTitle'), t('inviteScreen.copiedMessage'));
+      Alert.alert(
+        t('inviteScreen.copiedTitle'),
+        t('inviteScreen.copiedMessage'),
+      );
     }
   };
 
@@ -70,8 +72,8 @@ const InviteLink: React.FC = () => {
     >
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.headerContainer}>
-          <View >
-            <BackButton style={styles.backButtonOverride}/>
+          <View>
+            <BackButton style={styles.backButtonOverride} />
           </View>
           <TouchableOpacity
             style={styles.iconButton}
@@ -81,7 +83,9 @@ const InviteLink: React.FC = () => {
           >
             <View style={styles.iconButtonContent}>
               <Ionicons name="person" size={20} color="#C539A5" />
-              <Text style={styles.iconButtonText}>{inviteCount}</Text>
+              <Text style={styles.iconButtonText}>
+                {isCountLoading ? '...' : inviteCount}
+              </Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -89,10 +93,13 @@ const InviteLink: React.FC = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-
           <View style={styles.badgeCloud}>
-            <Text style={styles.headlineTop}>{t('inviteScreen.headlineTop')}</Text>
-            <Text style={styles.headlineBottom}>{t('inviteScreen.headlineBottom')}</Text>
+            <Text style={styles.headlineTop}>
+              {t('inviteScreen.headlineTop')}
+            </Text>
+            <Text style={styles.headlineBottom}>
+              {t('inviteScreen.headlineBottom')}
+            </Text>
           </View>
 
           <View style={styles.illustrationCard}>
@@ -107,7 +114,9 @@ const InviteLink: React.FC = () => {
             <Text style={styles.description}>
               <Text style={styles.noWrap}>
                 {t('inviteScreen.ctaText')}
-                <Text style={styles.heroHighlight}>{t('inviteScreen.ctaHighlight')}</Text>
+                <Text style={styles.heroHighlight}>
+                  {t('inviteScreen.ctaHighlight')}
+                </Text>
               </Text>
               {t('inviteScreen.ctaTextAfter')}
             </Text>
@@ -124,7 +133,11 @@ const InviteLink: React.FC = () => {
               accessibilityLabel={t('inviteScreen.copyA11y')}
               activeOpacity={0.8}
             >
-              <Ionicons name="copy-outline" size={styles.copyIconSize} color="#D946EF" />
+              <Ionicons
+                name="copy-outline"
+                size={styles.copyIconSize}
+                color="#D946EF"
+              />
             </TouchableOpacity>
           </View>
 
@@ -277,10 +290,10 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
       borderWidth: 1,
       borderColor: '#E5E7EB',
       marginBottom: hp(2),
-      width:"90%",
-      justifyContent:"center",
-      alignContent:"center",
-      alignSelf:"center",
+      width: '90%',
+      justifyContent: 'center',
+      alignContent: 'center',
+      alignSelf: 'center',
     },
     linkText: {
       flex: 1,
@@ -296,8 +309,8 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
       alignItems: 'center',
     },
     ctaButton: {
-      width: "90%",
-      alignSelf: "center",
+      width: '90%',
+      alignSelf: 'center',
       marginTop: hp(1.8),
     },
   });
@@ -306,4 +319,3 @@ const createStyles = (windowWidth: number, windowHeight: number) => {
 };
 
 export default InviteLink;
-

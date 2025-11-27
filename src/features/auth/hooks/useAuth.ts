@@ -33,7 +33,7 @@ export const useRegister = () => {
         options: {
           data: {
             full_name: fullName,
-            ...(referrerCode ? { referrer: referrerCode } : {}), // include only if present
+            ...(referrerCode ? { referred_by: referrerCode } : {}),
           },
         },
       });
