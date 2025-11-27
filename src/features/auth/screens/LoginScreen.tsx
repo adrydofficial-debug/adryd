@@ -8,7 +8,6 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -125,139 +124,137 @@ const LoginScreen: React.FC = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
       >
-          <View style={styles.mainContainer}>
-            <View style={styles.header}>
-              {/* <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.7}> */}
-              <Text style={styles.title}>{t('login.title')}</Text>
-              {/* </TouchableOpacity> */}
-              <Text style={styles.subtitle}>
-                {t('login.subtitle')}
-              </Text>
-            </View>
-            <Formik<LoginCredentials>
-              initialValues={{
-                phoneNumber: '+923074074031',
-                password: 'Umair12@',
-              }}
-              validationSchema={loginValidationSchema}
-              onSubmit={handleLogin}
-            >
-              {({
-                handleChange,
-                handleBlur: formikBlur,
-                handleSubmit,
-                values,
-                errors,
-                touched,
-                setFieldValue,
-              }) => (
-                <>
-                  {/* Phone input */}
-                  <CustomInput
-                    label={t('login.phoneNumber')}
-                    placeholder="3XXXXXXXXX"
-                    isPhoneNumber={true}
-                    value={values.phoneNumber}
-                    onChangeText={text =>
-                      handlePhoneNumberChange(text, setFieldValue)
-                    }
-                    onBlur={() => handleBlur('phoneNumber', formikBlur)}
-                    onFocus={() => handleFocus('phoneNumber')}
-                    focused={focusedField === 'phoneNumber'}
-                    error={
-                      (touched.phoneNumber &&
-                        (errors.phoneNumber !== undefined ||
-                          !values.phoneNumber ||
-                          values.phoneNumber === '+92' ||
-                          values.phoneNumber.length < 13)) ||
-                      apiError
-                    }
-                    errorMessage={
-                      touched.phoneNumber &&
-                      (errors.phoneNumber ||
+        <View style={styles.mainContainer}>
+          <View style={styles.header}>
+            {/* <TouchableOpacity onPress={() => setDrawerVisible(true)} activeOpacity={0.7}> */}
+            <Text style={styles.title}>{t('login.title')}</Text>
+            {/* </TouchableOpacity> */}
+            <Text style={styles.subtitle}>{t('login.subtitle')}</Text>
+          </View>
+          <Formik<LoginCredentials>
+            initialValues={{
+              phoneNumber: '+92',
+              password: '',
+            }}
+            validationSchema={loginValidationSchema}
+            onSubmit={handleLogin}
+          >
+            {({
+              handleChange,
+              handleBlur: formikBlur,
+              handleSubmit,
+              values,
+              errors,
+              touched,
+              setFieldValue,
+            }) => (
+              <>
+                {/* Phone input */}
+                <CustomInput
+                  label={t('login.phoneNumber')}
+                  placeholder="3XXXXXXXXX"
+                  isPhoneNumber={true}
+                  value={values.phoneNumber}
+                  onChangeText={text =>
+                    handlePhoneNumberChange(text, setFieldValue)
+                  }
+                  onBlur={() => handleBlur('phoneNumber', formikBlur)}
+                  onFocus={() => handleFocus('phoneNumber')}
+                  focused={focusedField === 'phoneNumber'}
+                  error={
+                    (touched.phoneNumber &&
+                      (errors.phoneNumber !== undefined ||
                         !values.phoneNumber ||
                         values.phoneNumber === '+92' ||
-                        values.phoneNumber.length < 13)
-                        ? t('login.errors.phoneNumber')
-                        : undefined
-                    }
-                    showErrorText={false}
-                    returnKeyType="next"
-                    blurOnSubmit={false}
-                    onSubmitEditing={() => passwordRef.current?.focus()}
-                  />
+                        values.phoneNumber.length < 13)) ||
+                    apiError
+                  }
+                  errorMessage={
+                    touched.phoneNumber &&
+                    (errors.phoneNumber ||
+                      !values.phoneNumber ||
+                      values.phoneNumber === '+92' ||
+                      values.phoneNumber.length < 13)
+                      ? t('login.errors.phoneNumber')
+                      : undefined
+                  }
+                  showErrorText={false}
+                  returnKeyType="next"
+                  blurOnSubmit={false}
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                />
 
-                  {/* Password input */}
-                  <CustomInput
-                    ref={passwordRef}
-                    label={t('login.password')}
-                    placeholder="********"
-                    isPassword={true}
-                    value={values.password}
-                    onChangeText={text =>
-                      handlePasswordChange(text, handleChange('password'))
-                    }
-                    onBlur={() => handleBlur('password', formikBlur)}
-                    onFocus={() => handleFocus('password')}
-                    focused={focusedField === 'password'}
-                    error={
-                      (touched.password &&
-                        (errors.password !== undefined ||
-                          !values.password ||
-                          values.password.trim() === '')) ||
-                      apiError
-                    }
-                    errorMessage={
-                      (touched.password &&
-                        (errors.password ||
-                          !values.password ||
-                          values.password.trim() === '')) ||
-                      apiError
-                        ? t('login.errors.password')
-                        : undefined
-                    }
-                    returnKeyType="done"
-                  />
+                {/* Password input */}
+                <CustomInput
+                  ref={passwordRef}
+                  label={t('login.password')}
+                  placeholder="********"
+                  isPassword={true}
+                  value={values.password}
+                  onChangeText={text =>
+                    handlePasswordChange(text, handleChange('password'))
+                  }
+                  onBlur={() => handleBlur('password', formikBlur)}
+                  onFocus={() => handleFocus('password')}
+                  focused={focusedField === 'password'}
+                  error={
+                    (touched.password &&
+                      (errors.password !== undefined ||
+                        !values.password ||
+                        values.password.trim() === '')) ||
+                    apiError
+                  }
+                  errorMessage={
+                    (touched.password &&
+                      (errors.password ||
+                        !values.password ||
+                        values.password.trim() === '')) ||
+                    apiError
+                      ? t('login.errors.password')
+                      : undefined
+                  }
+                  returnKeyType="done"
+                />
 
-                  {/* Forgot password */}
-                  <TouchableOpacity
-                    style={styles.forgotPasswordContainer}
-                    onPress={() => navigation.navigate('ForgotPassword')}
-                  >
-                    <Text style={styles.forgotPasswordText}>
-                      {t('login.forgotPassword')}
-                    </Text>
-                  </TouchableOpacity>
+                {/* Forgot password */}
+                <TouchableOpacity
+                  style={styles.forgotPasswordContainer}
+                  onPress={() => navigation.navigate('ForgotPassword')}
+                >
+                  <Text style={styles.forgotPasswordText}>
+                    {t('login.forgotPassword')}
+                  </Text>
+                </TouchableOpacity>
 
-                  {/* Login button */}
-                  <PrimaryButton
-                    title={t('login.cta')}
-                    onPress={handleSubmit}
-                    loading={loginMutation.isPending}
-                    buttonStyle={{
-                      alignSelf: 'center',
-                      width: 161,
-                      height: 50,
-                    }}
-                  />
-                  {/* Loading indicator */}
-                  {loginMutation.isPending && <Loader />}
-                </>
-              )}
-            </Formik>
+                {/* Login button */}
+                <PrimaryButton
+                  title={t('login.cta')}
+                  onPress={handleSubmit}
+                  loading={loginMutation.isPending}
+                  buttonStyle={{
+                    alignSelf: 'center',
+                    width: 161,
+                    height: 50,
+                  }}
+                />
+                {/* Loading indicator */}
+                {loginMutation.isPending && <Loader />}
+              </>
+            )}
+          </Formik>
 
-            <View style={styles.grayLine} />
+          <View style={styles.grayLine} />
 
-            {/* Footer */}
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>{t('login.noAccount')} </Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('RegisterScreen')}
-              >
-                <Text style={styles.registerLink}>{t('login.register')}</Text>
-              </TouchableOpacity>
-            </View>
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>{t('login.noAccount')} </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('RegisterScreen')}
+            >
+              <Text style={styles.registerLink}>{t('login.register')}</Text>
+            </TouchableOpacity>
           </View>
+        </View>
       </KeyboardAvoidingView>
 
       <NoInternet />
