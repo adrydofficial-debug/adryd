@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useFocusEffect, useRoute, CommonActions } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -11,11 +12,18 @@ import {
   TextInput,
   Animated,
 } from 'react-native';
-import Header from '../../../components/Header';
+import BackButton from '../../../components/BackButton';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import BackButton from '../../../components/BackButton';
+import FAQsScreen from "../screens/FAQsScreen"
+import HelpMainScreen from "../screens/HelpMainScreen"
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
+
+type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
+
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,12 +35,13 @@ interface FAQItem {
 }
 
 const HelpFAQsScreen: React.FC = () => {
-  const navigation = useNavigation();
+  // const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const scrollViewRef = useRef<ScrollView>(null);
   const faqAnimations = useRef<{ [key: string]: Animated.Value }>({});
+    const navigation = useNavigation<NavigationProp>();
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -41,6 +50,7 @@ const HelpFAQsScreen: React.FC = () => {
   const handleBackPress = () => {
     navigation.goBack();
   };
+
 
   useEffect(() => {
     Animated.parallel([
@@ -126,45 +136,64 @@ const HelpFAQsScreen: React.FC = () => {
       category: 'payment',
       leadingLabel: 'Questions about',
       title: 'Payment',
-      icon: 'card',
-      backgroundColor: '#E4F6EB',
-      borderColor: '#CFEFDF',
-      iconBackground: 'rgba(37, 186, 122, 0.16)',
-      iconColor: '#1F9E74',
+      icon: 'card-outline',
+      backgroundColor: '#C8EFDB',
+      borderColor: '#FFFFFF',
+      iconColor: '#36BD79',
     },
     {
       id: 'account',
       category: 'account',
       leadingLabel: 'Questions about',
       title: 'Getting Started',
-      icon: 'rocket',
-      backgroundColor: '#FFE7F4',
-      borderColor: '#FFDAED',
-      iconBackground: 'rgba(241, 94, 150, 0.18)',
-      iconColor: '#D13A9E',
+      icon: 'rocket-outline',
+      backgroundColor: '#FDE7FB',
+      borderColor: '#FFFFFF',
+      iconColor: '#C539A5',
     },
     {
       id: 'general',
       category: 'general',
       leadingLabel: 'Questions about',
       title: 'How To Invest',
-      icon: 'trending-up',
-      backgroundColor: '#FFF5DB',
-      borderColor: '#FFE7C0',
-      iconBackground: 'rgba(243, 176, 52, 0.2)',
-      iconColor: '#D27B21',
+      icon: 'trending-up-outline',
+      backgroundColor: '#FEEFC9',
+      borderColor: '#FFFFFF',
+      iconColor: '#BD8700',
     },
     {
       id: 'all',
       category: 'all',
       leadingLabel: 'Browse all',
       title: 'Help Topics',
-      icon: 'help-circle',
-      backgroundColor: '#F4F4F9',
-      borderColor: '#E8E8F2',
-      iconBackground: 'rgba(106, 112, 255, 0.14)',
-      iconColor: '#525BFF',
+      icon: 'help-circle-outline',
+      backgroundColor: '#D6E5FD',
+      borderColor: '#FFFFFF',
+      iconColor: '#0046B7',
     },
+    {
+      id: 'blocked',
+      category: 'blocked',
+      leadingLabel: 'Questions about',
+      title: 'Blocked Accounts',
+      icon: 'lock-closed-outline',
+      backgroundColor: '#EB9A9B',
+      borderColor: '#FFFFFF',
+
+      iconColor: '#E61215',
+    },
+    {
+      id: 'terms',
+      category: 'terms',
+      leadingLabel: 'Learn about',
+      title: 'Terms & Conditions',
+      icon: 'document-text-outline',
+      backgroundColor: '#E5E7EB',
+      borderColor: '#FFFFFF',
+
+      iconColor: '#00000033',
+    },
+
   ];
 
   const filteredFAQ = faqData.filter(item => {
@@ -200,7 +229,7 @@ const HelpFAQsScreen: React.FC = () => {
 
       {/* Back Button */}
 
-       <BackButton/>
+
 
       <ScrollView
         ref={scrollViewRef}
@@ -209,12 +238,14 @@ const HelpFAQsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+
         <LinearGradient
           colors={['#FDF4FB', '#FDF1F7', '#FFF3F9']}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          end={{ x: 0, y: 1 }}
           style={styles.heroSection}
         >
+          <BackButton />
           <Text style={styles.greetingTitle}>Hi Umair</Text>
           <Text style={styles.heroSubtitle}>How can we help you?</Text>
           <ScrollView
@@ -229,53 +260,62 @@ const HelpFAQsScreen: React.FC = () => {
                 key={card.id}
                 style={[
                   styles.highlightCard,
-                  {
-                    backgroundColor: card.backgroundColor,
-                    borderColor: card.borderColor,
-                  },
+                  { backgroundColor: card.backgroundColor, borderColor: card.borderColor },
                   selectedCategory === card.category && styles.highlightCardActive,
                 ]}
-                onPress={() => setSelectedCategory(card.category)}
+                onPress={() => navigation.navigate('FAQsScreen', { card})}
                 activeOpacity={0.85}
               >
-                <View
-                  style={[
-                    styles.highlightIconBackground,
-                    { backgroundColor: card.iconBackground },
-                  ]}
-                >
+                <View style={styles.highlightIconBackground}>
                   <Ionicons name={card.icon as any} size={18} color={card.iconColor} />
                 </View>
-                <Text style={styles.highlightLabel}>{card.leadingLabel}</Text>
-                <Text style={styles.highlightTitle}>{card.title}</Text>
+                <View>
+                  <Text style={styles.highlightLabel}>{card.leadingLabel}</Text>
+                  <Text style={styles.highlightTitle}>{card.title}</Text>
+                </View>
               </TouchableOpacity>
+
             ))}
           </ScrollView>
-        <View style={styles.messageBubble}>
-          <Text style={styles.messageLabel}>Message</Text>
-          <Text style={styles.messageText}>Help</Text>
-        </View>
         </LinearGradient>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("HelpMainScreen")}
+          activeOpacity={0.8}
+        >
 
+          <View style={styles.messageBubble}>
+            <Text style={styles.messageLabel}>Message</Text>
+            <View
+              style={{
+                width: "auto",
+                height: 0,
+                borderWidth: 0.4,
+                borderColor: "#E5E7EB",
+              }}
+            />
+            <Text style={styles.messageText}>Help</Text>
+          </View>
+        </TouchableOpacity>
+
+
+
+
+        <Text style={styles.sectionHeading}>Top Questions</Text>
         <Animated.View
           style={[
-            styles.contentWrapper,
+            styles.faqSection,
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
             },
           ]}
         >
-          <Text style={styles.sectionHeading}>Top Questions</Text>
-          <Text style={styles.sectionSubheading}>
-            Browse curated answers or search for help instantly.
-          </Text>
           <View style={styles.searchWrapper}>
-            <Ionicons name="search" size={18} color="#AEB0C8" style={styles.searchIcon} />
+            <Ionicons name="search" size={15} color="#AEB0C8" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search for help..."
-              placeholderTextColor="#C8CAD7"
+              placeholderTextColor="#70737D"
               value={searchQuery}
               onChangeText={setSearchQuery}
               returnKeyType="search"
@@ -286,17 +326,6 @@ const HelpFAQsScreen: React.FC = () => {
               </TouchableOpacity>
             )}
           </View>
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.faqSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
           {filteredFAQ.length === 0 ? (
             <View style={styles.noResultsContainer}>
               <Ionicons name="search" size={60} color="#E0E0E0" />
@@ -325,6 +354,7 @@ const HelpFAQsScreen: React.FC = () => {
                     style={[
                       styles.faqCard,
                       {
+                        backgroundColor: isExpanded ? '#FFFFFF' : '#F5F5F5',   // ← CHANGE
                         opacity: fadeAnim,
                         transform: [
                           {
@@ -337,6 +367,7 @@ const HelpFAQsScreen: React.FC = () => {
                       },
                     ]}
                   >
+
                     <TouchableOpacity
                       style={styles.faqQuestionContainer}
                       onPress={() => handleFAQPress(item.id)}
@@ -353,8 +384,8 @@ const HelpFAQsScreen: React.FC = () => {
                       >
                         <Ionicons
                           name={isExpanded ? 'remove' : 'add'}
-                          size={20}
-                          color={isExpanded ? '#000000' : '#000000'}
+                          size={24}
+                          color={isExpanded ? '#70737D' : '#70737D'}
                         />
                       </View>
                     </TouchableOpacity>
@@ -388,38 +419,7 @@ const HelpFAQsScreen: React.FC = () => {
           )}
         </Animated.View>
 
-        <Animated.View
-          style={[
-            styles.ctaSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={['#C539A5', '#E91E63']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.ctaCard}
-          >
-            <View style={styles.ctaIconContainer}>
-              <Ionicons name="chatbubble-ellipses" size={32} color="#FFFFFF" />
-            </View>
-            <Text style={styles.ctaTitle}>Still need help?</Text>
-            <Text style={styles.ctaSubtitle}>
-              Our support team is here to assist you 24/7
-            </Text>
-            <TouchableOpacity
-              style={styles.ctaButton}
-              onPress={handleContactSupport}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.ctaButtonText}>Contact Support</Text>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={styles.ctaIcon} />
-            </TouchableOpacity>
-          </LinearGradient>
-        </Animated.View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -428,7 +428,7 @@ const HelpFAQsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F8F8F8',
   },
 
   scrollView: {
@@ -439,11 +439,11 @@ const styles = StyleSheet.create({
     paddingBottom: height * 0.1,
   },
   heroSection: {
-    paddingHorizontal: 32,
-    paddingTop: 40,
-    paddingBottom: 36,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
+    paddingHorizontal: 25,
+    paddingTop: 70,
+    paddingBottom: 10,
+    // borderBottomLeftRadius: 36,
+    // borderBottomRightRadius: 36,
     overflow: 'visible',
   },
 
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    // marginBottom: 5,
   },
   highlightCardActive: {
     borderColor: '#C8EFDB',
@@ -500,15 +500,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   highlightLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#5C5C62',
-    marginBottom: 4,
+    fontSize: 10,
+    fontWeight: '400',
+    color: '#000000',
+
   },
   highlightTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1C1A1F',
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#000000',
   },
   messageBubble: {
     backgroundColor: '#FFFFFF',
@@ -517,17 +517,21 @@ const styles = StyleSheet.create({
     marginTop: 20,
     borderWidth: 0.3,
     borderColor: '#E5E7EB',
+    width: width * 0.880,
+    alignSelf: "center",
+    marginBottom: 20,
   },
   messageLabel: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#8A8A96',
+    fontWeight: '500',
+    color: '#18181B',
     marginBottom: 10,
   },
   messageText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#8A8A96',
+    fontWeight: '500',
+    color: '#18181B',
+    marginTop: 10,
   },
   contentWrapper: {
     backgroundColor: '#FFFFFF',
@@ -539,67 +543,64 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   sectionHeading: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#141414',
-    marginBottom: 6,
+    marginBottom: 2,
+    paddingHorizontal: 27,
   },
-  sectionSubheading: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#6A6D78',
-    marginBottom: 12,
-  },
+
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    height: 44,
+    height: height * 0.052,
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: 7,
     borderWidth: 0.5,
     borderColor: '#E5E7EB',
-    paddingHorizontal: 12,
-    gap: 8,
-    marginBottom: 16,
+    paddingHorizontal: width * 0.030,
+    gap: width * 0.020,
+    marginBottom: height * 0.019,
+    marginTop: height * 0.01,
   },
   searchIcon: {
     marginRight: 4,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1E1E1E',
+    fontSize: 12,
+    fontWeight: '300',
     height: '100%',
+
   },
   clearButton: {
     padding: 2,
   },
   faqSection: {
+    width: width * 0.880,
+    height: "auto",
     paddingHorizontal: width * 0.06,
     marginTop: 12,
-    backgroundColor: '#F5F5F5',
     paddingTop: 12,
     paddingBottom: 12,
+    borderWidth: 1,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    borderColor: "#E5E7EB",
+    alignSelf: "center",
   },
   faqList: {
     marginTop: 0,
   },
   faqCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 0,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 15,
+    borderWidth: 0.7,
     marginBottom: 12,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    borderColor: "#E5E7EB",
   },
   faqQuestionContainer: {
     flexDirection: 'row',
@@ -611,9 +612,9 @@ const styles = StyleSheet.create({
   },
   faqQuestion: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#000000',
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#18181B',
     lineHeight: 20,
     marginRight: 12,
   },
@@ -628,21 +629,24 @@ const styles = StyleSheet.create({
   },
   faqIconContainerExpanded: {
     backgroundColor: 'transparent',
+
+
   },
   faqAnswerContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 10,
     paddingTop: 0,
+
   },
   faqAnswerDivider: {
     height: 0,
     backgroundColor: 'transparent',
-    marginBottom: 12,
+
   },
   faqAnswer: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '400',
-    color: '#666666',
+    color: '#70737D',
     lineHeight: 20,
   },
   noResultsContainer: {
@@ -676,68 +680,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  ctaSection: {
-    paddingHorizontal: width * 0.04,
-    marginTop: 24,
-    marginBottom: height * 0.05,
-  },
-  ctaCard: {
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#C539A5',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  ctaIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  ctaTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  ctaSubtitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  ctaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
-  },
-  ctaButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginRight: 8,
-    letterSpacing: 0.5,
-  },
-  ctaIcon: {
-    marginLeft: 4,
-  },
+
+
 });
 
 export default HelpFAQsScreen;

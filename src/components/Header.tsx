@@ -33,7 +33,7 @@ const Header: React.FC<HeaderProps> = ({
           onPress={onBackPress}
           activeOpacity={0.8}
         >
-          <Ionicons name="arrow-back" size={20} color="#111" />
+          <Ionicons name="arrow-back" size={20} color="#70737D" />
         </TouchableOpacity>
       ) : (
         <View style={styles.iconPlaceholder} />
