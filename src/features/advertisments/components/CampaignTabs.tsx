@@ -110,16 +110,16 @@ const styles = StyleSheet.create({
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius:35,
     marginRight: 8,
     minHeight: 34,
   },
   activeTab: {
-    borderWidth: 1,
-    borderColor: '#D4D4D8',
-    backgroundColor: '#FFFFFF',
+    borderWidth:0.7,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F5F5F5',
   },
   tabText: {
     fontSize: 14,
