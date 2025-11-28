@@ -1106,6 +1106,7 @@ const SearchLocation: React.FC = () => {
                   numColumns={2}
                   navigation={navigation}
                   onPressDetail={handleDetailPress}
+                  useWiderCards={true}
                 />
                 <Text style={styles.paginationMeta}>
                   Showing {filteredBoards.length} of {filterPagination.total}{' '}
@@ -1476,6 +1477,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(3.5),
     paddingVertical: hp(0.8),
     marginRight: wp(2),
+    marginBottom: hp(1.3),
   },
   appliedChipText: {
     color: '#70737D',
@@ -1506,8 +1508,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   resultsSection: {
-    paddingHorizontal: wp(4),
     paddingBottom: hp(2),
+    paddingLeft: wp(1),
   },
   resultsHeading: {
     fontSize: 18,
@@ -1907,7 +1909,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FCE7F3',
     borderRadius: 20,
     paddingHorizontal: wp(3),
-    paddingVertical: hp(0.8),
+    paddingVertical: hp(0.9),
     marginRight: wp(2),
     marginBottom: hp(0.5),
   },
