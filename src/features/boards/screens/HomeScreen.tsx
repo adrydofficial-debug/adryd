@@ -1,5 +1,8 @@
 // src/features/boards/HomeScreen.tsx
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dimensions,
   Image,
@@ -15,25 +18,21 @@ import {
   default as LinearGradientLib,
 } from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   Images,
   PinkLocationIcon,
   PinkNotifyIcon,
 } from '../../../assets/images';
+import HomeSplash from '../../../assets/images/HomeSplash.svg';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
+import NoInternet from '../../../components/NoInternet';
 import { useAuthStore } from '../../../store/authStore';
 import { useDrawerStore } from '../../../store/drawerStore';
+import { useProfile } from '../../profile/hooks/useProfile';
 import type { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
-import { useProfile } from '../../profile/hooks/useProfile';
-import NoInternet from '../../../components/NoInternet';
-import { useTranslation } from 'react-i18next';
-import { useFocusEffect } from '@react-navigation/native';
-import HomeSplash from "../../../assets/images/HomeSplash.svg";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-
 
 type Props = {
   navigation: any;
@@ -63,8 +62,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     setShowWelcomePopup(false);
     await AsyncStorage.setItem('welcome_popup_shown', 'true');
   };
-
-
 
   const { user } = useAuthStore();
   const { data: profile } = useProfile();
@@ -201,10 +198,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             ? loc.province
             : loc.province?.name || '') ||
           (loc.city && loc.province
-            ? `${typeof loc.city === 'string' ? loc.city : loc.city?.name || ''}, ${
-              typeof loc.province === 'string'
-              ? loc.province
-              : loc.province?.name || ''
+            ? `${
+                typeof loc.city === 'string' ? loc.city : loc.city?.name || ''
+              }, ${
+                typeof loc.province === 'string'
+                  ? loc.province
+                  : loc.province?.name || ''
               }`.trim()
             : 'Unknown Location') ||
           'Unknown Location';
@@ -215,8 +214,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       typeof board.price === 'number'
         ? board.price
         : board.price
-          ? Number(board.price) || 0
-          : 0;
+        ? Number(board.price) || 0
+        : 0;
     const primaryMediaUrl =
       Array.isArray(board.media) && board.media.length > 0
         ? board.media[0]?.url
@@ -275,6 +274,29 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         end={{ x: 0, y: 1 }}
         style={styles.fixedHeader}
       >
+        {/* <ProfileRow
+          profile={profile}
+          user={user}
+          avatarUrl={avatarUrl}
+          isValidAvatarUrl={isValidAvatarUrl}
+          selectedCity={selectedCity}
+          hasUnreadNotifications={hasUnreadNotifications}
+          t={t}
+          onProfileClick={() => navigation.navigate('Profile')}
+          onLocationClick={() =>
+            navigation.navigate('SearchLocation', {
+              city: selectedCity,
+              openLocationModal: true,
+            })
+          }
+          onSearchClick={() =>
+            navigation.navigate('SearchLocation', {
+              city: selectedCity,
+              openFilters: true,
+            })
+          }
+          onNotificationsClick={() => navigation.navigate('Notifications')}
+        /> */}
         <View style={styles.profileRow}>
           <TouchableOpacity onPress={handleProfilePress}>
             {isValidAvatarUrl && !avatarError ? (
@@ -314,7 +336,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   user?.user_metadata?.username ||
                   user?.email?.split('@')[0] ||
                   'User';
-                  
+
                 const firstName = fullName.trim().split(' ')[0];
                 const limitedName = firstName.substring(0, 8);
                 return limitedName;
@@ -379,11 +401,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       {showWelcomePopup && (
         <View style={styles.popupOverlay}>
           <View style={styles.popupContainer}>
-
             {/* Cancel Button */}
             <TouchableOpacity style={styles.closeBtn} onPress={closePopup}>
               <Ionicons name="close-outline" size={18} color="#fff" />
-
             </TouchableOpacity>
 
             {/* SVG Popup Image */}
@@ -391,7 +411,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
       )}
-
 
       <ScrollView
         style={styles.scroll}
@@ -586,25 +605,24 @@ const styles = StyleSheet.create({
 
   popupContainer: {
     position: 'absolute',
-    top: height * 0.30,      
-    left: width * 0.055,    
-    width: width * 0.900,     
-    height: height * 0.450,   
+    top: height * 0.3,
+    left: width * 0.055,
+    width: width * 0.9,
+    height: height * 0.45,
     overflow: 'hidden',
   },
   closeBtn: {
     position: 'absolute',
-    top: height * 0.007,     
-    right: width * 0.42,      
+    top: height * 0.007,
+    right: width * 0.42,
     zIndex: 10,
     backgroundColor: '#C539A5',
-    width: width * 0.067,    
-    height: width * 0.067,      
+    width: width * 0.067,
+    height: width * 0.067,
     borderRadius: width * 0.034,
     justifyContent: 'center',
     alignItems: 'center',
   },
-
 
   locationBtnText: {
     color: '#595959',
