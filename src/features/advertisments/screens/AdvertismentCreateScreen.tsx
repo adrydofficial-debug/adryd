@@ -75,7 +75,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const [description] = useState<string>('My great test advertisement.');
   const [locationName] = useState<string>('Lahore');
   const [errorText, setErrorText] = useState<string>('');
-  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 
   // Use the hook for API calls
   const createAdMutation = useCreateAdvertisement();
@@ -98,8 +97,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     return date.toISOString().split('T')[0];
   };
   
-  // Fetch board unavailable times from API - this is the ONLY source of booked dates
-  // All users will see the same unavailable dates from this API
   const { data: unavailableTimesData, refetch: refetchUnavailableTimes } = useBoardUnavailableTimes(BOARD_ID);
   
   // Refetch unavailable times when screen is focused to get latest booked dates
@@ -111,15 +108,10 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     return unsubscribe;
   }, [navigation, refetchUnavailableTimes]);
   
-  // Extract booked dates ONLY from board unavailable times API
-  // Only mark the start date of each booking range to avoid marking all days in between
-  // This ensures that when API returns a range like "Nov 13 to Dec 1", we only mark Nov 13,
-  // not all days from 13 to 30. Individual day bookings will still mark their specific days.
+  
   const bookedDates = useMemo(() => {
     const dates = new Set<string>();
     
-    // Add dates from board unavailable times API
-    // This is the ONLY source of booked dates - all users see the same unavailable dates
     if (unavailableTimesData?.unavailable && Array.isArray(unavailableTimesData.unavailable)) {
       console.log('📅 Processing', unavailableTimesData.unavailable.length, 'unavailable time ranges from API');
       unavailableTimesData.unavailable.forEach(unavailable => {
@@ -270,17 +262,15 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     return diffDays;
   };
 
-  // Extract submission logic to be called after confirmation
+  // Extract submission logic
   const handleSubmit = () => {
     // Validate form data
     if (!campaignName.trim()) {
       setErrorText('Campaign name is required');
-      setShowConfirmModal(false);
       return;
     }
     if (!campaignCategory.trim()) {
       setErrorText('Campaign category is required');
-      setShowConfirmModal(false);
       return;
     }
     
@@ -307,7 +297,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       console.log('⚠️ No selectedDays, using startDate/endDate fallback');
     } else {
       setErrorText('Please select at least one day from the calendar');
-      setShowConfirmModal(false);
       return;
     }
 
@@ -325,18 +314,13 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
         `You can only select up to ${MAX_DAYS_PER_REQUEST} days at a time. Please reduce your selection and try again.`,
         [{ text: 'OK' }]
       );
-      setShowConfirmModal(false);
       return;
     }
     
-    // Create individual bookings for each selected day
-    // API expects end_at to be the same as start_at for single-day bookings
+   
     const bookings = sortedDates.map(date => {
-      // Ensure we're working with a clean date object
       const cleanDate = new Date(date);
       
-      // For single-day bookings, API expects start_at and end_at to be the same
-      // Format: { "start_at": "2025-10-14T00:00:00Z", "end_at": "2025-10-14T00:00:00Z" }
       const dateAt = new Date(Date.UTC(
         cleanDate.getFullYear(),
         cleanDate.getMonth(),
@@ -348,19 +332,16 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       
       return {
         start_at: dateString,
-        end_at: dateString, // Same as start_at for single-day bookings
+        end_at: dateString, 
       };
     });
     
     // Validate bookings before sending
     if (bookings.length === 0) {
       setErrorText('No valid bookings to create');
-      setShowConfirmModal(false);
       return;
     }
     
-    // Validate each booking has valid dates
-    // Note: API allows start_at and end_at to be equal for single-day bookings
     const invalidBookings = bookings.filter(
       booking => !booking.start_at || !booking.end_at || 
       booking.start_at > booking.end_at || // Allow equal, but not start > end
@@ -370,7 +351,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     if (invalidBookings.length > 0) {
       setErrorText(`Invalid bookings detected: ${invalidBookings.length} booking(s) have invalid dates`);
       console.error('Invalid bookings:', invalidBookings);
-      setShowConfirmModal(false);
       return;
     }
     
@@ -404,21 +384,15 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     // Ensure all required fields are present and valid
     if (!campaignName || campaignName.trim() === '') {
       setErrorText('Campaign name is required');
-      setShowConfirmModal(false);
       return;
     }
     
     if (!description || description.trim() === '') {
       setErrorText('Description is required');
-      setShowConfirmModal(false);
       return;
     }
-
-    // For individual flow, omit company_id or set to null (server doesn't accept 0)
-    // For business flow, use the actual company_id from the created company
     let advertisementData: CreateAdvertisementRequest;
     
-    // Validate company_id for business flow
     if (flow === 'business') {
       if (!COMPANY_ID || COMPANY_ID <= 0) {
         setErrorText('Company ID is required for business flow. Please create a company first.');
@@ -427,7 +401,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
           'Please create a company before creating an advertisement for business flow.',
           [{ text: 'OK' }]
         );
-        setShowConfirmModal(false);
         return;
       }
       
@@ -457,14 +430,12 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     // Validate board_id exists
     if (!BOARD_ID || BOARD_ID <= 0) {
       setErrorText('Invalid board ID. Please contact support.');
-      setShowConfirmModal(false);
       return;
     }
     
     // Additional validation: Check if bookings array is too large
     if (bookings.length > MAX_DAYS_PER_REQUEST) {
       setErrorText(`Too many bookings (${bookings.length}). Maximum allowed: ${MAX_DAYS_PER_REQUEST}`);
-      setShowConfirmModal(false);
       return;
     }
     
@@ -507,9 +478,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       isVideo: false,
     });
 
-    // Close the modal
-    setShowConfirmModal(false);
-
     // Call the API using the hook with callbacks
     createAdMutation.mutate(advertisementData, {
       onSuccess: async response => {
@@ -533,16 +501,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       onError: error => {
         // Log full error details for debugging
         const anyErr: any = error as any;
-        
-        // Comprehensive error logging
-        console.error('========== ERROR DETAILS ==========');
-        console.error('Error status:', anyErr?.response?.status);
-        console.error('Error response:', anyErr?.response);
-        console.error('Error response data:', anyErr?.response?.data);
-        console.error('Error response headers:', anyErr?.response?.headers);
-        console.error('Full error:', JSON.stringify(anyErr, null, 2));
-        console.error('Request payload that failed:', JSON.stringify(advertisementData, null, 2));
-        console.error('===================================');
         
         // Extract detailed error message
         const serverData = anyErr?.response?.data;
@@ -603,19 +561,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
             `Please check the console for details. ` +
             `If this persists, try selecting fewer days or contact support.`;
           
-          // Log additional debugging info for 500 errors
-          console.error('🔴 500 Server Error - Additional Debug Info:', {
-            flow,
-            companyId: advertisementData.company_id,
-            companyIdType: typeof advertisementData.company_id,
-            boardId: BOARD_ID,
-            bookingsCount: advertisementData.bookings.length,
-            payloadSize: JSON.stringify(advertisementData).length,
-            firstBooking: advertisementData.bookings[0],
-            lastBooking: advertisementData.bookings[advertisementData.bookings.length - 1],
-            serverErrorDetails: serverData,
-            fullPayload: JSON.stringify(advertisementData, null, 2),
-          });
         }
         
         console.error('Final error message:', finalMessage);
@@ -940,8 +885,8 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                 : t('campaigns.create')
             }
             onPress={() => {
-              // Show confirmation popup
-              setShowConfirmModal(true);
+              // Call handleSubmit directly to create the campaign
+              handleSubmit();
             }}
             variant="primary"
             size="medium"
@@ -950,38 +895,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
           />
           {!!errorText && <Text style={styles.errorText}>{errorText}</Text>}
         </View>
-
-        {/* Confirmation Modal */}
-        <Modal
-          visible={showConfirmModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowConfirmModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>
-                Are You Save This Business Detail
-              </Text>
-              <View style={styles.modalButtonsContainer}>
-                <TouchableOpacity
-                  style={styles.modalCancelButton}
-                  onPress={() => setShowConfirmModal(false)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.modalYesButton}
-                  onPress={handleSubmit}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.modalYesButtonText}>Yes</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
     </View>
   );
 };
@@ -1402,9 +1315,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 12,
     paddingHorizontal: 4,
+    justifyContent: 'space-between',
   },
   dayHeaderText: {
-    flex: 1,
+    width: '13%',
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '600',
@@ -1415,9 +1329,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 4,
+    justifyContent: 'space-between',
   },
   calendarDay: {
-    width: '14.28%',
+    width: '13%',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',

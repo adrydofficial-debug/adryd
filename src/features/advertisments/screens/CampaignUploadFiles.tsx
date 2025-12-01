@@ -22,7 +22,7 @@ import {
   launchImageLibrary,
   MediaType,
 } from 'react-native-image-picker';
-import LinearGradient from 'react-native-linear-gradient';
+import { UploadIcon } from '../../../assets/images';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomButton from '../../../components/CustomButton';
 import { useTranslation } from 'react-i18next';
@@ -84,6 +84,7 @@ interface FileItem {
   progress: number;
   isImage?: boolean;
   isVideo?: boolean;
+  isDocument?: boolean;
 }
 
 interface Props {
@@ -170,6 +171,146 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const detectFileType = (fileName: string, mimeType: string = ''): { isImage: boolean; isVideo: boolean; isDocument: boolean; type: string } => {
+    const fileExtension = fileName.toLowerCase().split('.').pop() || '';
+    const lowerMimeType = mimeType.toLowerCase();
+    
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'heic', 'heif'];
+    const isImage = 
+      lowerMimeType.startsWith('image/') ||
+      imageExtensions.includes(fileExtension);
+    
+    const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp', 'm4v'];
+    const isVideo = 
+      lowerMimeType.startsWith('video/') ||
+      videoExtensions.includes(fileExtension);
+    
+    const documentExtensions = ['pdf', 'psd', 'ai'];
+    const isDocument = 
+      lowerMimeType.includes('pdf') ||
+      lowerMimeType.includes('psd') ||
+      lowerMimeType.includes('illustrator') ||
+      documentExtensions.includes(fileExtension);
+    
+    let detectedType = mimeType;
+    if (!detectedType) {
+      if (isImage) {
+        detectedType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+      } else if (isVideo) {
+        detectedType = `video/${fileExtension}`;
+      } else if (fileExtension === 'pdf') {
+        detectedType = 'application/pdf';
+      } else if (fileExtension === 'psd') {
+        detectedType = 'image/vnd.adobe.photoshop';
+      } else if (fileExtension === 'ai') {
+        detectedType = 'application/postscript';
+      } else {
+        detectedType = 'application/octet-stream';
+      }
+    }
+    
+    return { isImage, isVideo, isDocument, type: detectedType };
+  };
+
+  const openDocumentPicker = async () => {
+    if (!isDocumentPickerAvailable()) {
+      console.warn('⚠️ [CampaignUploadFiles] Document picker not available');
+      openImageVideoPicker();
+      return;
+    }
+
+    if (isPickerOpen) {
+      console.log('⚠️ [CampaignUploadFiles] Picker already open, ignoring request');
+      return;
+    }
+
+    const hasPermission = await requestStoragePermission();
+    if (!hasPermission) {
+      console.warn('⚠️ [CampaignUploadFiles] Storage permission denied');
+      return;
+    }
+
+    setIsPickerOpen(true);
+
+    try {
+      // Use allFiles type to allow all formats, then filter by extension
+      const results = await DocumentPicker.pick({
+        type: [DocumentPicker.types.allFiles],
+        allowMultiSelection: false,
+        copyTo: 'cachesDirectory',
+        presentationStyle: 'fullScreen',
+        readContent: false,
+      });
+
+      setIsPickerOpen(false);
+
+      if (results && results.length > 0) {
+        const file = results[0];
+        const fileName = file.name || `file_${Date.now()}`;
+        const fileSize = file.size || 0;
+        const maxSize = 25 * 1024 * 1024;
+
+        if (fileSize > maxSize) {
+          console.warn(`⚠️ [CampaignUploadFiles] File "${fileName}" exceeds 25MB`);
+          return;
+        }
+
+        const fileTypeInfo = detectFileType(fileName, file.type || '');
+        
+        // Validate supported formats
+        const supportedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'mp4', 'pdf', 'psd', 'ai'];
+        const fileExtension = fileName.toLowerCase().split('.').pop() || '';
+        
+        if (!supportedExtensions.includes(fileExtension)) {
+          console.warn(`⚠️ [CampaignUploadFiles] Unsupported file format: ${fileExtension}`);
+          return;
+        }
+
+        const newFile: FileItem = {
+          id: Date.now(),
+          uri: file.fileCopyUri || file.uri,
+          name: fileName,
+          type: fileTypeInfo.type,
+          size: fileSize,
+          progress: 100,
+          isImage: fileTypeInfo.isImage,
+          isVideo: fileTypeInfo.isVideo,
+          isDocument: fileTypeInfo.isDocument,
+        };
+
+        console.log('✅ [CampaignUploadFiles] File selected:', {
+          name: newFile.name,
+          type: newFile.type,
+          isImage: newFile.isImage,
+          isVideo: newFile.isVideo,
+          isDocument: newFile.isDocument,
+          uri: newFile.uri.substring(0, 50) + '...',
+        });
+
+        setSelectedFiles([newFile]);
+
+        if (advertisementData) {
+          setAdvertisementData({
+            ...advertisementData,
+            previewImage: (newFile.isImage && !newFile.isDocument) ? newFile.uri : advertisementData.previewImage,
+            mediaUri: newFile.uri,
+            mediaType: newFile.type,
+            isVideo: !!newFile.isVideo,
+          });
+        }
+      }
+    } catch (err: any) {
+      setIsPickerOpen(false);
+      if (err.cancel !== true) {
+        console.error('❌ [CampaignUploadFiles] Document picker error:', err);
+        // Fallback to image picker on error
+        openImageVideoPicker();
+      } else {
+        console.log('ℹ️ [CampaignUploadFiles] User cancelled document selection');
+      }
+    }
+  };
+
   const openImageVideoPicker = async () => {
     // Prevent multiple simultaneous picker calls
     if (isPickerOpen) {
@@ -225,28 +366,19 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
           return;
         }
 
-        // Better detection of image/video type
-        const assetType = asset.type || '';
         const fileName = asset.fileName || asset.uri || '';
-        const fileExtension = fileName.toLowerCase().split('.').pop() || '';
-        
-        const isImage = 
-          assetType.startsWith('image/') ||
-          ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'heic', 'heif'].includes(fileExtension);
-        
-        const isVideo = 
-          assetType.startsWith('video/') ||
-          ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp', 'm4v'].includes(fileExtension);
+        const fileTypeInfo = detectFileType(fileName, asset.type || '');
 
         const newFile: FileItem = {
           id: Date.now(),
           uri: asset.uri,
           name: asset.fileName || `file_${Date.now()}`,
-          type: assetType || 'unknown',
+          type: fileTypeInfo.type,
           size: fileSize,
           progress: 100,
-          isImage: isImage,
-          isVideo: isVideo,
+          isImage: fileTypeInfo.isImage,
+          isVideo: fileTypeInfo.isVideo,
+          isDocument: fileTypeInfo.isDocument,
         };
 
         console.log('✅ [CampaignUploadFiles] File selected:', {
@@ -254,6 +386,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
           type: newFile.type,
           isImage: newFile.isImage,
           isVideo: newFile.isVideo,
+          isDocument: newFile.isDocument,
           uri: newFile.uri.substring(0, 50) + '...',
         });
 
@@ -279,6 +412,16 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
     });
   };
 
+  const openFilePicker = async () => {
+    // Try document picker first (supports all formats)
+    // If not available or fails, fallback to image picker
+    if (isDocumentPickerAvailable()) {
+      await openDocumentPicker();
+    } else {
+      await openImageVideoPicker();
+    }
+  };
+
   const removeFile = (fileId: number) =>
     setSelectedFiles(files => files.filter(f => f.id !== fileId));
 
@@ -295,7 +438,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
     setIsDragOver(false);
     // Don't open picker if already open or if a file is already selected
     if (!isPickerOpen && selectedFiles.length === 0) {
-      openImageVideoPicker();
+      openFilePicker();
     }
   };
 
@@ -331,13 +474,10 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <LinearGradient
-        colors={['#FFF4FD', '#fef3f9']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
+    <View
         style={styles.container}
       >
-        <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
+        <StatusBar backgroundColor="#F8F8F8" barStyle="dark-content" />
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -350,7 +490,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
         </View>
 
         <View style={styles.progressContainer}>
-           <ProgressBar currentStep={3}/>
+           <ProgressBar currentStep={2}/>
         </View>
 
         <ScrollView
@@ -358,149 +498,162 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.formCard}>
-            {/* Show upload container only when no file is selected */}
-            {selectedFiles.length === 0 && (
-              <View style={styles.uploadSection}>
-                <PanGestureHandler
-                  onHandlerStateChange={onDragHandler}
-                  onGestureEvent={onDragHandler}
-                  onEnded={onDropHandler}
+          {/* Upload Campaign Design Section - Text outside the card */}
+          <View style={styles.uploadTextSection}>
+            <Text style={styles.uploadSectionTitle}>Upload Campaign Design</Text>
+            <Text style={styles.uploadSectionSubtitle}>
+              Supported formats: JPEG, PNG, GIF, MP4, PDF, PSD, AI & Max file size: 25 MB
+            </Text>
+          </View>
+
+          <View>
+            {/* Upload Area - Outer wrapper */}
+            <View style={styles.uploadSection}>
+              <PanGestureHandler
+                onHandlerStateChange={onDragHandler}
+                onGestureEvent={onDragHandler}
+                onEnded={onDropHandler}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.uploadArea,
+                    isDragOver && styles.uploadAreaDragOver,
+                  ]}
+                  onPress={openFilePicker}
+                  activeOpacity={0.8}
                 >
-                  <TouchableOpacity
-                    style={[
-                      styles.uploadContainer,
-                      isDragOver && styles.uploadContainerDragOver,
-                    ]}
-                    onPress={openImageVideoPicker}
-                  >
-                    <Ionicons
-                      name="cloud-upload-outline"
-                      size={width * 0.08}
-                      color={isDragOver ? '#FF6B9D' : '#C539A5'}
-                    />
-                    <Text
-                      style={[
-                        styles.uploadText,
-                        isDragOver && styles.uploadTextDragOver,
-                      ]}
-                    >
-                      {isDragOver ? t('uploadFiles.dragDrop') : t('uploadFiles.dragDrop')}
-                      {!isDragOver && (
-                        <Text style={styles.browseText}>{t('uploadFiles.browse')}</Text>
-                      )}
-                    </Text>
-                    <Text style={styles.fileTypesText}>{t('uploadFiles.imagesVideos')}</Text>
-                    <Text style={styles.fileSizeText}>{t('uploadFiles.maxFileSize')}</Text>
-                  </TouchableOpacity>
-                </PanGestureHandler>
-              </View>
-            )}
+                  <View style={styles.uploadButton}>
+                  <UploadIcon width={width * 0.06} height={width * 0.06} />
+                    <Text style={styles.uploadButtonText}>Upload</Text>
+                  </View>
+                </TouchableOpacity>
+              </PanGestureHandler>
+            </View>
 
+            {/* Uploaded Files Preview - Show thumbnails when files are selected */}
             {selectedFiles.length > 0 && (
-              <View style={styles.statusSection}>
-                <Text style={styles.statusText}>
-                  {isUploading ? t('uploadFiles.uploading') : t('uploadFiles.readyToUpload')} -{' '}
-                  {selectedFiles.length} {selectedFiles.length > 1 ? t('uploadFiles.file') + 's' : t('uploadFiles.file')}
-                </Text>
-              </View>
-            )}
-
-            {selectedFiles.length > 0 && (
-              <View style={styles.filesSection}>
-                {selectedFiles.map(file => (
-                  <View key={file.id} style={styles.fileItem}>
-                    {/* Image/Video Preview */}
-                    {(file.isImage || file.isVideo) && (
-                      <View style={styles.previewContainer}>
+              <View style={styles.uploadedPreviewSection}>
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.uploadedPreviewContainer}
+                >
+                  {selectedFiles.map((file) => (
+                    <View key={file.id} style={styles.thumbnailContainer}>
+                      {file.isImage || file.isVideo ? (
                         <Image
                           source={{ uri: file.uri }}
-                          style={styles.previewImage}
+                          style={styles.thumbnailImage}
                           resizeMode="cover"
                         />
-                        {file.isVideo && (
-                          <View style={styles.videoOverlay}>
-                            <Ionicons
-                              name="play-circle"
-                              size={wp(12)}
-                              color="#FFFFFF"
-                            />
-                          </View>
-                        )}
-                        <TouchableOpacity
-                          style={styles.removePreviewButton}
-                          onPress={() => removeFile(file.id)}
-                        >
+                      ) : file.isDocument ? (
+                        <View style={styles.documentThumbnail}>
                           <Ionicons
-                            name="close-circle"
-                            size={wp(6)}
-                            color="#FFFFFF"
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                    
-                    {/* Replace File Button */}
-                    <TouchableOpacity
-                      style={styles.replaceButton}
-                      onPress={openImageVideoPicker}
-                    >
-                      <Ionicons
-                        name="refresh-outline"
-                        size={wp(4)}
-                        color="#C539A5"
-                      />
-                      <Text style={styles.replaceButtonText}>
-                        {t('uploadFiles.replaceFile') || 'Replace File'}
-                      </Text>
-                    </TouchableOpacity>
-                    
-                    {/* File Info */}
-                    <View style={styles.fileNameContainer}>
-                      <View style={styles.fileInfo}>
-                        <View style={styles.fileNameRow}>
-                          <Ionicons
-                            name={
-                              file.isImage
-                                ? 'image-outline'
-                                : file.isVideo
-                                ? 'videocam-outline'
-                                : 'document-outline'
-                            }
-                            size={wp(4)}
+                            name={file.name.toLowerCase().endsWith('.pdf') ? 'document-text' : 'document'}
+                            size={40}
                             color="#C539A5"
                           />
-                          <Text style={styles.fileName} numberOfLines={1}>
-                            {file.name}
+                          <Text style={styles.documentThumbnailText} numberOfLines={1}>
+                            {file.name.split('.').pop()?.toUpperCase()}
                           </Text>
                         </View>
-                        <Text style={styles.fileSize}>
-                          {formatFileSize(file.size)}
+                      ) : null}
+                      <TouchableOpacity
+                        style={styles.thumbnailRemoveButton}
+                        onPress={() => removeFile(file.id)}
+                      >
+                        <Ionicons
+                          name="close"
+                          size={12}
+                          color="#FFFFFF"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Uploading Section */}
+            {selectedFiles.filter(f => f.progress > 0 && f.progress < 100).length > 0 && (
+              <View style={styles.statusSection}>
+                <Text style={styles.sectionTitle}>
+                  Uploading - {selectedFiles.filter(f => f.progress > 0 && f.progress < 100).length}/{selectedFiles.filter(f => f.progress > 0 && f.progress < 100).length} files
+                </Text>
+                {selectedFiles
+                  .filter((file) => file.progress > 0 && file.progress < 100)
+                  .map((file) => (
+                    <View key={file.id} style={styles.uploadingFileItem}>
+                      <View style={styles.uploadingFileContent}>
+                        <Text style={styles.uploadingFileName} numberOfLines={1}>
+                          {file.name}
+                        </Text>
+                        <View style={styles.uploadingProgressContainer}>
+                          <View
+                            style={[
+                              styles.uploadingProgressBar,
+                              { width: `${file.progress}%` },
+                            ]}
+                          />
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.uploadingCancelButton}
+                        onPress={() => removeFile(file.id)}
+                      >
+                        <Ionicons name="close" size={16} color="#666" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+              </View>
+            )}
+
+            {/* Error Files Section */}
+            {selectedFiles.filter(f => f.progress < 0).length > 0 && (
+              <View style={styles.errorSection}>
+                <Text style={styles.sectionTitle}>Error Files</Text>
+                {selectedFiles
+                  .filter((file) => file.progress < 0)
+                  .map((file) => (
+                    <View key={file.id} style={styles.errorFileItem}>
+                      <View style={styles.errorFileContent}>
+                        <Text style={styles.errorFileName} numberOfLines={1}>
+                          {file.name}
+                        </Text>
+                        <Text style={styles.errorMessage}>
+                          This document is not supported, please delete and upload another file.
                         </Text>
                       </View>
-                      {!file.isImage && !file.isVideo && (
-                        <TouchableOpacity
-                          style={styles.removeButton}
-                          onPress={() => removeFile(file.id)}
-                        >
-                          <Ionicons
-                            name="close-circle"
-                            size={wp(5)}
-                            color="#999"
-                          />
-                        </TouchableOpacity>
-                      )}
+                      <TouchableOpacity
+                        style={styles.errorRemoveButton}
+                        onPress={() => removeFile(file.id)}
+                      >
+                        <Ionicons name="close" size={16} color="#EF4444" />
+                      </TouchableOpacity>
                     </View>
-                    <View style={styles.progressBarContainer}>
-                      <View
-                        style={[
-                          styles.progressBar,
-                          { width: `${file.progress}%` },
-                        ]}
-                      />
+                  ))}
+              </View>
+            )}
+
+            {/* Uploaded Section */}
+            {selectedFiles.filter(f => f.progress === 100).length > 0 && (
+              <View style={styles.uploadedSection}>
+                <Text style={styles.sectionTitle}>Uploaded</Text>
+                {selectedFiles
+                  .filter((file) => file.progress === 100)
+                  .map((file) => (
+                    <View key={file.id} style={styles.uploadedFileItem}>
+                      <Text style={styles.uploadedFileName} numberOfLines={1}>
+                        {file.name}
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.uploadedDeleteButton}
+                        onPress={() => removeFile(file.id)}
+                      >
+                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                      </TouchableOpacity>
                     </View>
-                  </View>
-                ))}
+                  ))}
               </View>
             )}
           </View>
@@ -618,13 +771,13 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
             />
           )}
         </View>
-      </LinearGradient>
+      </View>
     </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#F8F8F8' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -641,7 +794,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitle: { fontSize: width * 0.055, fontWeight: 'bold', color: '#000' },
+  headerTitle: { fontSize: 15, fontWeight: 'bold', color: '#202020' },
   headerSpacer: { width: wp(10) },
   progressContainer: {
     flexDirection: 'row',
@@ -649,6 +802,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: width * 0.1,
     paddingBottom: height * 0.03,
+    marginBottom: 15,
   },
   progressStepContainer: { flexDirection: 'row', alignItems: 'center' },
   progressStep: {
@@ -675,68 +829,227 @@ const styles = StyleSheet.create({
   },
   activeProgressLine: { backgroundColor: '#C12C9F' },
   scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: width * 0.05, paddingBottom: 280 },
-  formCard: {
-    backgroundColor: '#fff',
-    borderRadius: width * 0.04,
-    padding: width * 0.05,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+  scrollContent: { paddingHorizontal: width * 0.1, paddingBottom: 280 },
+  uploadTextSection: {
+    marginBottom: 30,
+    paddingHorizontal: 0,
+    alignItems: 'center',
   },
-  uploadSection: { marginBottom: height * 0.03 },
-  uploadContainer: {
-    borderWidth: 2,
-    borderColor: '#FF6B9D',
+  uploadSectionTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#181D27',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  uploadSectionSubtitle: {
+    fontSize: 12,
+    color: '#70737D',
+    lineHeight: 18,
+    fontWeight: '400',
+    textAlign: 'center',
+    width: '70%',
+  },
+  uploadSection: {
+    marginBottom: height * 0.03,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  uploadArea: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     borderStyle: 'dashed',
-    borderRadius: width * 0.03,
-    backgroundColor: '#FFF4FD',
+    minHeight: 134,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: height * 0.15,
-    marginBottom: height * 0.02,
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+    width: '100%',
   },
-  uploadContainerDragOver: {
-    borderColor: '#C539A5',
-    backgroundColor: '#F8E8F5',
-    borderStyle: 'solid',
+  uploadAreaDragOver: {
+    backgroundColor: '#F5F5F5',
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
   },
-  uploadText: {
-    fontSize: 12,
+  uploadButton: {
+    marginTop: 8,
+    paddingHorizontal: 30,
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadButtonText: {
+    fontSize: 16,
     fontWeight: '500',
+    color: '#111827',
+  },
+  uploadedPreviewSection: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  uploadedPreviewContainer: {
+    flexDirection: 'row',
+    paddingRight: 10,
+  },
+  thumbnailContainer: {
+    width: 98,
+    height: 100,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+    position: 'relative',
+    marginRight: 10,
+    paddingTop: 5,
+    paddingRight: 4,
+    paddingBottom: 5,
+    paddingLeft: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  thumbnailImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 6,
+  },
+  documentThumbnail: {
+    width: 90,
+    height: 90,
+    borderRadius: 6,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  documentThumbnailText: {
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#C539A5',
+    textTransform: 'uppercase',
+  },
+  thumbnailRemoveButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  statusSection: { 
+    marginBottom: hp(2),
+  },
+  uploadingFileItem: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  uploadingFileContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  uploadingFileName: {
+    fontSize: 14,
     color: '#000',
-    marginBottom: height * 0.005,
-  },
-  uploadTextDragOver: { color: '#C539A5', fontWeight: 'bold' },
-  browseText: { color: '#C539A5', fontWeight: 'bold' },
-  fileTypesText: {
-    fontSize: 10,
-    color: '#999',
-    textAlign: 'center',
     fontWeight: '400',
-    marginBottom: height * 0.005,
+    marginBottom: 8,
   },
-  fileSizeText: {
-    fontSize: 10,
-    color: '#999',
-    textAlign: 'center',
+  uploadingProgressContainer: {
+    width: '100%',
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  uploadingProgressBar: {
+    height: '100%',
+    backgroundColor: '#C539A5',
+    borderRadius: 2,
+  },
+  uploadingCancelButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 0,
+  },
+  errorSection: {
+    marginBottom: hp(2),
+  },
+  errorFileItem: {
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  errorFileContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  errorFileName: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: '400',
+    marginBottom: 4,
+  },
+  errorMessage: {
+    fontSize: 12,
+    color: '#EF4444',
     fontWeight: '400',
   },
-  statusSection: { marginBottom: hp(2) },
-  statusText: { fontSize: wp(4), color: '#666', fontWeight: '500' },
-  filesSection: { marginBottom: hp(2) },
-  fileItem: {
-    backgroundColor: '#fff',
-    borderRadius: wp(2),
-    padding: wp(4),
-    marginBottom: hp(1),
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+  errorRemoveButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadedSection: {
+    marginBottom: hp(2),
+  },
+  uploadedFileItem: {
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  uploadedFileName: {
+    flex: 1,
+    fontSize: 14,
+    color: '#000',
+    fontWeight: '400',
+  },
+  uploadedDeleteButton: {
+    padding: 4,
   },
   previewContainer: {
     width: '100%',
