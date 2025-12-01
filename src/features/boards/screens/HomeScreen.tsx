@@ -314,9 +314,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   user?.user_metadata?.username ||
                   user?.email?.split('@')[0] ||
                   'User';
-                // Extract first name (first word)
+                  
                 const firstName = fullName.trim().split(' ')[0];
-                return firstName;
+                const limitedName = firstName.substring(0, 8);
+                return limitedName;
               })()}
               !
             </Text>

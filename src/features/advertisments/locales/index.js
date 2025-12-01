@@ -18,7 +18,7 @@ const advertismentsLocales = {
       enterLocation: 'Enter location',
       next: 'Creating...',
       back: 'Back',
-      selectDates: 'Now tap your end date to complete the range',
+      selectDates: 'Now tap your end date to complete\nthe range',
       confirm: 'Confirm Selection',
       cancel: 'Clear',
     },
