@@ -30,6 +30,14 @@ import { useDrawerStore } from '../../../store/drawerStore';
 import { useProfile } from '../../profile/hooks/useProfile';
 import type { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
+import { useProfile } from '../../profile/hooks/useProfile';
+import NoInternet from '../../../components/NoInternet';
+import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from '@react-navigation/native';
+import HomeSplash from "../../../assets/images/HomeSplash.svg";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
 
 type Props = {
   navigation: any;
@@ -43,6 +51,24 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   // Styling state - set to true to show active state (with badge), false for default state
   const [hasUnreadNotifications] = useState(true);
   const [, setSelectedTab] = useState<Tab | null>(null);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+
+  useEffect(() => {
+    const checkPopup = async () => {
+      const seen = await AsyncStorage.getItem('welcome_popup_shown');
+      if (!seen) {
+        setShowWelcomePopup(true);
+      }
+    };
+    checkPopup();
+  }, []);
+
+  const closePopup = async () => {
+    setShowWelcomePopup(false);
+    await AsyncStorage.setItem('welcome_popup_shown', 'true');
+  };
+
+
 
   const { user } = useAuthStore();
   const { data: profile } = useProfile();
@@ -179,12 +205,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             ? loc.province
             : loc.province?.name || '') ||
           (loc.city && loc.province
-            ? `${
-                typeof loc.city === 'string' ? loc.city : loc.city?.name || ''
-              }, ${
-                typeof loc.province === 'string'
-                  ? loc.province
-                  : loc.province?.name || ''
+            ? `${typeof loc.city === 'string' ? loc.city : loc.city?.name || ''}, ${
+              typeof loc.province === 'string'
+              ? loc.province
+              : loc.province?.name || ''
               }`.trim()
             : 'Unknown Location') ||
           'Unknown Location';
@@ -195,8 +219,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       typeof board.price === 'number'
         ? board.price
         : board.price
-        ? Number(board.price) || 0
-        : 0;
+          ? Number(board.price) || 0
+          : 0;
     const primaryMediaUrl =
       Array.isArray(board.media) && board.media.length > 0
         ? board.media[0]?.url
@@ -355,6 +379,22 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
       </LinearGradient>
+      {showWelcomePopup && (
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupContainer}>
+
+            {/* Cancel Button */}
+            <TouchableOpacity style={styles.closeBtn} onPress={closePopup}>
+              <Ionicons name="close-outline" size={18} color="#fff" />
+
+            </TouchableOpacity>
+
+            {/* SVG Popup Image */}
+            <HomeSplash width="100%" height="100%" />
+          </View>
+        </View>
+      )}
+
 
       <ScrollView
         style={styles.scroll}
@@ -535,6 +575,40 @@ const styles = StyleSheet.create({
     minHeight: 32,
     width: 104,
   },
+  popupOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FDE7FB7D',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+
+  popupContainer: {
+    position: 'absolute',
+    top: height * 0.30,      
+    left: width * 0.055,    
+    width: width * 0.900,     
+    height: height * 0.450,   
+    overflow: 'hidden',
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: height * 0.007,     
+    right: width * 0.42,      
+    zIndex: 10,
+    backgroundColor: '#C539A5',
+    width: width * 0.067,    
+    height: width * 0.067,      
+    borderRadius: width * 0.034,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+
   locationBtnText: {
     color: '#595959',
     fontWeight: '400',

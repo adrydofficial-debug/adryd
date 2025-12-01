@@ -189,8 +189,8 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
       typeof item.rating === 'string'
         ? parseFloat(item.rating)
         : typeof item.rating === 'number'
-        ? item.rating
-        : 0;
+          ? item.rating
+          : 0;
     const ratingValue = Number.isFinite(rawRating) ? rawRating : 0;
     const reviewCount = item.reviewCount || 0;
     const category =
@@ -302,16 +302,16 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
       <View style={styles.content}>
-      
-       {/* Only show Header when there are favourites or loading/error */}
-       {!isLoading && !error && favourites.length > 0 && (
-         <Header
+
+        {/* Only show Header when there are favourites or loading/error */}
+        {!isLoading && !error && favourites.length > 0 && (
+        <Header
            title="Favourites"
            onBackPress={() => navigation.goBack()}
            showBackButton={false}
            showRightIcon={false}
          />
-       )}
+        )}
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -355,11 +355,11 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F8F8',
   },
   content: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F8F8',
   },
   listContent: {
     paddingHorizontal: LIST_HORIZONTAL_PADDING,

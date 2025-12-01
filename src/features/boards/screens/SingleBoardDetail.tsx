@@ -742,7 +742,7 @@ const SingleBoardDetail: React.FC = () => {
                 <BackButton  />
                 <View style={styles.heroActions}>
                   <TouchableOpacity style={styles.actionIcon}>
-                    <UploadIcon width={20} height={20} />
+                  <Ionicons name="share-social-outline" size={20} color="#70737D" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionIcon, isFavorite && styles.favoriteActionIcon]}
@@ -750,15 +750,13 @@ const SingleBoardDetail: React.FC = () => {
                     activeOpacity={0.85}
                     disabled={!canToggleFavorite || isFavoritePending}
                   >
-                    {isFavoritePending ? (
-                      <ActivityIndicator size="small" color="#C539A5" />
-                    ) : (
+                 
                       <Ionicons
                         name={isFavorite ? 'heart' : 'heart-outline'}
                         size={22}
-                        color={isFavorite ? '#C539A5' : '#9CA3AF'}
+                        color={isFavorite ? '#C539A5' : '#70737D'}
                       />
-                    )}
+                    
                   </TouchableOpacity>
                 </View>
               </View>
@@ -980,15 +978,15 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: 'rgba(229, 231, 235, 0.6)',
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 12,
   },
   favoriteActionIcon: {
-    borderColor: '#C539A5',
-    backgroundColor: 'rgba(197, 57, 165, 0.12)',
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
   },
   thumbnailTray: {
     position: 'absolute',

@@ -3,6 +3,7 @@ import {
   Alert,
   Dimensions,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StatusBar,
@@ -74,6 +75,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const [description] = useState<string>('My great test advertisement.');
   const [locationName] = useState<string>('Lahore');
   const [errorText, setErrorText] = useState<string>('');
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 
   // Use the hook for API calls
   const createAdMutation = useCreateAdvertisement();
@@ -267,6 +269,367 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
+
+  // Extract submission logic to be called after confirmation
+  const handleSubmit = () => {
+    // Validate form data
+    if (!campaignName.trim()) {
+      setErrorText('Campaign name is required');
+      setShowConfirmModal(false);
+      return;
+    }
+    if (!campaignCategory.trim()) {
+      setErrorText('Campaign category is required');
+      setShowConfirmModal(false);
+      return;
+    }
+    
+    // Validate that dates are selected from calendar
+    let selectedDates: Date[];
+    
+    if (selectedDays.length > 0) {
+      // Use selectedDays from calendar - these are the exact dates user selected
+      selectedDates = [...selectedDays].sort((a, b) => a.getTime() - b.getTime());
+      
+      console.log('📅 Using selected days from calendar:', {
+        totalSelected: selectedDays.length,
+        allSelectedDates: selectedDates.map(d => d.toISOString().split('T')[0]),
+      });
+    } else if (startDate && endDate) {
+      // Fallback: create array of dates from startDate to endDate
+      selectedDates = [];
+      const current = new Date(startDate);
+      const end = new Date(endDate);
+      while (current <= end) {
+        selectedDates.push(new Date(current));
+        current.setDate(current.getDate() + 1);
+      }
+      console.log('⚠️ No selectedDays, using startDate/endDate fallback');
+    } else {
+      setErrorText('Please select at least one day from the calendar');
+      setShowConfirmModal(false);
+      return;
+    }
+
+    // Clear any previous errors
+    setErrorText('');
+    
+    // Sort dates to ensure proper ordering
+    const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
+    
+    // Limit the number of days to prevent server overload
+    if (sortedDates.length > MAX_DAYS_PER_REQUEST) {
+      setErrorText(`Please select a maximum of ${MAX_DAYS_PER_REQUEST} days at a time. You selected ${sortedDates.length} days.`);
+      Alert.alert(
+        'Too Many Days Selected',
+        `You can only select up to ${MAX_DAYS_PER_REQUEST} days at a time. Please reduce your selection and try again.`,
+        [{ text: 'OK' }]
+      );
+      setShowConfirmModal(false);
+      return;
+    }
+    
+    // Create individual bookings for each selected day
+    // API expects end_at to be the same as start_at for single-day bookings
+    const bookings = sortedDates.map(date => {
+      // Ensure we're working with a clean date object
+      const cleanDate = new Date(date);
+      
+      // For single-day bookings, API expects start_at and end_at to be the same
+      // Format: { "start_at": "2025-10-14T00:00:00Z", "end_at": "2025-10-14T00:00:00Z" }
+      const dateAt = new Date(Date.UTC(
+        cleanDate.getFullYear(),
+        cleanDate.getMonth(),
+        cleanDate.getDate(),
+        0, 0, 0, 0
+      ));
+      
+      const dateString = dateAt.toISOString();
+      
+      return {
+        start_at: dateString,
+        end_at: dateString, // Same as start_at for single-day bookings
+      };
+    });
+    
+    // Validate bookings before sending
+    if (bookings.length === 0) {
+      setErrorText('No valid bookings to create');
+      setShowConfirmModal(false);
+      return;
+    }
+    
+    // Validate each booking has valid dates
+    // Note: API allows start_at and end_at to be equal for single-day bookings
+    const invalidBookings = bookings.filter(
+      booking => !booking.start_at || !booking.end_at || 
+      booking.start_at > booking.end_at || // Allow equal, but not start > end
+      !booking.start_at.includes('T') || !booking.end_at.includes('T')
+    );
+    
+    if (invalidBookings.length > 0) {
+      setErrorText(`Invalid bookings detected: ${invalidBookings.length} booking(s) have invalid dates`);
+      console.error('Invalid bookings:', invalidBookings);
+      setShowConfirmModal(false);
+      return;
+    }
+    
+    // Check for duplicate bookings (same start_at and end_at) and remove them
+    const bookingKeys = new Set<string>();
+    const uniqueBookings: Array<{ start_at: string; end_at: string }> = [];
+    
+    bookings.forEach(booking => {
+      const key = `${booking.start_at}_${booking.end_at}`;
+      if (!bookingKeys.has(key)) {
+        bookingKeys.add(key);
+        uniqueBookings.push(booking);
+      }
+    });
+    
+    if (uniqueBookings.length !== bookings.length) {
+      console.warn(`⚠️ Removed ${bookings.length - uniqueBookings.length} duplicate booking(s)`);
+      // Replace bookings array with unique bookings
+      bookings.splice(0, bookings.length, ...uniqueBookings);
+      console.log('✅ Unique bookings count:', bookings.length);
+    }
+    
+    // Log booking details for debugging
+    console.log('📅 Created bookings:', {
+      count: bookings.length,
+      firstBooking: bookings[0],
+      lastBooking: bookings[bookings.length - 1],
+      allBookings: bookings,
+    });
+
+    // Ensure all required fields are present and valid
+    if (!campaignName || campaignName.trim() === '') {
+      setErrorText('Campaign name is required');
+      setShowConfirmModal(false);
+      return;
+    }
+    
+    if (!description || description.trim() === '') {
+      setErrorText('Description is required');
+      setShowConfirmModal(false);
+      return;
+    }
+
+    // For individual flow, omit company_id or set to null (server doesn't accept 0)
+    // For business flow, use the actual company_id from the created company
+    let advertisementData: CreateAdvertisementRequest;
+    
+    // Validate company_id for business flow
+    if (flow === 'business') {
+      if (!COMPANY_ID || COMPANY_ID <= 0) {
+        setErrorText('Company ID is required for business flow. Please create a company first.');
+        Alert.alert(
+          'Missing Company',
+          'Please create a company before creating an advertisement for business flow.',
+          [{ text: 'OK' }]
+        );
+        setShowConfirmModal(false);
+        return;
+      }
+      
+      // Business flow: include company_id
+      advertisementData = {
+        company_id: COMPANY_ID,
+        board_id: BOARD_ID,
+        title: campaignName.trim(),
+        description: description.trim(),
+        total_payment: 5000,
+        bookings: bookings,
+      };
+    } else {
+      // Individual flow: omit company_id entirely (server doesn't accept 0 or null)
+      // Some servers may require the field to be completely omitted rather than null
+      advertisementData = {
+        // company_id is intentionally omitted for individual flow
+        // If server requires it, we'll need to handle that in the API layer
+        board_id: BOARD_ID,
+        title: campaignName.trim(),
+        description: description.trim(),
+        total_payment: 5000,
+        bookings: bookings,
+      } as CreateAdvertisementRequest;
+    }
+    
+    // Validate board_id exists
+    if (!BOARD_ID || BOARD_ID <= 0) {
+      setErrorText('Invalid board ID. Please contact support.');
+      setShowConfirmModal(false);
+      return;
+    }
+    
+    // Additional validation: Check if bookings array is too large
+    if (bookings.length > MAX_DAYS_PER_REQUEST) {
+      setErrorText(`Too many bookings (${bookings.length}). Maximum allowed: ${MAX_DAYS_PER_REQUEST}`);
+      setShowConfirmModal(false);
+      return;
+    }
+    
+    // Final validation of the payload
+    console.log('📤 Final payload validation:', {
+      hasCompanyId: !!advertisementData.company_id,
+      hasBoardId: !!advertisementData.board_id,
+      hasTitle: !!advertisementData.title,
+      hasDescription: !!advertisementData.description,
+      bookingsCount: advertisementData.bookings.length,
+      payloadSize: JSON.stringify(advertisementData).length,
+    });
+
+    console.log('🚀 Creating advertisement with selected dates:', {
+      selectedDaysCount: selectedDays.length,
+      bookingsCount: bookings.length,
+      bookings: bookings,
+      fullPayload: JSON.stringify(advertisementData, null, 2),
+    });
+
+    // Save advertisement data to store before API call
+    const firstDate = sortedDates[0];
+    const lastDate = sortedDates[sortedDates.length - 1];
+    setAdvertisementData({
+      campaignName: campaignName,
+      description: description,
+      location: location || locationName,
+      selectedDays: sortedDates,
+      startDate: firstDate,
+      endDate: lastDate,
+      category: category || campaignCategory,
+      totalPayment: 5000,
+      tax: 1000,
+      size,
+      type,
+      area,
+      previewImage: campaignImage,
+      mediaUri: campaignImage,
+      mediaType: 'image/jpeg',
+      isVideo: false,
+    });
+
+    // Close the modal
+    setShowConfirmModal(false);
+
+    // Call the API using the hook with callbacks
+    createAdMutation.mutate(advertisementData, {
+      onSuccess: async response => {
+        console.log('upload url is :', response.upload.uploadUrl);
+        
+        // Clear selected days from local store since they're now in the API
+        clearSelectedDays();
+        
+        // Refetch unavailable times to update booked dates immediately
+        await refetchUnavailableTimes();
+        
+        // Navigate to CampaignUploadFiles with upload info
+        navigation.navigate('CampaignUploadFiles', {
+          campaignId: response.advertisement?.id?.toString() || '',
+          uploadUrl: response.upload?.uploadUrl || '',
+          publicUrl: response.upload?.publicUrl || '',
+          key: response.upload?.key || '',
+          flow,
+        });
+      },
+      onError: error => {
+        // Log full error details for debugging
+        const anyErr: any = error as any;
+        
+        // Comprehensive error logging
+        console.error('========== ERROR DETAILS ==========');
+        console.error('Error status:', anyErr?.response?.status);
+        console.error('Error response:', anyErr?.response);
+        console.error('Error response data:', anyErr?.response?.data);
+        console.error('Error response headers:', anyErr?.response?.headers);
+        console.error('Full error:', JSON.stringify(anyErr, null, 2));
+        console.error('Request payload that failed:', JSON.stringify(advertisementData, null, 2));
+        console.error('===================================');
+        
+        // Extract detailed error message
+        const serverData = anyErr?.response?.data;
+        let errorMessage = 'Failed to create advertisement';
+        
+        if (serverData) {
+          // Try different possible error message formats
+          if (serverData.message) {
+            errorMessage = serverData.message;
+          } else if (serverData.error) {
+            errorMessage = typeof serverData.error === 'string' 
+              ? serverData.error 
+              : JSON.stringify(serverData.error);
+          } else if (serverData.errors) {
+            // Handle validation errors
+            if (Array.isArray(serverData.errors)) {
+              errorMessage = `Validation errors: ${serverData.errors.join(', ')}`;
+            } else if (typeof serverData.errors === 'object') {
+              const errorList = Object.entries(serverData.errors)
+                .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                .join('; ');
+              errorMessage = `Validation errors: ${errorList}`;
+            } else {
+              errorMessage = `Validation errors: ${serverData.errors}`;
+            }
+          } else if (typeof serverData === 'string') {
+            errorMessage = serverData;
+          } else {
+            // Show the entire error object
+            errorMessage = `Server error: ${JSON.stringify(serverData)}`;
+          }
+        } else if (anyErr?.message) {
+          errorMessage = anyErr.message;
+        }
+        
+        const statusCode = anyErr?.response?.status || 'Unknown';
+        
+        // Provide more helpful error messages for common issues
+        let finalMessage = `Error (${statusCode}): ${errorMessage}`;
+        
+        if (statusCode === 500) {
+          // Provide more specific error messages based on common causes
+          let specificMessage = '';
+          
+          if (advertisementData.bookings.length > MAX_DAYS_PER_REQUEST) {
+            specificMessage = `You selected ${advertisementData.bookings.length} days, which may be too many. Try selecting fewer days (max ${MAX_DAYS_PER_REQUEST}).`;
+          } else if (flow === 'individual' && advertisementData.company_id !== null && advertisementData.company_id !== undefined) {
+            specificMessage = 'Individual flow should have company_id as null. Please contact support if this persists.';
+          } else if (!BOARD_ID || BOARD_ID <= 0) {
+            specificMessage = 'Invalid board ID. Please contact support.';
+          } else if (flow === 'individual') {
+            specificMessage = 'Server may not accept null company_id for individual flow. Please contact support.';
+          } else {
+            specificMessage = 'This may be due to invalid data or server issues.';
+          }
+          
+          finalMessage = `Server Error (500): ${specificMessage} ` +
+            `Please check the console for details. ` +
+            `If this persists, try selecting fewer days or contact support.`;
+          
+          // Log additional debugging info for 500 errors
+          console.error('🔴 500 Server Error - Additional Debug Info:', {
+            flow,
+            companyId: advertisementData.company_id,
+            companyIdType: typeof advertisementData.company_id,
+            boardId: BOARD_ID,
+            bookingsCount: advertisementData.bookings.length,
+            payloadSize: JSON.stringify(advertisementData).length,
+            firstBooking: advertisementData.bookings[0],
+            lastBooking: advertisementData.bookings[advertisementData.bookings.length - 1],
+            serverErrorDetails: serverData,
+            fullPayload: JSON.stringify(advertisementData, null, 2),
+          });
+        }
+        
+        console.error('Final error message:', finalMessage);
+        setErrorText(finalMessage);
+        
+        // Also show alert for visibility
+        Alert.alert(
+          'Error Creating Advertisement',
+          finalMessage,
+          [{ text: 'OK' }]
+        );
+      },
+    });
+  };
   const renderProgressStep = (
     stepNumber: number,
     isActive: boolean,
@@ -300,12 +663,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
-      <LinearGradient
-        colors={['#F8F8F8', '#F8F8F8']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.container}
-      >
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -317,9 +674,8 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.headerSpacer} />
         </View>
 
-       
         <View style={styles.progressContainer}>
-      <ProgressBar currentStep={1}/>
+          <ProgressBar currentStep={1}/>
         </View>
 
         <KeyboardAvoidingView
@@ -332,10 +688,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            bounces={true}
-            scrollEventThrottle={50}
-            automaticallyAdjustKeyboardInsets={true}
-            keyboardDismissMode="interactive"
           >
             <View style={styles.formCard}>
               <CustomInput
@@ -375,7 +727,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
 
               {/* Location Field */}
               <CustomInput
-                label="Location"
+                label="City"
                 placeholder="Enter location"
                 value={location}
                 onChangeText={setLocation}
@@ -392,12 +744,12 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
               />
               <View style={styles.dateTimeContainer}>
                 <Text style={styles.dateTimeLabel}>{t('createScreen.startDate')}</Text>
-
                 <TouchableOpacity
                   style={styles.calendarButton}
                   onPress={openCalendar}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="calendar-outline" size={width * 0.06} color="#C538A5" />
+                  <Ionicons name="calendar-outline" size={18} color="#C12C9F" />
                   <View style={styles.dateRangeDisplay}>
                     <Text style={styles.dateRangeText}>
                       {formatDate(startDate)} - {formatDate(endDate)}
@@ -408,8 +760,8 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                   </View>
                   <Ionicons
                     name="chevron-down"
-                    size={width * 0.04}
-                    color="#C538A5"
+                    size={18}
+                    color="#6B7280"
                   />
                 </TouchableOpacity>
               </View>
@@ -448,8 +800,9 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setShowCalendar(false)}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="close" size={24} color="#666" />
+                  <Ionicons name="close" size={24} color="#6B7280" />
                 </TouchableOpacity>
               </View>
 
@@ -459,8 +812,9 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                   <TouchableOpacity
                     style={styles.monthNavButton}
                     onPress={() => navigateMonth('prev')}
+                    activeOpacity={0.7}
                   >
-                    <Ionicons name="chevron-back" size={20} color="#C538A5" />
+                    <Ionicons name="chevron-back" size={22} color="#C12C9F" />
                   </TouchableOpacity>
 
                   <Text style={styles.monthYearText}>
@@ -473,11 +827,12 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                   <TouchableOpacity
                     style={styles.monthNavButton}
                     onPress={() => navigateMonth('next')}
+                    activeOpacity={0.7}
                   >
                     <Ionicons
                       name="chevron-forward"
-                      size={20}
-                      color="#C538A5"
+                      size={22}
+                      color="#C12C9F"
                     />
                   </TouchableOpacity>
                 </View>
@@ -548,6 +903,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                         new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
                       );
                     }}
+                    activeOpacity={0.8}
                   >
                     <Text style={styles.clearButtonText}>{t('createScreen.cancel')}</Text>
                   </TouchableOpacity>
@@ -559,6 +915,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                     ]}
                     onPress={confirmSelection}
                     disabled={selectedDays.length === 0}
+                    activeOpacity={0.8}
                   >
                     <Text
                       style={[
@@ -583,349 +940,8 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                 : t('campaigns.create')
             }
             onPress={() => {
-              // Validate form data
-              if (!campaignName.trim()) {
-                setErrorText('Campaign name is required');
-                return;
-              }
-              if (!campaignCategory.trim()) {
-                setErrorText('Campaign category is required');
-                return;
-              }
-              
-              // Validate that dates are selected from calendar
-              let selectedDates: Date[];
-              
-              if (selectedDays.length > 0) {
-                // Use selectedDays from calendar - these are the exact dates user selected
-                selectedDates = [...selectedDays].sort((a, b) => a.getTime() - b.getTime());
-                
-                console.log('📅 Using selected days from calendar:', {
-                  totalSelected: selectedDays.length,
-                  allSelectedDates: selectedDates.map(d => d.toISOString().split('T')[0]),
-                });
-              } else if (startDate && endDate) {
-                // Fallback: create array of dates from startDate to endDate
-                selectedDates = [];
-                const current = new Date(startDate);
-                const end = new Date(endDate);
-                while (current <= end) {
-                  selectedDates.push(new Date(current));
-                  current.setDate(current.getDate() + 1);
-                }
-                console.log('⚠️ No selectedDays, using startDate/endDate fallback');
-              } else {
-                setErrorText('Please select at least one day from the calendar');
-                return;
-              }
-
-              // Clear any previous errors
-              setErrorText('');
-              
-              // Sort dates to ensure proper ordering
-              const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
-              
-              // Limit the number of days to prevent server overload
-              if (sortedDates.length > MAX_DAYS_PER_REQUEST) {
-                setErrorText(`Please select a maximum of ${MAX_DAYS_PER_REQUEST} days at a time. You selected ${sortedDates.length} days.`);
-                Alert.alert(
-                  'Too Many Days Selected',
-                  `You can only select up to ${MAX_DAYS_PER_REQUEST} days at a time. Please reduce your selection and try again.`,
-                  [{ text: 'OK' }]
-                );
-                return;
-              }
-              
-              // Create individual bookings for each selected day
-              // API expects end_at to be the same as start_at for single-day bookings
-              const bookings = sortedDates.map(date => {
-                // Ensure we're working with a clean date object
-                const cleanDate = new Date(date);
-                
-                // For single-day bookings, API expects start_at and end_at to be the same
-                // Format: { "start_at": "2025-10-14T00:00:00Z", "end_at": "2025-10-14T00:00:00Z" }
-                const dateAt = new Date(Date.UTC(
-                  cleanDate.getFullYear(),
-                  cleanDate.getMonth(),
-                  cleanDate.getDate(),
-                  0, 0, 0, 0
-                ));
-                
-                const dateString = dateAt.toISOString();
-                
-                return {
-                  start_at: dateString,
-                  end_at: dateString, // Same as start_at for single-day bookings
-                };
-              });
-              
-              // Validate bookings before sending
-              if (bookings.length === 0) {
-                setErrorText('No valid bookings to create');
-                return;
-              }
-              
-              // Validate each booking has valid dates
-              // Note: API allows start_at and end_at to be equal for single-day bookings
-              const invalidBookings = bookings.filter(
-                booking => !booking.start_at || !booking.end_at || 
-                booking.start_at > booking.end_at || // Allow equal, but not start > end
-                !booking.start_at.includes('T') || !booking.end_at.includes('T')
-              );
-              
-              if (invalidBookings.length > 0) {
-                setErrorText(`Invalid bookings detected: ${invalidBookings.length} booking(s) have invalid dates`);
-                console.error('Invalid bookings:', invalidBookings);
-                return;
-              }
-              
-              // Check for duplicate bookings (same start_at and end_at) and remove them
-              const bookingKeys = new Set<string>();
-              const uniqueBookings: Array<{ start_at: string; end_at: string }> = [];
-              
-              bookings.forEach(booking => {
-                const key = `${booking.start_at}_${booking.end_at}`;
-                if (!bookingKeys.has(key)) {
-                  bookingKeys.add(key);
-                  uniqueBookings.push(booking);
-                }
-              });
-              
-              if (uniqueBookings.length !== bookings.length) {
-                console.warn(`⚠️ Removed ${bookings.length - uniqueBookings.length} duplicate booking(s)`);
-                // Replace bookings array with unique bookings
-                bookings.splice(0, bookings.length, ...uniqueBookings);
-                console.log('✅ Unique bookings count:', bookings.length);
-              }
-              
-              // Log booking details for debugging
-              console.log('📅 Created bookings:', {
-                count: bookings.length,
-                firstBooking: bookings[0],
-                lastBooking: bookings[bookings.length - 1],
-                allBookings: bookings,
-              });
-
-              // Ensure all required fields are present and valid
-              if (!campaignName || campaignName.trim() === '') {
-                setErrorText('Campaign name is required');
-                return;
-              }
-              
-              if (!description || description.trim() === '') {
-                setErrorText('Description is required');
-                return;
-              }
-
-              // For individual flow, omit company_id or set to null (server doesn't accept 0)
-              // For business flow, use the actual company_id from the created company
-              let advertisementData: CreateAdvertisementRequest;
-              
-              // Validate company_id for business flow
-              if (flow === 'business') {
-                if (!COMPANY_ID || COMPANY_ID <= 0) {
-                  setErrorText('Company ID is required for business flow. Please create a company first.');
-                  Alert.alert(
-                    'Missing Company',
-                    'Please create a company before creating an advertisement for business flow.',
-                    [{ text: 'OK' }]
-                  );
-                  return;
-                }
-                
-                // Business flow: include company_id
-                advertisementData = {
-                  company_id: COMPANY_ID,
-                  board_id: BOARD_ID,
-                  title: campaignName.trim(),
-                  description: description.trim(),
-                  total_payment: 5000,
-                  bookings: bookings,
-                };
-              } else {
-                // Individual flow: omit company_id entirely (server doesn't accept 0 or null)
-                // Some servers may require the field to be completely omitted rather than null
-                advertisementData = {
-                  // company_id is intentionally omitted for individual flow
-                  // If server requires it, we'll need to handle that in the API layer
-                  board_id: BOARD_ID,
-                  title: campaignName.trim(),
-                  description: description.trim(),
-                  total_payment: 5000,
-                  bookings: bookings,
-                } as CreateAdvertisementRequest;
-              }
-              
-              // Validate board_id exists
-              if (!BOARD_ID || BOARD_ID <= 0) {
-                setErrorText('Invalid board ID. Please contact support.');
-                return;
-              }
-              
-              // Additional validation: Check if bookings array is too large
-              if (bookings.length > MAX_DAYS_PER_REQUEST) {
-                setErrorText(`Too many bookings (${bookings.length}). Maximum allowed: ${MAX_DAYS_PER_REQUEST}`);
-                return;
-              }
-              
-              // Final validation of the payload
-              console.log('📤 Final payload validation:', {
-                hasCompanyId: !!advertisementData.company_id,
-                hasBoardId: !!advertisementData.board_id,
-                hasTitle: !!advertisementData.title,
-                hasDescription: !!advertisementData.description,
-                bookingsCount: advertisementData.bookings.length,
-                payloadSize: JSON.stringify(advertisementData).length,
-              });
-
-              console.log('🚀 Creating advertisement with selected dates:', {
-                selectedDaysCount: selectedDays.length,
-                bookingsCount: bookings.length,
-                bookings: bookings,
-                fullPayload: JSON.stringify(advertisementData, null, 2),
-              });
-
-              // Save advertisement data to store before API call
-              const firstDate = sortedDates[0];
-              const lastDate = sortedDates[sortedDates.length - 1];
-              setAdvertisementData({
-                campaignName: campaignName,
-                description: description,
-                location: location || locationName,
-                selectedDays: sortedDates,
-                startDate: firstDate,
-                endDate: lastDate,
-                category: category || campaignCategory,
-                totalPayment: 5000,
-                tax: 1000,
-                size,
-                type,
-                area,
-                previewImage: campaignImage,
-                mediaUri: campaignImage,
-                mediaType: 'image/jpeg',
-                isVideo: false,
-              });
-
-              // Call the API using the hook with callbacks
-              createAdMutation.mutate(advertisementData, {
-                onSuccess: async response => {
-                  console.log('upload url is :', response.upload.uploadUrl);
-                  
-                  // Clear selected days from local store since they're now in the API
-                  clearSelectedDays();
-                  
-                  // Refetch unavailable times to update booked dates immediately
-                  await refetchUnavailableTimes();
-                  
-                  // Navigate to CampaignUploadFiles with upload info
-                  navigation.navigate('CampaignUploadFiles', {
-                    campaignId: response.advertisement?.id?.toString() || '',
-                    uploadUrl: response.upload?.uploadUrl || '',
-                    publicUrl: response.upload?.publicUrl || '',
-                    key: response.upload?.key || '',
-                    flow,
-                  });
-                },
-                onError: error => {
-                  // Log full error details for debugging
-                  const anyErr: any = error as any;
-                  
-                  // Comprehensive error logging
-                  console.error('========== ERROR DETAILS ==========');
-                  console.error('Error status:', anyErr?.response?.status);
-                  console.error('Error response:', anyErr?.response);
-                  console.error('Error response data:', anyErr?.response?.data);
-                  console.error('Error response headers:', anyErr?.response?.headers);
-                  console.error('Full error:', JSON.stringify(anyErr, null, 2));
-                  console.error('Request payload that failed:', JSON.stringify(advertisementData, null, 2));
-                  console.error('===================================');
-                  
-                  // Extract detailed error message
-                  const serverData = anyErr?.response?.data;
-                  let errorMessage = 'Failed to create advertisement';
-                  
-                  if (serverData) {
-                    // Try different possible error message formats
-                    if (serverData.message) {
-                      errorMessage = serverData.message;
-                    } else if (serverData.error) {
-                      errorMessage = typeof serverData.error === 'string' 
-                        ? serverData.error 
-                        : JSON.stringify(serverData.error);
-                    } else if (serverData.errors) {
-                      // Handle validation errors
-                      if (Array.isArray(serverData.errors)) {
-                        errorMessage = `Validation errors: ${serverData.errors.join(', ')}`;
-                      } else if (typeof serverData.errors === 'object') {
-                        const errorList = Object.entries(serverData.errors)
-                          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
-                          .join('; ');
-                        errorMessage = `Validation errors: ${errorList}`;
-                      } else {
-                        errorMessage = `Validation errors: ${serverData.errors}`;
-                      }
-                    } else if (typeof serverData === 'string') {
-                      errorMessage = serverData;
-                    } else {
-                      // Show the entire error object
-                      errorMessage = `Server error: ${JSON.stringify(serverData)}`;
-                    }
-                  } else if (anyErr?.message) {
-                    errorMessage = anyErr.message;
-                  }
-                  
-                  const statusCode = anyErr?.response?.status || 'Unknown';
-                  
-                  // Provide more helpful error messages for common issues
-                  let finalMessage = `Error (${statusCode}): ${errorMessage}`;
-                  
-                  if (statusCode === 500) {
-                    // Provide more specific error messages based on common causes
-                    let specificMessage = '';
-                    
-                    if (advertisementData.bookings.length > MAX_DAYS_PER_REQUEST) {
-                      specificMessage = `You selected ${advertisementData.bookings.length} days, which may be too many. Try selecting fewer days (max ${MAX_DAYS_PER_REQUEST}).`;
-                    } else if (flow === 'individual' && advertisementData.company_id !== null && advertisementData.company_id !== undefined) {
-                      specificMessage = 'Individual flow should have company_id as null. Please contact support if this persists.';
-                    } else if (!BOARD_ID || BOARD_ID <= 0) {
-                      specificMessage = 'Invalid board ID. Please contact support.';
-                    } else if (flow === 'individual') {
-                      specificMessage = 'Server may not accept null company_id for individual flow. Please contact support.';
-                    } else {
-                      specificMessage = 'This may be due to invalid data or server issues.';
-                    }
-                    
-                    finalMessage = `Server Error (500): ${specificMessage} ` +
-                      `Please check the console for details. ` +
-                      `If this persists, try selecting fewer days or contact support.`;
-                    
-                    // Log additional debugging info for 500 errors
-                    console.error('🔴 500 Server Error - Additional Debug Info:', {
-                      flow,
-                      companyId: advertisementData.company_id,
-                      companyIdType: typeof advertisementData.company_id,
-                      boardId: BOARD_ID,
-                      bookingsCount: advertisementData.bookings.length,
-                      payloadSize: JSON.stringify(advertisementData).length,
-                      firstBooking: advertisementData.bookings[0],
-                      lastBooking: advertisementData.bookings[advertisementData.bookings.length - 1],
-                      serverErrorDetails: serverData,
-                      fullPayload: JSON.stringify(advertisementData, null, 2),
-                    });
-                  }
-                  
-                  console.error('Final error message:', finalMessage);
-                  setErrorText(finalMessage);
-                  
-                  // Also show alert for visibility
-                  Alert.alert(
-                    'Error Creating Advertisement',
-                    finalMessage,
-                    [{ text: 'OK' }]
-                  );
-                },
-              });
+              // Show confirmation popup
+              setShowConfirmModal(true);
             }}
             variant="primary"
             size="medium"
@@ -934,14 +950,45 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
           />
           {!!errorText && <Text style={styles.errorText}>{errorText}</Text>}
         </View>
-      </LinearGradient>
+
+        {/* Confirmation Modal */}
+        <Modal
+          visible={showConfirmModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowConfirmModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>
+                Are You Save This Business Detail
+              </Text>
+              <View style={styles.modalButtonsContainer}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowConfirmModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalYesButton}
+                  onPress={handleSubmit}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.modalYesButtonText}>Yes</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
     </View>
   );
 };
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#C538A5',
+    backgroundColor: '#f8f8f8',
   },
   statusBar: {
     flexDirection: 'row',
@@ -970,6 +1017,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.05,
     paddingTop: hp(5),
     paddingBottom: height * 0.03,
+    backgroundColor: '#FFFFFF',
   },
   backButton: {
     backgroundColor: '#fff',
@@ -980,9 +1028,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: width * 0.055,
-    fontWeight: 'bold',
-    color: '#000',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#202020',
   },
   headerSpacer: {
     width: wp(10),
@@ -992,7 +1040,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: width * 0.1,
-    paddingBottom: height * 0.03,
+    paddingBottom: height * 0.04,
+    paddingTop: height * 0.04,
   },
   progressStepContainer: {
     flexDirection: 'row',
@@ -1038,20 +1087,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: width * 0.05,
-    paddingBottom: height * 0.2,
-    flexGrow: 1,
-    minHeight: height * 0.8,
+    paddingHorizontal: width * 0.12,
+    paddingBottom: 20,
   },
   formCard: {
-    backgroundColor: '#fff',
-    borderRadius: width * 0.04,
-    padding: width * 0.05,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    // Removed card background for cleaner look
   },
   customInputContainer: {
     marginBottom: height * 0.025,
@@ -1062,7 +1102,10 @@ const styles = StyleSheet.create({
   dateTimeLabel: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#595959',
+    fontFamily: 'Inter',
+    color: '#18181B',
+    lineHeight: 15,
+    letterSpacing: -0.154,
     marginBottom: 8,
   },
   multiDateRow: {
@@ -1152,28 +1195,31 @@ const styles = StyleSheet.create({
   calendarButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: width * 0.02,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    paddingHorizontal: width * 0.03,
-    paddingVertical: height * 0.007,
-    marginBottom: height * 0.015,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: '#E5E7EB',
+    paddingTop: 10,
+    paddingRight: 16,
+    paddingBottom: 10,
+    paddingLeft: 16,
+    height: 50,
+    marginBottom: 0,
   },
   dateRangeDisplay: {
     flex: 1,
-    marginLeft: width * 0.015,
+    marginLeft: 12,
   },
   dateRangeText: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#333',
+    color: '#111827',
     marginBottom: 2,
   },
   durationText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#666',
+    fontWeight: '400',
+    color: '#6B7280',
   },
   selectionHint: {
     backgroundColor: '#FFF3E0',
@@ -1195,33 +1241,44 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
   },
   calendarContainer: {
-    backgroundColor: '#fff',
-    borderRadius: width * 0.04,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
     margin: width * 0.05,
-    maxHeight: height * 0.7,
+    maxHeight: height * 0.75,
     width: width * 0.9,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+    overflow: 'hidden',
   },
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: width * 0.04,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
   },
   calendarTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600',
+    color: '#111827',
+    fontFamily: 'Inter',
   },
   closeButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
   },
   calendar: {
     borderRadius: width * 0.02,
@@ -1317,85 +1374,106 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   customCalendar: {
-    padding: 15,
+    padding: 20,
+    backgroundColor: '#FFFFFF',
   },
   calendarHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    // marginBottom: 15,
+    marginBottom: 20,
+    paddingHorizontal: 4,
   },
   monthNavButton: {
-    padding: 8,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   monthYearText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600',
+    color: '#111827',
+    fontFamily: 'Inter',
   },
   dayHeadersRow: {
     flexDirection: 'row',
-    // marginBottom: 10,
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
   dayHeaderText: {
     flex: 1,
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
-    // paddingVertical: 8,
+    color: '#6B7280',
+    fontFamily: 'Inter',
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    paddingHorizontal: 4,
   },
   calendarDay: {
     width: '14.28%',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 2,
+    marginBottom: 4,
+    minHeight: 44,
   },
   otherMonthDay: {
     opacity: 0.3,
   },
   todayDay: {
-    backgroundColor: '#E3F2FD',
-    borderRadius: 20,
+    backgroundColor: '#FDF4FF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#C12C9F',
   },
   pastDay: {
-    opacity: 0.3,
+    opacity: 0.4,
   },
   selectedDay: {
-    backgroundColor: '#C538A5',
-    borderRadius: 20,
+    backgroundColor: '#C12C9F',
+    borderRadius: 12,
+    shadowColor: '#C12C9F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   dayText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
-    color: '#333',
+    color: '#374151',
+    fontFamily: 'Inter',
   },
   otherMonthText: {
-    color: '#999',
+    color: '#9CA3AF',
   },
   todayText: {
-    color: '#1976D2',
-    fontWeight: 'bold',
+    color: '#C12C9F',
+    fontWeight: '600',
   },
   pastText: {
-    color: '#999',
+    color: '#9CA3AF',
   },
   selectedText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   bookedDay: {
-    backgroundColor: '#FFE0E0',
-    borderRadius: 20,
-    opacity: 0.6,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    opacity: 0.7,
+    borderWidth: 1,
+    borderColor: '#EF4444',
   },
   bookedText: {
-    color: '#D32F2F',
+    color: '#DC2626',
     fontWeight: '500',
     textDecorationLine: 'line-through',
   },
@@ -1511,6 +1589,73 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginTop: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: width * 0.85,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+    position: 'relative',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+    textAlign: 'center',
+    marginTop: 0,
+    marginBottom: 24,
+    fontFamily: 'Inter',
+  },
+  modalButtonsContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+    marginTop: 0,
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelButtonText: {
+    color: '#374151',
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: 'Inter',
+  },
+  modalYesButton: {
+    flex: 1,
+    backgroundColor: '#C539A5',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#C539A5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modalYesButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: 'Inter',
   },
 });
 
