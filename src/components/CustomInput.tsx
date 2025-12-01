@@ -258,9 +258,12 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   label: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '400',
+    fontFamily: 'Inter',
     color: '#18181B',
+    lineHeight: 15,
+    letterSpacing: -0.154,
     marginBottom: 5,
   },
   inputWrapper: {
@@ -269,12 +272,15 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    height: hp(7),
-    backgroundColor: '#fff',
-    borderRadius: wp(4),
-    paddingHorizontal: wp(4),
+    height: 50,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingTop: 10,
+    paddingRight: 16,
+    paddingBottom: 10,
+    paddingLeft: 16,
     fontSize: 12,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: '#E5E7EB',
     marginBottom: hp(1),
   },
@@ -300,11 +306,11 @@ const styles = StyleSheet.create({
   phoneInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: '#E5E7EB',
-    borderRadius: wp(4),
-    backgroundColor: '#fff',
-    height: hp(7),
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    height: 50,
     marginBottom: hp(1),
   },
   phoneInputWrapperWithError: {
@@ -313,9 +319,11 @@ const styles = StyleSheet.create({
   phonePrefix: {
     fontSize: 12,
     color: '#70737D',
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
-    borderRightWidth: 1,
+    paddingLeft: 16,
+    paddingRight: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
+    borderRightWidth: 0.5,
     borderRightColor: '#E5E7EB',
   
   },
@@ -326,8 +334,10 @@ const styles = StyleSheet.create({
   phoneInput: {
     flex: 1,
     fontSize: 12,
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
+    paddingLeft: 16,
+    paddingRight: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   phoneInputFocused: {
     color: '#18181B',
@@ -336,7 +346,7 @@ const styles = StyleSheet.create({
     color: '#70737D',
   },
   inputError: {
-    borderColor: '#E61215',
+    borderColor: '#EF4444',
     borderWidth: 0.5,
   },
   inputFocused: {
@@ -348,7 +358,7 @@ const styles = StyleSheet.create({
     color: '#70737D',
   },
   phoneInputWrapperError: {
-    borderColor: '#E61215',
+    borderColor: '#EF4444',
     borderWidth: 0.5,
   },
   phoneInputWrapperFocused: {

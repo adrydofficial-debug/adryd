@@ -4,6 +4,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  Modal,
   PermissionsAndroid,
   Platform,
   ScrollView,
@@ -20,7 +21,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { UploadIcon } from '../../../assets/images';
 import BusinessCategoryDropdown from '../../../components/BusinessCategoryDropdown';
-import CustomButton from '../../../components/CustomButton';
+import PrimaryButton from '../../../components/PrimaryButton';
 import CustomInput from '../../../components/CustomInput';
 import { useTranslation } from 'react-i18next';
 import { Company } from '../domain/entities';
@@ -105,6 +106,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
     console.log('Validation errors state updated:', validationErrors);
   }, [validationErrors]);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const createCompanyMutation = useCreateCompany();
   const { data: categoriesData, isLoading: categoriesLoading } =
     useCompanyCategoryGroups();
@@ -298,8 +300,18 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       return;
     }
 
+    // Show confirmation modal
+    setShowConfirmModal(true);
+  };
+
+  // Extract submission logic to be called after confirmation
+  const handleSubmit = async (): Promise<void> => {
+    const parsedCategoryId = Number(selectedBusinessCategory);
+    
     try {
       setIsSubmitting(true);
+      setShowConfirmModal(false);
+      
       const {
         data: { user },
         error: userError,
@@ -489,7 +501,6 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
               onPress={openImagePicker}
               activeOpacity={0.9}
             >
-              <Text style={styles.uploadTitle}>{t('create.uploadLogo')}</Text>
               <View
                 style={[
                   styles.uploadContainer,
@@ -523,6 +534,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                         {t('create.uploadAction')}
                       </Text>
                     </View>
+                    <Text style={styles.uploadTitle}>{t('create.uploadLogo')}</Text>
                     <Text style={styles.uploadHint}>
                       {t('create.uploadFormat')}
                     </Text>
@@ -533,7 +545,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
             <View style={styles.formFields}>
               <CustomInput
                 label={t('create.companyName')}
-                placeholder={t('create.enterCompanyName')}
+                placeholder={''}
                 value={companyName}
                 onChangeText={text => {
                   setCompanyName(text);
@@ -551,10 +563,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
 
               {/* Business Category Input Field with Element Dropdown */}
               <View
-                style={[
-                  styles.customInputContainer,
-                  validationErrors.businessCategory && styles.errorContainer,
-                ]}
+                style={styles.customInputContainer}
               >
                 <Text style={styles.inputLabel}>{t('create.category')}</Text>
                 <BusinessCategoryDropdown
@@ -581,10 +590,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
 
               {/* Company Location (City) */}
               <View
-                style={[
-                  styles.customInputContainer,
-                  validationErrors.city && styles.errorContainer,
-                ]}
+                style={styles.customInputContainer}
               >
                 <Text style={styles.inputLabel}>
                   {t('create.city', 'Company location')}
@@ -624,13 +630,27 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                 focused={focusedField === 'companyNumber'}
                 error={!!validationErrors.companyNumber}
                 showErrorText={false}
-                containerStyle={StyleSheet.flatten([
-                  styles.customInputContainer,
-                  validationErrors.companyNumber && styles.errorContainer,
-                ])}
+                containerStyle={styles.customInputContainer}
               />
-
               <CustomInput
+                label={t('create.email')}
+                placeholder={t('create.enterEmail')}
+                value={companyEmail}
+                onChangeText={text => {
+                  setCompanyEmail(text);
+                  // Clear validation error when user starts typing
+                  if (validationErrors.companyEmail) {
+                    setValidationErrors(prev => ({
+                      ...prev,
+                      companyEmail: false,
+                    }));
+                  }
+                }}
+                keyboardType="email-address"
+                containerStyle={styles.customInputContainer}
+                error={validationErrors.companyEmail}
+              />
+                <CustomInput
                 label={t('create.ntn')}
                 placeholder={t('create.enterNtn')}
                 value={companyNTN}
@@ -664,40 +684,50 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
                 containerStyle={styles.customInputContainer}
                 error={validationErrors.companyAddress}
               />
-              <CustomInput
-                label={t('create.email')}
-                placeholder={t('create.enterEmail')}
-                value={companyEmail}
-                onChangeText={text => {
-                  setCompanyEmail(text);
-                  // Clear validation error when user starts typing
-                  if (validationErrors.companyEmail) {
-                    setValidationErrors(prev => ({
-                      ...prev,
-                      companyEmail: false,
-                    }));
-                  }
-                }}
-                keyboardType="email-address"
-                containerStyle={styles.customInputContainer}
-                error={validationErrors.companyEmail}
-              />
             </View>
           </View>
         </ScrollView>
         <View style={styles.buttonContainer}>
-          <CustomButton
+          <PrimaryButton
             title={isSubmitting ? t('create.saving') : t('create.save')}
             onPress={handleNext}
-            variant="primary"
-            size="medium"
-            buttonStyle={StyleSheet.flatten([
-              styles.nextButton,
-              isSubmitting ? styles.disabledButton : null,
-            ])}
+            loading={isSubmitting}
             disabled={isSubmitting}
+            buttonStyle={styles.nextButton}
           />
         </View>
+
+        {/* Confirmation Modal */}
+        <Modal
+          visible={showConfirmModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowConfirmModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>
+                Are You Save This Business Detail
+              </Text>
+              <View style={styles.modalButtonsContainer}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowConfirmModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalYesButton}
+                  onPress={handleSubmit}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.modalYesButtonText}>Yes</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
       <NoInternet />
     </View>
@@ -785,7 +815,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: width * 0.12,
-    paddingBottom: 280,
+    paddingBottom: 20,
   },
   formCard: {
     // backgroundColor: '#fff',
@@ -827,15 +857,18 @@ const styles = StyleSheet.create({
   uploadTitle: {
     fontSize: 12,
     fontWeight: '400',
-    color: '#111827',
+    fontFamily: 'Inter',
+    color: '#18181B',
+    letterSpacing: 0,
     textAlign: 'center',
-    marginBottom: 12,
+    textTransform: 'capitalize',
+    marginTop: 10,
   },
   uploadHint: {
     fontSize: 12,
     color: '#6B7280',
     textAlign: 'center',
-    marginTop: 14,
+    marginTop: 8,
   },
   uploadButton: {
     marginTop: 8,
@@ -852,7 +885,7 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#111827',
   },
   imagePreviewContainer: {
@@ -889,24 +922,23 @@ const styles = StyleSheet.create({
     marginBottom: height * 0.025,
   },
   errorContainer: {
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: '#EF4444',
     borderRadius: 12,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    paddingTop: 10,
+    paddingRight: 16,
+    paddingBottom: 10,
+    paddingLeft: 16,
   },
   buttonContainer: {
     paddingHorizontal: width * 0.05,
-    paddingBottom: height * 0.06,
+    paddingTop: 16,
+    paddingBottom: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   nextButton: {
-    width: '90%',
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
-    opacity: 0.7,
+    width: '70%',
   },
   label: {
     fontSize: 16,
@@ -920,19 +952,20 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   inputLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '400',
+    fontFamily: 'Inter',
     color: '#18181B',
+    lineHeight: 15,
+    letterSpacing: -0.154, // -1.1% of 14px
     marginBottom: 8,
   },
   dropdownWrapper: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderWidth: 0,
+    borderColor: 'transparent',
     borderRadius: 12,
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
     shadowColor: 'transparent',
-    paddingVertical:5,
-    paddingHorizontal:4,
   },
   dropdownContainer: {
     marginBottom: 0, // Remove default margin since it's inside input container
@@ -955,6 +988,72 @@ const styles = StyleSheet.create({
   testButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: width * 0.85,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 24,
+    fontFamily: 'Inter',
+  },
+  modalButtonsContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+    marginTop: 8,
+  },
+  modalCancelButton: {
+    flex: 1,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelButtonText: {
+    color: '#374151',
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: 'Inter',
+  },
+  modalYesButton: {
+    flex: 1,
+    backgroundColor: '#C539A5',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#C539A5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modalYesButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: 'Inter',
   },
 });
 
