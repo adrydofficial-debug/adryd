@@ -40,33 +40,16 @@ const BusinessCategoryDropdown: React.FC<BusinessCategoryDropdownProps> = ({
   containerStyle,
   error = false,
 }) => {
-  console.log('BusinessCategoryDropdown - Received data:', data);
-  console.log('BusinessCategoryDropdown - Received value:', value);
-  console.log('BusinessCategoryDropdown - Received onSelect:', onSelect);
+  const [isFocused, setIsFocused] = React.useState(false);
   
-  // Build a derived list with a separator item inserted after every 5 real items
+  // Use data directly without separators
   const dataWithSeparators: DropdownData[] = React.useMemo(() => {
     console.log('Processing data for dropdown:', data);
     if (!Array.isArray(data) || data.length === 0) {
       console.log('No data available for dropdown');
       return [];
     }
-    const output: DropdownData[] = [];
-    data.forEach((item, idx) => {
-      output.push(item);
-      const isEnd = idx === data.length - 1;
-      const shouldInsert = (idx + 1) % 5 === 0 && !isEnd;
-      if (shouldInsert) {
-        output.push({
-          label: `__sep__${idx}`,
-          value: `__sep__${idx}`,
-          isSeparator: true,
-          disable: true,
-        });
-      }
-    });
-    console.log('Processed data with separators:', output);
-    return output;
+    return data;
   }, [data]);
 
   return (
@@ -77,52 +60,67 @@ const BusinessCategoryDropdown: React.FC<BusinessCategoryDropdownProps> = ({
       {/* </Text>  */}
       
       <Dropdown
-        style={[styles.dropdown, error && styles.dropdownError]}
+        style={[
+          styles.dropdown,
+          error && styles.dropdownError,
+          isFocused && !error && styles.dropdownFocused
+        ]}
         placeholderStyle={styles.placeholderStyle}
-        selectedTextStyle={styles.selectedTextStyle}
+        selectedTextStyle={[
+          styles.selectedTextStyle,
+          isFocused && !error && styles.selectedTextFocused
+        ]}
         iconStyle={styles.iconStyle}
         data={dataWithSeparators}
         search={false}
-        maxHeight={300}
+        maxHeight={400}
         labelField="label"
         valueField="value"
         placeholder={placeholder}
         value={value}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         onChange={item => {
           console.log('Dropdown onChange triggered with item:', item);
-          // Ignore taps on separator rows
-          if ((item as DropdownData)?.isSeparator) {
-            console.log('Ignoring separator item');
-            return;
-          }
           console.log('Calling onSelect with value:', item.value);
           onSelect(item.value);
+          setIsFocused(false);
         }}
-        // renderLeftIcon={() => (
-          // <View style={styles.leftIconContainer}>
-          //   <Ionicons name="business" size={18} color="#C539A5" />
-          // </View>
-        // )}
         renderRightIcon={() => (
           <View style={styles.rightIconContainer}>
-            <Ionicons name="chevron-down" size={20} color="#E5E7EB" />
+            <Ionicons 
+              name="chevron-down" 
+              size={18} 
+              color={error ? '#EF4444' : '#6B7280'} 
+            />
           </View>
         )}
         renderItem={(item: DropdownData) => {
-          if (item.isSeparator) {
-            return <View style={styles.separatorLine} />;
-          }
+          const isSelected = item.value === value;
           return (
-            <View style={styles.dropdownItem}>
-              <Text style={styles.bulletPoint}>•</Text>
-              <Text style={styles.itemText}>{item.label}</Text>
+            <View style={[
+              styles.dropdownItem,
+              isSelected && styles.dropdownItemSelected
+            ]}>
+              <View style={styles.itemContent}>
+                <Text style={[
+                  styles.bulletPoint,
+                  isSelected && styles.bulletPointSelected
+                ]}>•</Text>
+                <Text style={[
+                  styles.itemText,
+                  isSelected && styles.itemTextSelected
+                ]}>
+                  {item.label}
+                </Text>
+              </View>
             </View>
           );
         }}
         dropdownPosition="auto"
         containerStyle={styles.dropdownContainer}
         itemContainerStyle={styles.itemContainer}
-        activeColor="#f8f0ff"
+        activeColor="#C539A5"
       />
     </View>
   );
@@ -144,26 +142,40 @@ const styles = StyleSheet.create({
     color: '#ff4444',
   },
   dropdown: {
-    height: 48,
-    backgroundColor: '#fff',
+    height: 50,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    borderWidth: 0,
-    borderColor: 'transparent',
+    paddingTop: 10,
+    paddingRight: 16,
+    paddingBottom: 10,
+    paddingLeft: 16,
+    borderWidth: 0.5,
+    borderColor: '#E5E7EB',
     zIndex: 10,
+    justifyContent: 'center',
   },
   dropdownError: {
-    borderColor: '#ff4444',
-    borderWidth: 1.5,
-    backgroundColor: '#fff5f5',
+    borderColor: '#EF4444',
+    borderWidth: 0.5,
+    backgroundColor: '#FFFFFF',
+  },
+  dropdownFocused: {
+    borderColor: '#18181B',
+    borderWidth: 0.5,
   },
   placeholderStyle: {
     fontSize: 12,
-    color: '#999',
+    color: '#70737D',
+    fontWeight: '400',
   },
   selectedTextStyle: {
     fontSize: 12,
-    color: '#333',
+    color: '#70737D',
+    fontWeight: '400',
+  },
+  selectedTextFocused: {
+    color: '#18181B',
+    fontWeight: '500',
   },
   iconStyle: {
     width: 20,
@@ -179,52 +191,72 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  bulletPoint: {
-    fontSize: 16,
-    color: '#666',
-    marginRight: 10,
-    width: 12,
-    textAlign: 'center',
+    padding: 4,
   },
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    minHeight: 44,
+  },
+  dropdownItemSelected: {
+    backgroundColor: '#C539A5',
+  },
+  itemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  bulletPoint: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginRight: 12,
+    width: 8,
+    textAlign: 'center',
+  },
+  bulletPointSelected: {
+    color: '#FFFFFF',
   },
   itemText: {
     fontSize: 12,
-    color: '#595959',
+    color: '#374151',
+    fontWeight: '400',
     flex: 1,
   },
+  itemTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
   dropdownContainer: {
-    width: width * 0.50, // reduce dropdown list width
-    alignSelf: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
+    width: width - (width * 0.12 * 2),
+    borderRadius: 12,
+    borderWidth: 0.5,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 0,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
     zIndex: 20,
+    marginTop: 4,
+    overflow: 'hidden',
   },
   itemContainer: {
-    borderRadius: 8,
-  },
-  separatorLine: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
-    marginHorizontal: 20,
-    marginVertical: 8,
+    borderRadius: 0,
+    paddingVertical: 2,
+    borderTopWidth: 0,
+    borderBottomWidth: 0,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    borderWidth: 0,
   },
 });
 
 export default BusinessCategoryDropdown;
+
