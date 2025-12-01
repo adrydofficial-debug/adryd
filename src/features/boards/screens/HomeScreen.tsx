@@ -1,5 +1,7 @@
 // src/features/boards/HomeScreen.tsx
+import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dimensions,
   Image,
@@ -15,17 +17,19 @@ import {
   default as LinearGradientLib,
 } from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
-import { PinkLocationIcon, Images, GrayNotifyIcon, PinkNotifyIcon } from '../../../assets/images';
+import {
+  Images,
+  PinkLocationIcon,
+  PinkNotifyIcon,
+} from '../../../assets/images';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
+import NoInternet from '../../../components/NoInternet';
 import { useAuthStore } from '../../../store/authStore';
 import { useDrawerStore } from '../../../store/drawerStore';
+import { useProfile } from '../../profile/hooks/useProfile';
 import type { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
-import { useProfile } from '../../profile/hooks/useProfile';
-import NoInternet from '../../../components/NoInternet';
-import { useTranslation } from 'react-i18next';
-import { useFocusEffect } from '@react-navigation/native';
 
 type Props = {
   navigation: any;
@@ -43,7 +47,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuthStore();
   const { data: profile } = useProfile();
 
-  const avatarUrl = (profile?.avatar_url || user?.user_metadata?.avatar_url || '')
+  const avatarUrl = (
+    profile?.avatar_url ||
+    user?.user_metadata?.avatar_url ||
+    ''
+  )
     .toString()
     .trim();
   const looksLikeUrl = /^(https?:\/\/|file:\/\/|content:\/\/)/i.test(avatarUrl);
@@ -88,11 +96,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }, []),
   );
 
-  const setReopenDrawerCallback = useDrawerStore(s => s.setReopenDrawerCallback);
+  const setReopenDrawerCallback = useDrawerStore(
+    s => s.setReopenDrawerCallback,
+  );
   const navigatedFromDrawer = useDrawerStore(s => s.navigatedFromDrawer);
   const setNavigatedFromDrawer = useDrawerStore(s => s.setNavigatedFromDrawer);
 
-  const handleProfilePress = () => {
+  const handleProfilePress = async () => {
     setDrawerVisible(true);
   };
 
@@ -116,7 +126,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setNavigatedFromDrawer(false);
         setDrawerVisible(true);
       }
-    }, [navigatedFromDrawer, setNavigatedFromDrawer])
+    }, [navigatedFromDrawer, setNavigatedFromDrawer]),
   );
 
   const {
@@ -130,7 +140,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('SingleBoardDetail', { item });
   };
 
-  const convertBoardToBoardItem = (board: any, isRecommended: boolean = false) => {
+  const convertBoardToBoardItem = (
+    board: any,
+    isRecommended: boolean = false,
+  ) => {
     const labels: string[] = [];
 
     if (board.is_special || board.special || board.isSpecial) {
@@ -143,7 +156,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       const discountValue = board.discount.toString().trim();
       if (discountValue.length > 0) {
         labels.push(
-          discountValue.includes('%') ? discountValue : `${discountValue}% Less`,
+          discountValue.includes('%')
+            ? discountValue
+            : `${discountValue}% Less`,
         );
       }
     }
@@ -152,7 +167,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (board.location) {
       if (typeof board.location === 'string') {
         locationString = board.location;
-      } else if (typeof board.location === 'object' && board.location !== null) {
+      } else if (
+        typeof board.location === 'object' &&
+        board.location !== null
+      ) {
         const loc = board.location;
         locationString =
           loc.name ||
@@ -161,7 +179,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             ? loc.province
             : loc.province?.name || '') ||
           (loc.city && loc.province
-            ? `${typeof loc.city === 'string' ? loc.city : loc.city?.name || ''}, ${
+            ? `${
+                typeof loc.city === 'string' ? loc.city : loc.city?.name || ''
+              }, ${
                 typeof loc.province === 'string'
                   ? loc.province
                   : loc.province?.name || ''
@@ -348,7 +368,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             resizeMode="contain"
           />
         </View>
-
 
         {isLoading ? (
           [...Array(3)].map((_, idx) => (
@@ -623,4 +642,3 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
-

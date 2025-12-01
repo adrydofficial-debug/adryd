@@ -1,12 +1,16 @@
 //src/features/auth/hooks/useAuth.ts
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  PlayInstallReferrer,
+  PlayInstallReferrerInfo,
+} from 'react-native-play-install-referrer';
 import { supabase } from '../../../services/supabase';
 import { useAuthStore } from '../../../store/authStore';
-import { checkUserExistsRequest } from '../api/api';
+import { checkUserExistsRequest, logAppEvent } from '../api/api';
 
-// -----------------------------
+// ----------------------------------------------------------
 // 1️⃣ Register (Phone + Password + fullName → full_name)
-// -----------------------------
+// ----------------------------------------------------------
 export const useRegister = () => {
   return useMutation({
     mutationFn: async ({
@@ -16,18 +20,54 @@ export const useRegister = () => {
       phone: string;
       fullName: string;
     }) => {
-      console.log('📱 checking phone', phone);
+      await logAppEvent({
+        level: 'INFO',
+        tag: 'Register',
+        message: `Starting registration for phone: ${phone}`,
+      });
 
-      // 1) Check if user already exists using public lookup table
+      // 1️⃣ Check if user already exists
       const { exists } = await checkUserExistsRequest(phone);
+      await logAppEvent({
+        level: 'INFO',
+        tag: 'Register',
+        message: 'Checked if user exists',
+        data: { phone, exists },
+      });
+
       if (exists) {
+        await logAppEvent({
+          level: 'WARN',
+          tag: 'Register',
+          message: 'User already exists',
+          data: { phone },
+        });
         throw new Error('User already exists with this phone');
       }
 
-      // 2) Get referral code from authStore
-      const { referrerCode, setReferrerCode } = useAuthStore.getState();
-
-      // 3) Kick off OTP (creates auth user if doesn't exist)
+      // 2️⃣ Fetch referral code from Install Referrer
+      let referrerCode: string | null = null;
+      try {
+        const { referrer } = await getInstallReferrer();
+        if (referrer) {
+          const urlParams = new URLSearchParams(referrer);
+          referrerCode = urlParams.get('referrer');
+        }
+        await logAppEvent({
+          level: 'INFO',
+          tag: 'Register',
+          message: 'Parsed referrer code',
+          data: { referrerCode },
+        });
+      } catch (err) {
+        await logAppEvent({
+          level: 'ERROR',
+          tag: 'Register',
+          message: 'Failed to get install referrer',
+          data: err,
+        });
+      }
+      // 3️⃣ Kick off OTP (creates auth user if doesn't exist)
       const { data, error: otpError } = await supabase.auth.signInWithOtp({
         phone,
         options: {
@@ -39,18 +79,60 @@ export const useRegister = () => {
       });
 
       if (otpError) {
+        await logAppEvent({
+          level: 'ERROR',
+          tag: 'Register',
+          message: 'Registration failed',
+          data: { phone, message: otpError.message },
+        });
         throw new Error(`Registration failed: ${otpError.message}`);
       }
 
-      // 4) Clear referral code after sending
-      if (referrerCode) {
-        setReferrerCode(null);
-      }
+      await logAppEvent({
+        level: 'INFO',
+        tag: 'Register',
+        message: 'OTP sent successfully',
+        data: { phone },
+      });
 
       return data;
     },
   });
 };
+
+export function getInstallReferrer(): Promise<{ referrer: string | null }> {
+  return new Promise(resolve => {
+    logAppEvent({
+      level: 'INFO',
+      tag: 'InstallReferrer',
+      message: 'Calling PlayInstallReferrer',
+    });
+
+    PlayInstallReferrer.getInstallReferrerInfo(
+      async (info: PlayInstallReferrerInfo | null, error: any) => {
+        if (error) {
+          await logAppEvent({
+            level: 'ERROR',
+            tag: 'InstallReferrer',
+            message: 'Failed to fetch install referrer',
+            data: error,
+          });
+          resolve({ referrer: null });
+          return;
+        }
+
+        await logAppEvent({
+          level: 'INFO',
+          tag: 'InstallReferrer',
+          message: 'Fetched install referrer',
+          data: info,
+        });
+
+        resolve({ referrer: info?.installReferrer ?? null });
+      },
+    );
+  });
+}
 
 // -----------------------------
 // 2️⃣ Set Password + Mark User Verified

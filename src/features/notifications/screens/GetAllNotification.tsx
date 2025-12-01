@@ -15,8 +15,6 @@ import Header from '../../../components/Header';
 import { useAuthStore } from '../../../store/authStore';
 import { Images } from '../../../assets/images';
 const { width, height } = Dimensions.get('window');
-const wp = (percentage: number) => (width * percentage) / 100;
-const hp = (percentage: number) => (height * percentage) / 100;
 
 type Props = {
   navigation: any;
