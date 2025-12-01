@@ -19,11 +19,7 @@ import {
 } from 'react-native-linear-gradient';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import {
-  Images,
-  PinkLocationIcon,
-  PinkNotifyIcon,
-} from '../../../assets/images';
+import { Images } from '../../../assets/images';
 import HomeSplash from '../../../assets/images/HomeSplash.svg';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
@@ -32,6 +28,7 @@ import { useAuthStore } from '../../../store/authStore';
 import { useDrawerStore } from '../../../store/drawerStore';
 import { useProfile } from '../../profile/hooks/useProfile';
 import type { Tab } from '../components/BoardTabs';
+import ProfileRow from '../components/ProfileRow';
 import { useBoardFilters } from '../hooks/useBoardFilters';
 
 type Props = {
@@ -274,7 +271,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         end={{ x: 0, y: 1 }}
         style={styles.fixedHeader}
       >
-        {/* <ProfileRow
+        <ProfileRow
           profile={profile}
           user={user}
           avatarUrl={avatarUrl}
@@ -282,7 +279,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           selectedCity={selectedCity}
           hasUnreadNotifications={hasUnreadNotifications}
           t={t}
-          onProfileClick={() => navigation.navigate('Profile')}
+          onProfileClick={handleProfilePress}
           onLocationClick={() =>
             navigation.navigate('SearchLocation', {
               city: selectedCity,
@@ -296,107 +293,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             })
           }
           onNotificationsClick={() => navigation.navigate('Notifications')}
-        /> */}
-        <View style={styles.profileRow}>
-          <TouchableOpacity onPress={handleProfilePress}>
-            {isValidAvatarUrl && !avatarError ? (
-              <Image
-                source={{ uri: avatarUrl }}
-                style={styles.avatar}
-                onError={() => setAvatarError(true)}
-              />
-            ) : (
-              <Image
-                source={Images.frame}
-                style={styles.avatar}
-                resizeMode="cover"
-              />
-            )}
-          </TouchableOpacity>
-          <View style={styles.nameWrap}>
-            <Text
-              style={styles.greeting}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-              allowFontScaling={false}
-            >
-              {t('greetingHi')}
-            </Text>
-            <Text
-              style={styles.name}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-              allowFontScaling={false}
-            >
-              {(() => {
-                const fullName =
-                  profile?.full_name ||
-                  user?.user_metadata?.full_name ||
-                  user?.user_metadata?.name ||
-                  user?.user_metadata?.username ||
-                  user?.email?.split('@')[0] ||
-                  'User';
-
-                const firstName = fullName.trim().split(' ')[0];
-                const limitedName = firstName.substring(0, 8);
-                return limitedName;
-              })()}
-              !
-            </Text>
-          </View>
-          <View style={styles.locationRow}>
-            <TouchableOpacity
-              style={styles.locationBtnCustom}
-              onPress={() => {
-                navigation.navigate('SearchLocation', {
-                  city: selectedCity,
-                  openLocationModal: true,
-                });
-              }}
-              activeOpacity={0.7}
-            >
-              <PinkLocationIcon
-                width={width * 0.03}
-                height={width * 0.03}
-                style={{ marginRight: width * 0.011 }}
-              />
-              <Text
-                style={styles.locationBtnText}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {selectedCity}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.bellBtn}
-              onPress={() =>
-                navigation.navigate('SearchLocation', {
-                  city: selectedCity,
-                  openFilters: true,
-                })
-              }
-            >
-              <Image source={Images.search} style={styles.FilterIcon} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.bellBtn,
-                hasUnreadNotifications && styles.bellBtnActive,
-              ]}
-              onPress={() => navigation.navigate('Notifications')}
-            >
-              {hasUnreadNotifications ? (
-                <>
-                  <PinkNotifyIcon width={width * 0.05} height={width * 0.047} />
-                  <View style={styles.notificationBadge} />
-                </>
-              ) : (
-                <Image style={styles.bellIcon} source={Images.pinkBell} />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
+        />
       </LinearGradient>
       {showWelcomePopup && (
         <View style={styles.popupOverlay}>

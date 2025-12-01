@@ -14,6 +14,7 @@ import {
 } from '../../../assets/images';
 
 const { width } = Dimensions.get('window');
+const RIGHT_ACTIONS_WIDTH = width * 0.38;
 
 interface ProfileRowProps {
   profile?: any;
@@ -52,7 +53,9 @@ const ProfileRow: React.FC<ProfileRowProps> = ({
       user?.user_metadata?.username ||
       user?.email?.split('@')[0] ||
       'User';
-    return fullName.trim().split(' ')[0];
+    const firstName = fullName.trim().split(' ')[0];
+    const limitedName = firstName.substring(0, 8);
+    return limitedName;
   };
 
   return (
@@ -73,11 +76,21 @@ const ProfileRow: React.FC<ProfileRowProps> = ({
         )}
       </TouchableOpacity>
       <View style={styles.nameWrap}>
-        <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">
+        <Text
+          style={styles.greeting}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          allowFontScaling={false}
+        >
           {t('greetingHi')}
         </Text>
-        <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
-          {getFirstName()}!
+        <Text
+          style={styles.name}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          allowFontScaling={false}
+        >
+          {getFirstName()}
         </Text>
       </View>
 
@@ -133,29 +146,90 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: 0,
+    marginBottom: -8,
+    writingDirection: 'ltr',
+    flexShrink: 0,
+    minHeight: width * 0.13,
+    backgroundColor: '#F8F8F8',
   },
-  avatar: { width: 50, height: 50, borderRadius: 25 },
-  nameWrap: { flex: 1, marginLeft: 10 },
-  greeting: { fontSize: 14, color: '#999' },
-  name: { fontSize: 16, fontWeight: 'bold', color: '#000' },
-  locationRow: { flexDirection: 'row', alignItems: 'center' },
+  avatar: {
+    width: width * 0.13,
+    height: width * 0.13,
+    borderRadius: width * 0.085,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 3,
+    borderColor: 'transparent',
+    overflow: 'hidden',
+  },
+  nameWrap: { flex: 1, paddingHorizontal: 6, minWidth: 0 },
+  greeting: { fontSize: 12, color: '#222', fontWeight: '400' },
+  name: { fontSize: 15, color: '#222', fontWeight: 'bold', marginTop: -5 },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: width * -0.001,
+    writingDirection: 'ltr',
+    justifyContent: 'flex-end',
+    flexShrink: 0,
+    width: RIGHT_ACTIONS_WIDTH,
+  },
   locationBtnCustom: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 10,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingHorizontal: width * 0.03,
+    paddingVertical: 6,
+    marginRight: width * 0.01,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    minHeight: 32,
+    width: 104,
   },
-  locationBtnText: { fontSize: 14, color: '#333', maxWidth: 80 },
-  bellBtn: { marginHorizontal: 5 },
-  bellBtnActive: {},
+  locationBtnText: {
+    color: '#595959',
+    fontWeight: '400',
+    fontSize: 12,
+    marginRight: width * 0.01,
+    flex: 1,
+  },
+  bellBtn: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 8,
+    marginRight: width * 0.01,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    width: width * 0.09,
+    height: width * 0.09,
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+    position: 'relative',
+  },
+  bellBtnActive: {
+    borderColor: '#C539A5',
+  },
+  bellIcon: {
+    width: width * 0.05,
+    height: width * 0.047,
+    resizeMode: 'contain',
+  },
   notificationBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
+    top: 6,
+    right: 6,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'red',
+    backgroundColor: '#C539A5',
+    borderWidth: 1.5,
+    borderColor: '#fff',
   },
-  bellIcon: { width: 24, height: 24 },
-  FilterIcon: { width: 24, height: 24 },
+  FilterIcon: {
+    width: width * 0.04,
+    height: width * 0.04,
+    resizeMode: 'contain',
+  },
 });
