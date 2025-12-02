@@ -34,12 +34,14 @@ const InviteLink: React.FC = () => {
     useReferredCount();
 
   // ✅ Use the referral code hook
-  const { data: referralCode, isLoading: isCodeLoading } = useReferralCode();
+  const { data: referralCode } = useReferralCode();
 
   const styles = useMemo(() => createStyles(width, height), [width, height]);
 
   // Concatenate referral code with invite URL
-  const referralLink = `https://adryd.app/invite/${referralCode || ''}`;
+  const referralLink = `https://play.google.com/store/apps/details?id=com.adryd.app&referrer=referralCode%3D${
+    referralCode || ''
+  }`;
 
   const handleCopyLink = () => {
     Clipboard.setString(referralLink);
