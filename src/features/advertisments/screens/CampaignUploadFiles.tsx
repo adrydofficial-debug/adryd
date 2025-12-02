@@ -24,7 +24,7 @@ import {
 } from 'react-native-image-picker';
 import { UploadIcon } from '../../../assets/images';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import CustomButton from '../../../components/CustomButton';
+import PrimaryButton from '../../../components/PrimaryButton';
 import { useTranslation } from 'react-i18next';
 import { useCampaignStore } from '../../../store/campaignStore';
 import { useUploadAdvertisementFiles, useAddAdvertisementMedia } from '../hooks/hooks';
@@ -518,61 +518,79 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
                   style={[
                     styles.uploadArea,
                     isDragOver && styles.uploadAreaDragOver,
+                    selectedFiles.length > 0 && styles.uploadAreaWithImage,
                   ]}
                   onPress={openFilePicker}
                   activeOpacity={0.8}
                 >
-                  <View style={styles.uploadButton}>
-                  <UploadIcon width={width * 0.06} height={width * 0.06} />
-                    <Text style={styles.uploadButtonText}>Upload</Text>
-                  </View>
-                </TouchableOpacity>
-              </PanGestureHandler>
-            </View>
-
-            {/* Uploaded Files Preview - Show thumbnails when files are selected */}
-            {selectedFiles.length > 0 && (
-              <View style={styles.uploadedPreviewSection}>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.uploadedPreviewContainer}
-                >
-                  {selectedFiles.map((file) => (
-                    <View key={file.id} style={styles.thumbnailContainer}>
-                      {file.isImage || file.isVideo ? (
+                  {selectedFiles.length > 0 && selectedFiles[0] ? (
+                    <>
+                      {selectedFiles[0].isImage || selectedFiles[0].isVideo ? (
                         <Image
-                          source={{ uri: file.uri }}
-                          style={styles.thumbnailImage}
+                          source={{ uri: selectedFiles[0].uri }}
+                          style={styles.uploadAreaImage}
                           resizeMode="cover"
                         />
-                      ) : file.isDocument ? (
-                        <View style={styles.documentThumbnail}>
+                      ) : selectedFiles[0].isDocument ? (
+                        <View style={styles.documentPreview}>
                           <Ionicons
-                            name={file.name.toLowerCase().endsWith('.pdf') ? 'document-text' : 'document'}
-                            size={40}
+                            name={selectedFiles[0].name.toLowerCase().endsWith('.pdf') ? 'document-text' : 'document'}
+                            size={60}
                             color="#C539A5"
                           />
-                          <Text style={styles.documentThumbnailText} numberOfLines={1}>
-                            {file.name.split('.').pop()?.toUpperCase()}
+                          <Text style={styles.documentPreviewText} numberOfLines={1}>
+                            {selectedFiles[0].name.split('.').pop()?.toUpperCase()}
+                          </Text>
+                          <Text style={styles.documentPreviewName} numberOfLines={1}>
+                            {selectedFiles[0].name}
                           </Text>
                         </View>
                       ) : null}
                       <TouchableOpacity
-                        style={styles.thumbnailRemoveButton}
-                        onPress={() => removeFile(file.id)}
+                        style={styles.uploadAreaRemoveButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          removeFile(selectedFiles[0].id);
+                        }}
                       >
                         <Ionicons
-                          name="close"
-                          size={12}
+                          name="close-circle"
+                          size={28}
                           color="#FFFFFF"
                         />
                       </TouchableOpacity>
+                    </>
+                  ) : (
+                    <View style={styles.uploadButton}>
+                      <UploadIcon width={width * 0.06} height={width * 0.06} />
+                      <Text style={styles.uploadButtonText}>Upload</Text>
                     </View>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
+                  )}
+                </TouchableOpacity>
+              </PanGestureHandler>
+
+              {/* Uploaded Section - Inside upload box */}
+              {selectedFiles.filter(f => f.progress === 100).length > 0 && (
+                <View style={styles.uploadedSection}>
+                  <Text style={styles.uploadedSectionTitle}>Uploaded</Text>
+                  {selectedFiles
+                    .filter((file) => file.progress === 100)
+                    .map((file) => (
+                      <View key={file.id} style={styles.uploadedFileItem}>
+                        <Text style={styles.uploadedFileName} numberOfLines={1}>
+                          {file.name}
+                        </Text>
+                        <TouchableOpacity
+                          style={styles.uploadedDeleteButton}
+                          onPress={() => removeFile(file.id)}
+                        >
+                          <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                </View>
+              )}
+            </View>
 
             {/* Uploading Section */}
             {selectedFiles.filter(f => f.progress > 0 && f.progress < 100).length > 0 && (
@@ -635,40 +653,18 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
               </View>
             )}
 
-            {/* Uploaded Section */}
-            {selectedFiles.filter(f => f.progress === 100).length > 0 && (
-              <View style={styles.uploadedSection}>
-                <Text style={styles.sectionTitle}>Uploaded</Text>
-                {selectedFiles
-                  .filter((file) => file.progress === 100)
-                  .map((file) => (
-                    <View key={file.id} style={styles.uploadedFileItem}>
-                      <Text style={styles.uploadedFileName} numberOfLines={1}>
-                        {file.name}
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.uploadedDeleteButton}
-                        onPress={() => removeFile(file.id)}
-                      >
-                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-              </View>
-            )}
           </View>
         </ScrollView>
 
         <View style={styles.buttonContainer}>
-          <CustomButton
+          <PrimaryButton
             title={
-              isPending 
-                ? t('uploadFiles.uploadingFiles') 
-                : isAddingMedia 
-                ? 'Registering media...' 
-                : t('uploadFiles.uploadFiles')
+              isPending || isAddingMedia || isUploading
+                ? t('uploadFiles.uploadingFiles')
+                : t('createScreen.next')
             }
             disabled={isPending || isAddingMedia}
+            loading={isPending || isAddingMedia || isUploading}
             onPress={async () => {
               console.log('🚀 [CampaignUploadFiles] Upload button clicked');
               console.log('📋 [CampaignUploadFiles] Upload URL:', uploadUrl);
@@ -759,17 +755,8 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
                 setIsUploading(false);
               }
             }}
-            variant="primary"
-            size="medium"
             buttonStyle={styles.nextButton}
           />
-          {isUploading && (
-            <ActivityIndicator
-              size="small"
-              color="#C539A5"
-              style={{ marginTop: 10 }}
-            />
-          )}
         </View>
       </View>
     </GestureHandlerRootView>
@@ -856,7 +843,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    width: '100%',
+    width: '95%',
     alignSelf: 'center',
   },
   uploadArea: {
@@ -871,11 +858,57 @@ const styles = StyleSheet.create({
     paddingVertical: 28,
     paddingHorizontal: 16,
     width: '100%',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  uploadAreaWithImage: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    height: width * 0.6, 
+    minHeight: 200,
+    maxHeight: height * 0.3,
   },
   uploadAreaDragOver: {
     backgroundColor: '#F5F5F5',
     borderColor: '#E5E7EB',
     borderStyle: 'dashed',
+  },
+  uploadAreaImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+  },
+  documentPreview: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 20,
+    padding: 20,
+  },
+  documentPreviewText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#C539A5',
+    textTransform: 'uppercase',
+  },
+  documentPreviewName: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#70737D',
+    textAlign: 'center',
+  },
+  uploadAreaRemoveButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 14,
+    padding: 4,
+    zIndex: 10,
   },
   uploadButton: {
     marginTop: 8,
@@ -891,6 +924,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#111827',
+    marginLeft: 5,
   },
   uploadedPreviewSection: {
     marginTop: 20,
@@ -1030,23 +1064,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   uploadedSection: {
-    marginBottom: hp(2),
+    marginTop: 16,
+    paddingTop: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  uploadedSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 16,
+    textAlign: 'center',
+    
   },
   uploadedFileItem: {
     borderWidth: 1,
     borderColor: '#86EFAC',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
   },
   uploadedFileName: {
     flex: 1,
     fontSize: 14,
-    color: '#000',
+    color: '#000000',
     fontWeight: '400',
+    marginRight: 12,
   },
   uploadedDeleteButton: {
     padding: 4,

@@ -59,6 +59,7 @@ interface BoardListProps {
   numColumns?: number; 
   showSeeAll?: boolean;
   useWiderCards?: boolean; // When true, cards will be wider (for filters and favorites)
+  showFavoriteBadge?: boolean; // When true, shows a heart icon badge on cards (for favorites screen)
 }
 
 const boardData: BoardItem[] = [
@@ -106,6 +107,7 @@ const BoardList: React.FC<BoardListProps> = ({
   numColumns = 1, 
   showSeeAll = true,
   useWiderCards = false,
+  showFavoriteBadge = false,
 }) => {
   // Debug: Log the prop value to verify it's being received
   console.log('BoardList - useWiderCards prop:', useWiderCards, 'heading:', heading);
@@ -392,6 +394,13 @@ const BoardList: React.FC<BoardListProps> = ({
               </View>
             )}
 
+            {/* Favorite Badge (top-right) */}
+            {showFavoriteBadge && (
+              <View style={styles.favoriteBadge}>
+                <Ionicons name="heart" size={17} color="#FFFFFF" />
+              </View>
+            )}
+
             {/* Size Overlay (centered on image) */}
             {/* <View style={styles.sizeOverlay}>
               <Text style={styles.sizeText}>{size}</Text>
@@ -579,6 +588,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.2,
     textAlign: 'center',
+  },
+  favoriteBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F054A6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#F054A6',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 3,
   },
   sizeOverlay: {
     position: 'absolute',
