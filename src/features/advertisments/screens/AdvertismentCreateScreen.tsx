@@ -17,8 +17,8 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import CustomButton from '../../../components/CustomButton';
 import CustomInput from '../../../components/CustomInput';
+import PrimaryButton from '../../../components/PrimaryButton';
 import { useTranslation } from 'react-i18next';
 import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
 import ProgressBar from '../../../components/ProgressBar';
@@ -716,8 +716,9 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                 value={description}
                 onChangeText={() => {}}
                 multiline={true}
-                numberOfLines={4}
+                numberOfLines={8}
                 containerStyle={styles.descriptionContainer}
+                inputStyle={styles.descriptionInput}
               />
               {/* <View style={styles.locationContainer}> */}
                 {/* <Text style={styles.locationLabel}>{t('createScreen.location')}</Text> */}
@@ -878,20 +879,14 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
         )}
 
         <View style={styles.buttonContainer}>
-          <CustomButton
-            title={
-              createAdMutation.isPending
-                ? t('createScreen.next')
-                : t('campaigns.create')
-            }
+          <PrimaryButton
+            title={t('createScreen.next')}
             onPress={() => {
-              // Call handleSubmit directly to create the campaign
               handleSubmit();
             }}
-            variant="primary"
-            size="medium"
             buttonStyle={styles.nextButton}
             disabled={createAdMutation.isPending}
+            loading={createAdMutation.isPending}
           />
           {!!errorText && <Text style={styles.errorText}>{errorText}</Text>}
         </View>
@@ -1461,7 +1456,8 @@ const styles = StyleSheet.create({
     paddingVertical: height * 0.015,
     fontSize: 12,
     color: '#000',
-    minHeight: height * 0.1,
+    height: height * 0.2,
+    minHeight: height * 0.2,
   },
   locationContainer: {
     marginBottom: height * 0.025,

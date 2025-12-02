@@ -205,12 +205,12 @@ const CustomInput = React.forwardRef<TextInput, CustomInputProps>(({
             style={[
               styles.input,
               shouldShowPasswordToggle && styles.inputWithToggle,
-              inputStyle,
               error ? styles.inputError : undefined,
               error ? styles.inputWithError : undefined,
               (isFocused || focused) && !disabled ? styles.inputFocused : styles.inputUnfocused,
               disabled && styles.inputDisabled,
               multiline && styles.inputMultiline,
+              inputStyle, // Put inputStyle last so it can override other styles
             ]}
             secureTextEntry={actualSecureTextEntry}
             keyboardType={keyboardType}
