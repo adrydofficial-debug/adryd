@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Alert,
   Dimensions,
@@ -62,6 +62,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<any>();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [logoColors, setLogoColors] = useState<Map<string, string>>(new Map());
   const { t, i18n } = useTranslation('profile');
   const [languageKey, setLanguageKey] = useState(0);
   const selectableFromRoute =
@@ -76,6 +77,42 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
   }, [i18n]);
   // Use the companies API hook
   const { data: apiCompanies, isLoading, error, refetch } = useCompanies();
+  
+  // Generate colors based on company ID (deterministic color assignment)
+  useEffect(() => {
+    if (!apiCompanies || apiCompanies.length === 0) return;
+    
+    const generateColors = () => {
+      const colorMap = new Map<string, string>();
+      const fallbackColors = [
+        '#C539A5', // Primary brand color
+        '#4A90E2', // Blue
+        '#4CAF50', // Green
+        '#FF6B6B', // Red
+        '#FFA500', // Orange
+        '#9B59B6', // Purple
+        '#FFD700', // Gold
+        '#00BCD4', // Cyan
+        '#E91E63', // Pink
+        '#795548', // Brown
+        '#607D8B', // Blue Grey
+        '#FF5722', // Deep Orange
+      ];
+      
+      for (const apiCompany of apiCompanies) {
+        const companyId = apiCompany.id.toString();
+        // Generate a hash from company ID for consistent color assignment
+        const hash = companyId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const color = fallbackColors[hash % fallbackColors.length];
+        colorMap.set(companyId, color);
+      }
+      
+      setLogoColors(colorMap);
+    };
+    
+    generateColors();
+  }, [apiCompanies]);
+  
   // Convert API companies to the local Company interface
   const companies: Company[] = React.useMemo(() => {
     if (!apiCompanies) return [];
@@ -88,11 +125,14 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
         const cityMatch = addr.match(/\b(Lahore|Karachi|Islamabad|Rawalpindi|Faisalabad|Multan|Peshawar|Quetta)\b/i);
         return cityMatch ? cityMatch[1] : addr.split(',')[0] || 'N/A';
       };
+      const companyId = apiCompany.id.toString();
+      const extractedColor = logoColors.get(companyId) || '#C539A5';
+      
       return {
-        id: apiCompany.id.toString(),
+        id: companyId,
         name: apiCompany.company_name,
         logo: apiCompany.logo_url ? { uri: apiCompany.logo_url } : Images.adrydLogo, // Fallback to default logo
-        color: '#C539A5', // Default color, could be dynamic based on category
+        color: extractedColor, // Use extracted color from logo
         business: apiCompany.category?.name || 'Business',
         ntn: apiCompany.company_ntn || 'N/A',
         address: apiCompany.address || 'N/A',
@@ -101,7 +141,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
         location: extractLocation(apiCompany.address),
       };
     });
-  }, [apiCompanies]);
+  }, [apiCompanies, logoColors]);
   // Debug logging
   React.useEffect(() => {
     console.log('PreviousCompanyScreen - State:', {
@@ -131,7 +171,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
   const handleCompanySelect = (company: Company) => {
     onCompanySelect?.(company);
     if (effectiveIsSelectable) {
-      navigation.navigate('AdvertismentCreateScreen' as never, { flow: 'business' } as never);
+      (navigation as any).navigate('AdvertismentCreateScreen', { flow: 'business' });
     } else {
       console.log('Company selected:', company.name);
     }
@@ -164,6 +204,10 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
   );
   const renderCompanyCard = (company: Company) => {
     const expanded = isExpanded(company.id);
+    
+    // Use the extracted color from logo, or fallback to company.color
+    const companyColor = company.color || '#C539A5';
+    
     return (
       <View style={styles.companyCard}>
         {/* Header Section - Always Visible */}
@@ -174,6 +218,9 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
             onPress={() => toggleExpanded(company.id)}
             activeOpacity={0.8}
           >
+            {/* Colored Vertical Bar */}
+            <View style={[styles.colorBar, { backgroundColor: companyColor }]} />
+            
             <View style={styles.companyCardContent}>
               {/* Company Logo */}
               <View style={styles.companyLogoContainer}>
@@ -184,16 +231,30 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
                 />
               </View>
 
-              {/* Company Name */}
+              {/* Company Info */}
               <View style={styles.companyInfoContainer}>
                 <Text style={styles.companyName}>{company.name}</Text>
+                {/* Tags - In one line */}
+                <View style={styles.tagsContainer}>
+                  <View style={styles.tag}>
+                    <Text style={styles.tagText}>Company</Text>
+                  </View>
+                  {/* Horizontal Separator Line */}
+                <View style={styles.tagSeparator} />
+                  <View style={styles.tag}>
+                    <Text style={styles.tagText}>
+                      {company.business} / {company.location || 'Lahore'}
+                    </Text>
+                  </View>
+                </View>
+                
               </View>
 
               {/* Chevron */}
               <View style={styles.chevronContainer}>
                 <Ionicons
-                  name="chevron-down"
-                  size={scaleFont(16)}
+                  name="chevron-up"
+                  size={scaleFont(20)}
                   color="#18181B"
                 />
               </View>
@@ -291,7 +352,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
       {/* Header - Show for loading, error, or when companies exist. Hide only when showing empty state animation */}
       {(!isLoading && !error && companies.length === 0) ? null : (
         <Header
-          title={t('previousCompany.select')}
+          title="Companies"
           onBackPress={handleBackPress}
           showBackButton={true}
           showRightIcon={false}
@@ -325,17 +386,21 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
           companies.length === 0 ? (
             <CompanyEmptyState onCreateCompany={handleAddNewCompany} />
           ) : (
-            <ScrollView
-              style={styles.companyList}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-            >
-              {companies.map((company) => (
-                <View key={company.id}>
-                  {renderCompanyCard(company)}
-                </View>
-              ))}
-            </ScrollView>
+            <View style={styles.whiteContainer}>
+              <ScrollView
+                style={styles.companyList}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                nestedScrollEnabled={true}
+                bounces={true}
+              >
+                {companies.map((company) => (
+                  <View key={company.id}>
+                    {renderCompanyCard(company)}
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
           )
         )}
       </View>
@@ -377,59 +442,107 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: wp(4),
-    paddingBottom: hp(2),
+    paddingHorizontal: wp(2),
+    paddingBottom: hp(1),
+    paddingTop: hp(0.5),
+  },
+  whiteContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: scaleWidth(12),
+    marginHorizontal: wp(3.5),
+    marginTop: hp(1),
+    marginBottom: hp(2),
+    paddingVertical: hp(1.5),
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   companyCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: scaleWidth(12),
-    marginBottom: hp(1.5),
+    marginBottom: hp(1.2),
+    marginHorizontal: wp(1),
     borderWidth: 0.7,
     borderColor: "#E5E7EB",
     overflow: 'hidden',
   },
   companyCardHeader: {
-    minHeight: scaleHeight(70),
+    minHeight: scaleHeight(80),
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: scaleWidth(12),
     borderTopRightRadius: scaleWidth(12),
+    flexDirection: 'row',
+  },
+  colorBar: {
+    width: scaleWidth(4),
+    borderTopLeftRadius: scaleWidth(12),
+    borderBottomLeftRadius: scaleWidth(12),
   },
   companyCardContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
+    paddingVertical: hp(1.8),
   },
   companyLogoContainer: {
     width: scaleWidth(48),
     height: scaleWidth(48),
     borderRadius: scaleWidth(24),
-    // backgroundColor: '#FFD700',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: wp(3),
-    padding: scaleWidth(4),
+    padding: scaleWidth(2),
+    borderWidth: 0,
   },
   companyLogoImage: {
-    width: scaleWidth(40),
-    height: scaleWidth(40),
-    borderRadius: scaleWidth(20),
+    width: scaleWidth(44),
+    height: scaleWidth(44),
+    borderRadius: scaleWidth(22),
   },
   companyInfoContainer: {
     flex: 1,
+    justifyContent: 'center',
   },
   companyName: {
     fontSize: scaleFont(14),
     fontWeight: '600',
     color: '#000000',
-    paddingHorizontal: wp(2),
+    marginBottom: hp(0.8),
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    alignItems: 'center',
+    marginTop: hp(0.3),
+  },
+  tag: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: scaleWidth(6),
+    paddingHorizontal: wp(2.5),
+    paddingVertical: hp(0.4),
+  },
+  tagText: {
+    fontSize: scaleFont(10),
+    fontWeight: '400',
+    color: '#70737D',
+  },
+  tagSeparator: {
+    width: '3%',
+    height: 3,
+    backgroundColor: '#D1D5DB',
+    marginTop: hp(0.8),
+    marginBottom: hp(0.8),
   },
   chevronContainer: {
     width: scaleWidth(24),
     height: scaleWidth(24),
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    marginLeft: wp(2),
+    paddingTop: hp(0.5),
+    alignSelf: 'flex-start',
   },
   companyDetailsSection: {
     backgroundColor: '#FFFFFF',
@@ -447,46 +560,41 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   topCompanyCardContent: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   topCompanyLogoContainer: {
     width: scaleWidth(56),
     height: scaleWidth(56),
     borderRadius: scaleWidth(28),
-    backgroundColor: '#FFFF',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-
+    marginRight: wp(3),
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   topCompanyLogoImage: {
-    width: scaleWidth(40),
-    height: scaleWidth(40),
-    borderRadius: scaleWidth(20),
-    alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB"
+    width: scaleWidth(48),
+    height: scaleWidth(48),
+    borderRadius: scaleWidth(24),
   },
   topCompanyInfo: {
     flex: 1,
-    alignItems: "center",
   },
   topCompanyName: {
-    fontSize: scaleFont(13),
+    fontSize: scaleFont(14),
     fontWeight: '600',
     color: '#18181B',
-    marginBottom: hp(0.5),
-
+    marginBottom: hp(0.3),
   },
   topCompanySubtext: {
-    fontSize: scaleFont(8),
+    fontSize: scaleFont(11),
     fontWeight: '400',
-
     color: '#70737D',
   },
   checkmarkContainer: {
-    marginTop: hp(1),
+    marginLeft: wp(2),
   },
   companyDetailCard: {
     backgroundColor: '#FFFFFF',
