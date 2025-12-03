@@ -41,6 +41,7 @@ import i18n from '../i18n';
 import { saveLanguage } from '../services/languageStorage';
 import { useAuthStore } from '../store/authStore';
 import { useDrawerStore } from '../store/drawerStore';
+import { useCampaignFlowStore } from '../store/campaignFlowStore';
 type DrawerItem = {
   id: number;
   title: string;
@@ -81,6 +82,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
   const setIsVisible = useDrawerStore(s => s.setIsVisible);
   const setNavigatedFromDrawer = useDrawerStore(s => s.setNavigatedFromDrawer);
   const reopenDrawerCallback = useDrawerStore(s => s.reopenDrawerCallback);
+  const resetCampaignFlow = useCampaignFlowStore(s => s.resetCampaignFlow);
   const translateX = useRef(new Animated.Value(-OFFSCREEN_X)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const [isContactModalVisible, setIsContactModalVisible] = useState(false);
@@ -207,6 +209,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       onPress: () => {
         try {
           setNavigatedFromDrawer(true);
+          resetCampaignFlow();          
           (navigation as any).navigate('PreviousCompanyScreen', {
             isSelectable: true,
           });

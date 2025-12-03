@@ -20,6 +20,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { AddIcon, Images } from '../../../assets/images';
 import { useCompanies } from '../../companies/hooks/useCompanies';
 import { Company as ApiCompany } from '../../companies/domain/entities';
+import { useCampaignFlowStore } from '../../../store/campaignFlowStore';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 import NoInternet from '../../../components/NoInternet';
@@ -61,6 +62,9 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
 }) => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<any>();
+  const boardData = route?.params?.boardData; 
+  const selectedBoard = useCampaignFlowStore(s => s.selectedBoard);
+  const setSelectedCompany = useCampaignFlowStore(s => s.setSelectedCompany);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [logoColors, setLogoColors] = useState<Map<string, string>>(new Map());
   const { t, i18n } = useTranslation('profile');
@@ -156,10 +160,12 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
   };
   const handleAddNewCompany = () => {
     console.log(':white_check_mark: handleAddNewCompany called');
-    // Navigate FIRST, before calling onAddNewCompany (in case it interferes)
-    console.log(':rocket: Attempting to navigate to ChooseOptionScreen...');
     try {
-      (navigation as any).navigate('ChooseOptionScreen' as never);
+      const board = boardData || selectedBoard;
+      (navigation as any).navigate('CreateCompanyScreen', { 
+        flow: 'business',
+        boardData: board 
+      } as never);
       console.log(':white_check_mark: Navigation call completed successfully');
     } catch (error: any) {
       console.error(':x: Navigation error:', error);
@@ -171,9 +177,31 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
   const handleCompanySelect = (company: Company) => {
     onCompanySelect?.(company);
     if (effectiveIsSelectable) {
-      (navigation as any).navigate('AdvertismentCreateScreen', { flow: 'business' });
+      setSelectedCompany(company as any);
+      
+      const companyId = parseInt(company.id);
+      const hasExplicitBoardData = boardData !== undefined && boardData !== null;
+      
+      
+      if (hasExplicitBoardData) {
+        (navigation as any).navigate('AdvertismentCreateScreen', { 
+          flow: 'business',
+          companyId: companyId,
+          boardData: boardData 
+        });
+      } else {
+        
+        const setSelectedChoice = useCampaignFlowStore.getState().setSelectedChoice;
+        setSelectedChoice('business');
+        
+        try {
+          (navigation as any).navigate('SearchLocation', { autoSelectSeeAll: true });
+        } catch (error) {
+          console.error('❌ Navigation error:', error);
+        }
+      }
     } else {
-      console.log('Company selected:', company.name);
+      console.log('⚠️ Company selected but not selectable:', company.name);
     }
   };
   const toggleExpanded = (companyId: string) => {

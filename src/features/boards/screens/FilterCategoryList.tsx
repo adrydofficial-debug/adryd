@@ -25,7 +25,7 @@ import { Images } from '../../../assets/images';
 const { width, height } = Dimensions.get('window');
 
 const FilterCategoryList: React.FC<any> = ({ route, navigation }) => {
-  const { slug } = route.params || {};
+  const { slug, autoSelectSeeAll } = route.params || {};
   const { user } = useAuthStore();
 
   const [selectedTab, setSelectedTab] = useState<Tab | null>(null);
@@ -69,9 +69,15 @@ const FilterCategoryList: React.FC<any> = ({ route, navigation }) => {
 
   useEffect(() => {
     if (tabs.length === 0 || selectedTab) return;
+    
+    if (autoSelectSeeAll) {
+      setSelectedTab(tabs[0]);
+      return;
+    }
+    
     const matchingTab = slug ? tabs.find(tab => tab.slug === slug) : null;
     setSelectedTab(matchingTab || tabs[0]);
-  }, [tabs, slug, selectedTab]);
+  }, [tabs, slug, selectedTab, autoSelectSeeAll]);
 
   const {
     data: filteredBoardsData,

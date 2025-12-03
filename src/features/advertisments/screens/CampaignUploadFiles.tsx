@@ -843,7 +843,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    width: '95%',
+    width: '100%',
     alignSelf: 'center',
   },
   uploadArea: {
@@ -1067,7 +1067,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: 'transparent',
   },
   uploadedSectionTitle: {
     fontSize: 14,

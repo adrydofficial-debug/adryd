@@ -20,6 +20,8 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import PrimaryButton from '../../../components/PrimaryButton';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
 import MapView from 'react-native-maps';
 import { useRateBoard } from '../hooks/useRateBoard';
 import { useBoardRatings } from '../hooks/useBoardRatings';
@@ -37,6 +39,7 @@ import BackButton from '../../../components/BackButton';
 import NoInternet from '../../../components/NoInternet';
 import { useTranslation } from 'react-i18next';
 import { useFavoriteStatus, useToggleFavorite } from '../hooks/useFavorites';
+import { useCampaignFlowStore } from '../../../store/campaignFlowStore';
 // Removed typed RootStack import to avoid cross-module typing dependency
 
 // Using untyped navigation to avoid cross-module type coupling issues
@@ -140,7 +143,7 @@ const renderStars = (rating: string | number, size = 11, color = '#FBBC05') => {
 
 const SingleBoardDetail: React.FC = () => {
   const { t } = useTranslation('boards');
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const route = useRoute();
   const routeItem = (route.params as { item: any })?.item || null;
 
@@ -148,6 +151,10 @@ const SingleBoardDetail: React.FC = () => {
 
   const user = useAuthStore(s => s.user);
   const queryClient = useQueryClient();
+  
+  const setSelectedBoard = useCampaignFlowStore(s => s.setSelectedBoard);
+  const selectedCompany = useCampaignFlowStore(s => s.selectedCompany);
+  const selectedChoice = useCampaignFlowStore(s => s.selectedChoice);
 
   const rawBoardId = Number(item?.id);
   const boardId = Number.isFinite(rawBoardId) && rawBoardId > 0 ? rawBoardId : undefined;
@@ -847,7 +854,33 @@ const SingleBoardDetail: React.FC = () => {
 
           <PrimaryButton
             title={t('letsConnect')}
-            onPress={() => console.log("Button pressed")}
+            onPress={() => {
+              console.log('Let\'s Connect pressed with boardData:', item);
+              console.log('Current flow state:', { selectedCompany, selectedChoice });
+              
+              try {
+                setSelectedBoard(item);
+                
+                if (selectedCompany && selectedChoice === 'business') {
+                  console.log('Company already selected, navigating directly to campaign form');
+                  const companyId = typeof selectedCompany.id === 'string' 
+                    ? parseInt(selectedCompany.id) 
+                    : selectedCompany.id;
+                  
+                  navigation.navigate('AdvertismentCreateScreen', { 
+                    flow: 'business',
+                    companyId: companyId,
+                    boardData: item 
+                  });
+                } else {
+                  console.log('No company selected, navigating to ChooseOptionScreen');
+                  navigation.navigate('ChooseOptionScreen', { boardData: item });
+                }
+              } catch (error) {
+                console.error('Navigation error:', error);
+                Alert.alert('Error', 'Failed to navigate. Please try again.');
+              }
+            }}
             buttonStyle={{
               width: 250,
               height: 50,

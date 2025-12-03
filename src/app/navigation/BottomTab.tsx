@@ -51,7 +51,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       case 'Boards':
         break;
       case 'Add':
-        navigation.navigate('PreviousCompanyScreen' as never);
+        navigation.navigate('SearchLocation' as never, { autoSelectSeeAll: true } as never);
         setActiveTab('Home');
         break;
       case 'Chat':

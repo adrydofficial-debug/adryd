@@ -255,6 +255,36 @@ const SearchLocation: React.FC = () => {
     return order;
   }, [filterOptions]);
 
+  // Auto-select "See All" when opened from + button
+  const [shouldAutoFetch, setShouldAutoFetch] = useState(false);
+  
+  useEffect(() => {
+    const params = route?.params;
+    if (params?.autoSelectSeeAll === true && filterGroups.length > 0 && boardFiltersData?.groups) {
+      const newFilters = new Set<string>();
+      newFilters.add('see-all');
+      newFilters.add('recommended');
+      
+      const categorySlugs: string[] = [];
+      
+      filterGroups.forEach(group => {
+        group.categories.forEach(cat => {
+          newFilters.add(cat.slug);
+          categorySlugs.push(cat.slug);
+        });
+      });
+      
+      setDraftSelectedFilters(newFilters);
+      
+      setAppliedFilters(new Set(categorySlugs)); // Only category slugs for API
+      setAppliedFilterOrder(categorySlugs);
+      
+      setShouldAutoFetch(true);
+      
+      navigation.setParams({ autoSelectSeeAll: undefined });
+    }
+  }, [route?.params, filterGroups, boardFiltersData, navigation]);
+
   // Filter options based on search query
   const filteredOptions = useMemo(() => {
     if (!searchQuery.trim()) return filterOptions;
@@ -711,6 +741,42 @@ const SearchLocation: React.FC = () => {
     buildFilterPayload,
   ]);
 
+  useEffect(() => {
+    if (shouldAutoFetch && appliedFilters.size > 0) {
+      console.log('[SearchLocation] Auto-fetching boards with filters:', Array.from(appliedFilters));
+      
+      const fetchBoards = async () => {
+        setApiError(null);
+        try {
+          const payload = buildFilterPayload(DEFAULT_PAGE);
+          console.log('[SearchLocation] Auto-fetch payload:', JSON.stringify(payload, null, 2));
+          
+          const response = await runFilterRequest(payload);
+          console.log('[SearchLocation] Auto-fetch response:', response);
+          
+          const mapped = mapFilteredBoards(response);
+          const total = response.pagination?.total ?? mapped.boards.length;
+          const limit = response.pagination?.limit ?? DEFAULT_LIMIT;
+
+          setFilteredBoards(mapped.boards.map(convertBoardToBoardItem));
+          setFilterPagination({
+            page: mapped.page,
+            totalPages: mapped.totalPages,
+            total,
+            limit,
+          });
+        } catch (error) {
+          console.error('[SearchLocation] Failed to auto-fetch boards:', error);
+          setApiError('Unable to fetch boards. Please try again.');
+        } finally {
+          setShouldAutoFetch(false);
+        }
+      };
+      
+      fetchBoards();
+    }
+  }, [shouldAutoFetch, appliedFilters, buildFilterPayload, runFilterRequest, convertBoardToBoardItem]);
+
   const handleLoadMore = useCallback(async () => {
     if (isLoadingMore || isApplyingFilters) {
       return;
@@ -1059,6 +1125,7 @@ const SearchLocation: React.FC = () => {
             style={styles.mainScrollView}
             contentContainerStyle={styles.mainScrollContent}
             showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
           >
             {(appliedFilterTags.length > 0 || appliedSearchQuery) && (
               <ScrollView
@@ -1107,6 +1174,7 @@ const SearchLocation: React.FC = () => {
                   navigation={navigation}
                   onPressDetail={handleDetailPress}
                   useWiderCards={true}
+                  scrollEnabled={false}
                 />
                 <Text style={styles.paginationMeta}>
                   Showing {filteredBoards.length} of {filterPagination.total}{' '}

@@ -26,6 +26,7 @@ import ProgressBar from '../../../components/ProgressBar';
 import { CreateAdvertisementRequest } from '../types';
 import { useCampaignStore } from '../../../store/campaignStore';
 import { useBoardUnavailableTimes } from '../../boards/hooks/useBoardUnavailableTimes';
+import { useCampaignFlowStore } from '../../../store/campaignFlowStore';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -46,20 +47,96 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const selectedDaysFromStore = useCampaignStore((state) => state.selectedDays);
   const setSelectedDaysToStore = useCampaignStore((state) => state.setSelectedDays);
   const clearSelectedDays = useCampaignStore((state) => state.clearSelectedDays);
+  
+  const selectedBoard = useCampaignFlowStore(s => s.selectedBoard);
+  const selectedChoice = useCampaignFlowStore(s => s.selectedChoice);
+  const selectedCompany = useCampaignFlowStore(s => s.selectedCompany);
+  const resetCampaignFlow = useCampaignFlowStore(s => s.resetCampaignFlow);
+  
   const flow = route?.params?.flow ?? 'business';
   const companyIdFromRoute = route?.params?.companyId; // Get company_id from route params (for business flow)
+  const boardDataFromRoute = route?.params?.boardData; // Get board data from route params
+  
+  const boardData = boardDataFromRoute || selectedBoard;
   const COMPANY_ID = companyIdFromRoute || 1; // Use company_id from route, or default to 1
-  const BOARD_ID = 1; // Default board ID - ensure this board exists in the database
-  const [campaignName] = useState<string>('Test Ad');
-  const [size, setSize] = useState<string>('12x8 ft');
-  const [type, setType] = useState<string>('Digital');
-  const [category, setCategory] = useState<string>('Banner Board');
-  const [location, setLocation] = useState<string>('Lahore');
-  const [area, setArea] = useState<string>('Gulberg Main Boulevard');
-  const [campaignImage] = useState<string>(
-    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80',
-  );
-  const [campaignCategory] = useState<string>('Static Category');
+  
+  const BOARD_ID = boardData?.id ? parseInt(boardData.id) : 1;
+  
+  const getBoardSize = () => {
+    if (boardData?.size) return boardData.size;
+    if (boardData?.width && boardData?.height) {
+      return `${boardData.width}x${boardData.height} ft`;
+    }
+    return '12x8 ft';
+  };
+  
+  const getBoardType = () => {
+    if (boardData?.category) {
+      const cat = typeof boardData.category === 'string' 
+        ? boardData.category 
+        : boardData.category?.name || '';
+      if (cat.toLowerCase().includes('digital')) return 'Digital';
+      if (cat.toLowerCase().includes('static')) return 'Static';
+    }
+    return 'Digital';
+  };
+  
+  const getBoardCategory = () => {
+    if (boardData?.category) {
+      return typeof boardData.category === 'string' 
+        ? boardData.category 
+        : boardData.category?.name || 'Banner Board';
+    }
+    return 'Banner Board';
+  };
+  
+  const getBoardLocation = () => {
+    if (boardData?.location) {
+      return typeof boardData.location === 'string' 
+        ? boardData.location 
+        : boardData.location?.name || 'Lahore';
+    }
+    return 'Lahore';
+  };
+  
+  const getBoardArea = () => {
+    if (boardData?.area) return boardData.area;
+    if (boardData?.location) {
+      const loc = typeof boardData.location === 'string' 
+        ? boardData.location 
+        : boardData.location?.name || '';
+      return loc;
+    }
+    return 'Gulberg Main Boulevard';
+  };
+  
+  const getBoardDescription = () => {
+    if (boardData?.description) return boardData.description;
+    return 'My great test advertisement.';
+  };
+  
+  const getBoardImage = () => {
+    if (boardData?.image_url) return boardData.image_url;
+    if (boardData?.image) {
+      const img = typeof boardData.image === 'string' 
+        ? boardData.image 
+        : boardData.image?.uri || '';
+      return img || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80';
+    }
+    if (boardData?.media && Array.isArray(boardData.media) && boardData.media.length > 0) {
+      return boardData.media[0]?.url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80';
+    }
+    return 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80';
+  };
+  
+  const [campaignName] = useState<string>(boardData?.title || 'Test Ad');
+  const [size, setSize] = useState<string>(getBoardSize());
+  const [type, setType] = useState<string>(getBoardType());
+  const [category, setCategory] = useState<string>(getBoardCategory());
+  const [location, setLocation] = useState<string>(getBoardLocation());
+  const [area, setArea] = useState<string>(getBoardArea());
+  const [campaignImage] = useState<string>(getBoardImage());
+  const [campaignCategory] = useState<string>(getBoardCategory());
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(
     new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -72,8 +149,8 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     ).filter(day => !isNaN(day.getTime()));
   }, [selectedDaysFromStore]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [description] = useState<string>('My great test advertisement.');
-  const [locationName] = useState<string>('Lahore');
+  const [description] = useState<string>(getBoardDescription());
+  const [locationName] = useState<string>(getBoardLocation());
   const [errorText, setErrorText] = useState<string>('');
 
   // Use the hook for API calls
@@ -97,6 +174,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     return date.toISOString().split('T')[0];
   };
   
+  // Fetch unavailable times for the board
   const { data: unavailableTimesData, refetch: refetchUnavailableTimes } = useBoardUnavailableTimes(BOARD_ID);
   
   // Refetch unavailable times when screen is focused to get latest booked dates
@@ -485,6 +563,8 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
         
         // Clear selected days from local store since they're now in the API
         clearSelectedDays();
+       
+        resetCampaignFlow();
         
         // Refetch unavailable times to update booked dates immediately
         await refetchUnavailableTimes();
@@ -611,7 +691,11 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              // Reset campaign flow when going back without completing
+              resetCampaignFlow();
+              navigation.goBack();
+            }}
           >
             <Ionicons name="arrow-back" size={wp(6)} color="#000" />
           </TouchableOpacity>
