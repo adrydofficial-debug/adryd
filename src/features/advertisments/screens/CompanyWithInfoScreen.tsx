@@ -13,11 +13,12 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import CustomButton from '../../../components/CustomButton';
+import PrimaryButton from '../../../components/PrimaryButton';
 import { useCampaign } from '../hooks/useCampaign';
 import { getAdvertisement } from '../api/api';
 import { CompanyData, AdvertisementData } from '../../../store/campaignStore';
 import  ProgressBar  from '../../../components/ProgressBar';
+import FramesIcon from '../../../assets/images/Frames.png';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -37,7 +38,7 @@ const formatCurrency = (value?: number) => {
   return `PKR ${value.toLocaleString()}`;
 };
 
-const formatDate = (date: Date | string | undefined) => {
+const formatDateDisplay = (date: Date | string | undefined) => {
   if (!date) return 'N/A';
   const parsed = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(parsed.getTime())) return 'N/A';
@@ -46,6 +47,18 @@ const formatDate = (date: Date | string | undefined) => {
     month: 'short',
     year: 'numeric',
   });
+};
+
+const formatDateRange = (start?: Date | string, end?: Date | string) => {
+  if (!start || !end) return 'N/A';
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return 'N/A';
+  }
+  const format = (date: Date) =>
+    date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+  return `${format(startDate)} to ${format(endDate)}`;
 };
 
 const CompanyWithInfoScreen: React.FC<any> = ({ navigation, route }) => {
@@ -199,44 +212,40 @@ const CompanyWithInfoScreen: React.FC<any> = ({ navigation, route }) => {
     return 'N/A';
   })();
 
+  const daysRange = formatDateRange(advertisementData?.startDate, advertisementData?.endDate);
+
   const firstDate = (() => {
     if (advertisementData?.selectedDays?.length) {
-      return formatDate(advertisementData.selectedDays[0]);
+      return formatDateDisplay(advertisementData.selectedDays[0]);
     }
-    return formatDate(advertisementData?.startDate);
+    return formatDateDisplay(advertisementData?.startDate);
   })();
+
+  const subtotal = advertisementData?.totalPayment ?? 20000;
+  const taxAmount = advertisementData?.tax ?? 10000;
+  const grandTotal = subtotal + taxAmount;
 
   // Show loading state while fetching data
   if (isLoading) {
     return (
-      <LinearGradient
-        colors={['#FFFFFF', '#FFF7FB']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.container}
-      >
+      <View style={styles.container}>
         <StatusBar barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#C539A5" />
           <Text style={styles.loadingText}>Loading campaign data...</Text>
         </View>
-      </LinearGradient>
+      </View>
     );
   }
 
   return (
-    <LinearGradient
-      colors={['#FFFFFF', '#FFF7FB']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <StatusBar barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'} />
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={wp(6)} color="#1E1E1E" />
+          <Ionicons name="arrow-back" size={wp(5)} color="#1E1E1E" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Confirmation</Text>
         <View style={styles.headerSpacer} />
@@ -251,113 +260,143 @@ const CompanyWithInfoScreen: React.FC<any> = ({ navigation, route }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Snapshot Cards */}
-        <View style={styles.cardsRow}>
-          <View style={[styles.summaryCard, styles.companyCard]}>
-            <View style={styles.summaryImageWrapper}>
-              <Image source={companyLogoSource} style={styles.summaryImage} resizeMode="cover" />
+        {/* Snapshot Cards with Curve */}
+        <View style={styles.cardsContainer}>
+          {/* Curved Line */}
+          <View style={styles.curveContainer}>
+            <View style={styles.curvedLine} />
+          </View>
+          
+          <View style={styles.cardsRow}>
+            <View style={[styles.summaryCard, styles.companyCard]}>
+              <View style={styles.summaryImageWrapper}>
+                <Image source={companyLogoSource} style={styles.summaryImage} resizeMode="cover" />
+              </View>
+              <Text style={styles.summaryTitle}>
+                {companyData?.companyName || 'Your Company'}
+              </Text>
+              <Text style={styles.summarySubtitle}>Your Company</Text>
             </View>
-            <Text style={styles.summaryTitle}>
-              {companyData?.companyName || 'Your Company'}
-            </Text>
-            <Text style={styles.summarySubtitle}>Your Company</Text>
+
+            {/* Link Badge between cards */}
+            <View style={styles.framesIconContainer}>
+              <Image source={FramesIcon} style={styles.framesIcon} resizeMode="contain" />
+            </View>
+
+            <View style={[styles.summaryCard, styles.campaignCard]}>
+              <View style={[styles.summaryImageWrapper, styles.campaignImageWrapper]}>
+                {isCampaignVideo ? (
+                  <View style={styles.videoPreview}>
+                    <Ionicons name="play-circle" size={wp(8)} color="#FFFFFF" />
+                    <Text style={styles.videoLabel}>Video</Text>
+                  </View>
+                ) : (
+                  <Image source={campaignImageSource} style={styles.summaryImage} resizeMode="cover" />
+                )}
+              </View>
+              <Text style={[styles.summaryTitle, styles.campaignTitle]}>
+                {advertisementData?.campaignName || 'Banner Board'}
+              </Text>
+              <Text style={[styles.summarySubtitle, styles.campaignSubtitle]}>
+                Your Campaign Board
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Main White Container */}
+        <View style={styles.mainContainer}>
+          {/* Company Details */}
+          <View style={styles.card}>
+            <Text style={styles.cardHeading}>Company Detail</Text>
+            <View style={styles.detailGrid}>
+              <DetailRow label="Name" value={companyData?.companyName || 'N/A'} />
+              <DetailRow label="Category" value={companyData?.businessCategory || companyData?.businessName || 'N/A'} />
+              <DetailRow label="Location" value={advertisementData?.location || 'N/A'} />
+              <DetailRow label="Number" value={companyData?.companyNumber || 'N/A'} />
+              <DetailRow label="Email" value={companyData?.companyEmail || 'N/A'} />
+              <DetailRow label="NTN" value={companyData?.companyNTN || 'N/A'} />
+              <DetailRow label="Address" value={companyData?.companyAddress || 'N/A'} />
+            </View>
           </View>
 
-          <View style={styles.linkBadge}>
-            <Ionicons name="link" size={wp(5)} color="#FFFFFF" />
+          {/* Campaign Detail */}
+          <View style={styles.card}>
+            <Text style={styles.cardHeading}>Campaign Ad</Text>
+            <View style={styles.detailGrid}>
+              <DetailRow label="Name" value={advertisementData?.campaignName || 'N/A'} />
+              <DetailRow label="Size" value={advertisementData?.size || 'N/A'} />
+              <DetailRow label="Type" value={advertisementData?.type || 'N/A'} />
+              <DetailRow label="Category" value={advertisementData?.category || 'N/A'} />
+              <DetailRow label="City" value={advertisementData?.location || 'N/A'} />
+              <DetailRow label="Area" value={advertisementData?.area || 'N/A'} />
+              <DetailRow label="Duration" value={daysRange} />
+            </View>
           </View>
 
-          <View style={[styles.summaryCard, styles.campaignCard]}>
-            <View style={[styles.summaryImageWrapper, styles.campaignImageWrapper]}>
-              {isCampaignVideo ? (
-                <View style={styles.videoPreview}>
-                  <Ionicons name="play-circle" size={wp(8)} color="#FFFFFF" />
-                  <Text style={styles.videoLabel}>Video</Text>
+          {/* Payment Summary Card */}
+          <View style={styles.paymentCard}>
+            <View style={styles.paymentMainRow}>
+              {/* Card Icon and Info */}
+              <View style={styles.paymentLeftSection}>
+                <View style={styles.cardIconWrapper}>
+                  <View style={styles.cardChip} />
+                  <View style={styles.ratingStars}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Ionicons key={star} name="star" size={wp(2)} color="#FFB800" />
+                    ))}
+                  </View>
                 </View>
-              ) : (
-                <Image source={campaignImageSource} style={styles.summaryImage} resizeMode="cover" />
-              )}
-            </View>
-            <Text style={[styles.summaryTitle, styles.campaignTitle]}>
-              {advertisementData?.campaignName || 'Banner Board'}
-            </Text>
-            <Text style={[styles.summarySubtitle, styles.campaignSubtitle]}>
-              Your Campaign Board
-            </Text>
-          </View>
-        </View>
+                <Text style={styles.cardNumber}>₨31</Text>
+              </View>
 
-        {/* Company Details */}
-        <View style={styles.card}>
-          <Text style={styles.cardHeading}>Company Detail</Text>
-          <View style={styles.detailGrid}>
-            <DetailRow label="Name" value={companyData?.companyName || 'N/A'} />
-            <DetailRow label="Business" value={companyData?.businessName || 'N/A'} />
-            <DetailRow label="NTN" value={companyData?.companyNTN || 'N/A'} />
-            <DetailRow label="Address" value={companyData?.companyAddress || 'N/A'} />
-            <DetailRow label="Email" value={companyData?.companyEmail || 'N/A'} />
-            <DetailRow label="Number" value={companyData?.companyNumber || 'N/A'} />
-          </View>
-        </View>
+              {/* Paid Badge */}
+              <View style={styles.paidBadge}>
+                <Text style={styles.paidText}>Paid</Text>
+              </View>
 
-        {/* Campaign Detail */}
-        <View style={styles.card}>
-          <Text style={styles.cardHeading}>Campaign Ad</Text>
-          <View style={styles.detailGrid}>
-            <DetailRow label="Name" value={advertisementData?.campaignName || 'N/A'} />
-            <DetailRow label="Days" value={totalDays} />
-            <DetailRow label="Category" value={advertisementData?.category || 'N/A'} />
-            <DetailRow label="Type" value={advertisementData?.type || 'N/A'} />
-            <DetailRow label="Location" value={advertisementData?.location || 'N/A'} />
-          </View>
-        </View>
-
-        {/* Payment Summary */}
-        {/* <View style={styles.paymentCard}>
-          <View style={styles.paymentRow}>
-            <View style={styles.paymentAvatar}>
-              <Ionicons name="card-outline" size={wp(7)} color="#FF5BA5" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.paymentLabel}>******{maskPhone(companyData?.companyNumber).slice(-4)}</Text>
-              <View style={styles.statusPill}>
-                <Text style={styles.statusText}>Paid</Text>
+              {/* Price Section */}
+              <View style={styles.paymentRightSection}>
+                <Text style={styles.priceCurrency}>PKR</Text>
+                <Text style={styles.priceAmount}>{subtotal.toLocaleString()}</Text>
               </View>
             </View>
-            <Text style={styles.paymentAmount}>
-              {formatCurrency(advertisementData?.totalPayment || 20000)}
-            </Text>
           </View>
 
-          <View style={styles.divider} />
+          {/* Dashed Divider */}
+          <View style={styles.dashedDivider} />
 
-          <DetailRow label="Date" value={firstDate} compact />
-          <DetailRow
-            label="Tax"
-            value={formatCurrency(advertisementData?.tax || 20000)}
-            compact
-          />
+          {/* Date and Tax Section */}
+          <View style={styles.summarySection}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Date</Text>
+              <Text style={styles.summaryValue}>{firstDate}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Tax</Text>
+              <Text style={styles.summaryValue}>{formatCurrency(taxAmount)}</Text>
+            </View>
+          </View>
 
-          <View style={[styles.divider, { marginTop: hp(1.5) }]} />
-          <View style={styles.totalRow}>
+          {/* Dashed Divider */}
+          <View style={styles.dashedDivider} />
+
+          {/* Total Section */}
+          <View style={styles.totalSection}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>
-              {formatCurrency(advertisementData?.totalPayment || 30000)}
-            </Text>
+            <Text style={styles.totalValue}>Pk {grandTotal.toLocaleString()}</Text>
           </View>
-        </View> */}
+        </View>
       </ScrollView>
 
       <View style={styles.bottomBar}>
-        <CustomButton
+        <PrimaryButton
           title="Confirmation"
-          onPress={() => navigation.navigate('BottomTab', { tab: 'Home' })}
-          variant="primary"
-          size="large"
+          onPress={() => navigation.navigate('AdvertismentCongratulateScreen')}
           buttonStyle={styles.confirmButton}
         />
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
@@ -383,43 +422,39 @@ const DetailRow: React.FC<DetailRowProps> = ({ label, value, compact }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F8F8F8',
   },
 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: wp(6),
+    paddingHorizontal: wp(5),
     paddingTop: hp(5),
-    paddingBottom: hp(2),
+    paddingBottom: hp(1.5),
   },
   backButton: {
-    width: wp(11),
-    height: wp(11),
-    borderRadius: wp(5.5),
-    backgroundColor: '#FFFFFF',
+    width: wp(10),
+    height: wp(10),
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
   },
   headerTitle: {
-    fontSize: wp(5.2),
-    fontWeight: '700',
+    fontSize: wp(4.2),
+    fontWeight: '600',
     color: '#1E1E1E',
+    fontFamily: Platform.OS === 'ios' ? 'SF Pro Display' : 'Roboto',
   },
   headerSpacer: {
-    width: wp(11),
+    width: wp(10),
   },
   progressWrapper: {
-flexDirection: 'row',
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: width * 0.1,
-    paddingBottom: height * 0.03,
+    paddingBottom: height * 0.02,
+    marginBottom: hp(3),
   },
   progressItem: {
     alignItems: 'center',
@@ -468,238 +503,312 @@ flexDirection: 'row',
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: wp(6),
+    paddingHorizontal: wp(4),
     paddingBottom: hp(12),
-    gap: hp(2.5),
+  },
+  mainContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingTop: 15,
+    paddingHorizontal: 15,
+    paddingBottom: 25,
+    gap: 20,
+    marginTop: hp(2),
+  },
+  cardsContainer: {
+    position: 'relative',
+    marginBottom: hp(1),
+    justifyContent: 'center',
+  },
+  curveContainer: {
+    position: 'absolute',
+    top: hp(12),
+    left: wp(8),
+    right: wp(8),
+    height: hp(4),
+    zIndex: 0,
+    overflow: 'hidden',
+  },
+  curvedLine: {
+    width: '100%',
+    height: hp(10),
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    borderStyle: 'dashed',
+    borderRadius: wp(50),
+    borderBottomWidth: 0,
+    marginTop: hp(-6),
   },
   cardsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: wp(4),
-    marginBottom: hp(2.5),
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  framesIconContainer: {
+    zIndex: 10,
+    marginHorizontal: wp(-2),
+  },
+  framesIcon: {
+    width: wp(7),
+    height: wp(7),
+    marginLeft: wp(3),
+    marginRight: wp(3),
   },
   summaryCard: {
-    width: '48%',
-    minHeight: hp(22),
-    maxHeight: hp(22),
+    width: 158,
+    height: 125,
     backgroundColor: '#FFFFFF',
-    borderRadius: wp(4),
-    paddingVertical: hp(3),
-    paddingHorizontal: wp(2.5),
+    borderRadius: 20,
+    paddingVertical: hp(1.5),
+    paddingHorizontal: wp(2),
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
-    elevation: 3,
   },
-  companyCard: {},
+  companyCard: {
+    borderWidth: 0.7,
+    borderStyle: 'dashed',
+    borderColor: '#E5E7EB',
+    borderRadius: 20,
+
+  },
   campaignCard: {
-    borderWidth: 2,
+    borderWidth: 0.7,
     borderStyle: 'dashed',
     borderColor: '#C539A5',
-    backgroundColor: '#FFF7FB',
   },
   summaryImageWrapper: {
-    width: wp(18),
-    height: wp(18),
-    borderRadius: wp(9),
-    borderWidth: 2,
-    borderColor: '#E5D7EF',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    marginBottom: hp(1.2),
+    marginBottom: hp(0.8),
   },
   campaignImageWrapper: {
-    borderColor: '#C539A5',
-    backgroundColor: '#FDEBFA',
+    backgroundColor: '#FFFFFF',
   },
   summaryImage: {
     width: '100%',
     height: '100%',
   },
   summaryTitle: {
-    fontSize: wp(4),
+    fontSize: 12,
     fontWeight: '600',
     color: '#2D2D2D',
     textAlign: 'center',
+    marginTop: 4,
   },
   campaignTitle: {
-    color: '#C539A5',
+    color: '#18181B',
   },
   summarySubtitle: {
-    fontSize: wp(2.8),
+    fontSize: 9,
     color: '#A1A1A1',
-    marginTop: hp(0.3),
+    marginTop: 2,
+    textAlign: 'center',
   },
   campaignSubtitle: {
-    color: '#C539A5',
+    color: '#A1A1A1',
   },
   videoPreview: {
     width: '100%',
     height: '100%',
-    borderRadius: wp(9),
+    borderRadius: wp(7),
     backgroundColor: '#C539A5',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: hp(0.5),
+    gap: hp(0.3),
   },
   videoLabel: {
     color: '#FFFFFF',
-    fontSize: wp(3),
+    fontSize: wp(2.5),
     fontWeight: '600',
   },
-  linkBadge: {
-    position: 'absolute',
-    left: '54%',
-    top: '50%',
-    transform: [{ translateX: -wp(3) }, { translateY: -wp(3) }],
-    width: wp(6),
-    height: wp(6),
-    borderRadius: wp(3),
-    backgroundColor: '#C539A5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#C539A5',
-    shadowOpacity: 0.25,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 15,
-    zIndex: 10,
-  },
   card: {
-    backgroundColor: '#E5E7EB',
-    borderRadius: wp(4),
-    paddingVertical: hp(2.5),
-    paddingHorizontal: wp(5),
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 3,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 20,
+    padding: 15,
+    borderWidth: 0.7,
+    borderColor: '#E5E7EB',
+    gap: 10,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   cardHeading: {
-    fontSize: wp(4.5),
+    fontSize: 14,
     fontWeight: '700',
-    color: '#2D2D2D',
-    marginBottom: hp(1.5),
+    color: '#1E1E1E',
   },
   detailGrid: {
-    gap: hp(1.2),
-    backgroundColor:"#FFFFFF",
-    borderRadius:wp(3),
-    padding:wp(4),
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 12,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: wp(4),
-    paddingHorizontal: hp(0.8),
+    alignItems: 'center',
+    minHeight: 27.5,
   },
   detailRowCompact: {
-    marginTop: hp(0.5),
+    marginTop: 2,
   },
   detailKey: {
-    fontSize: wp(3.2),
-    fontWeight: '600',
-    color: '#848484',
-    minWidth: wp(20),
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#70737D',
+    minWidth: 70,
+    lineHeight: 27.5,
   },
   detailKeyCompact: {
-    fontSize: wp(3),
-    minWidth: wp(18),
+    fontSize: 11,
+    minWidth: 60,
   },
   detailValueText: {
     flex: 1,
-    fontSize: wp(3.4),
-    color: '#2D2D2D',
-    textAlign: 'left',
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#1F2937',
+    textAlign: 'right',
+    lineHeight: 27.5,
   },
   detailValueCompact: {
-    fontSize: wp(3.2),
+    fontSize: 11,
   },
   paymentCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: wp(4),
-    paddingVertical: hp(2.5),
-    paddingHorizontal: wp(5),
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 14,
-    elevation: 4,
-    gap: hp(1.2),
+    backgroundColor: '#FFF9EC',
+    borderRadius: 12,
+    paddingVertical: hp(3),
+    paddingHorizontal: wp(3),
+    borderWidth: 1,
+    borderColor: '#FFE8B8',
   },
-  paymentRow: {
+  paidBadge: {
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    position: 'absolute',
+    right: -10,
+    top: -20,
+  },
+  paidText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  dashedDivider: {
+    borderStyle: 'dashed',
+    borderWidth: 0.8,
+    borderColor: '#E5E7EB',
+    marginVertical: 5,
+  },
+  paymentMainRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp(4),
+    justifyContent: 'space-between',
+    position: 'relative',
   },
-  paymentAvatar: {
+  paymentLeftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp(3),
+  },
+  cardIconWrapper: {
     width: wp(12),
-    height: wp(12),
-    borderRadius: wp(6),
-    backgroundColor: '#FFE5F3',
+    height: wp(8),
+    backgroundColor: '#FFD666',
+    borderRadius: wp(1.5),
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: wp(1),
   },
-  paymentLabel: {
-    fontSize: wp(3.6),
+  cardChip: {
+    width: wp(4),
+    height: wp(3),
+    backgroundColor: '#E6B800',
+    borderRadius: wp(0.5),
+    position: 'absolute',
+    left: wp(1.5),
+    top: wp(1.5),
+  },
+  ratingStars: {
+    flexDirection: 'row',
+    position: 'absolute',
+    bottom: wp(1),
+    right: wp(1),
+  },
+  cardNumber: {
+    fontSize: wp(3.5),
+    fontWeight: '600',
     color: '#2D2D2D',
-    fontWeight: '600',
   },
-  statusPill: {
-    marginTop: hp(0.6),
-    alignSelf: 'flex-start',
-    backgroundColor: '#E6FAEE',
-    paddingHorizontal: wp(3),
-    paddingVertical: hp(0.5),
-    borderRadius: wp(3),
+  paymentRightSection: {
+    alignItems: 'flex-end',
   },
-  statusText: {
-    fontSize: wp(3),
-    color: '#2BB673',
-    fontWeight: '600',
+  priceCurrency: {
+    fontSize: wp(2.8),
+    fontWeight: '500',
+    color: '#8A8A8A',
   },
-  paymentAmount: {
+  priceAmount: {
     fontSize: wp(4.5),
     fontWeight: '700',
     color: '#2D2D2D',
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#F0F0F0',
+  summarySection: {
+    gap: 12,
   },
-  totalRow: {
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  summaryValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  totalSection: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   totalLabel: {
-    fontSize: wp(4),
+    fontSize: 14,
     fontWeight: '600',
-    color: '#A1A1A1',
+    color: '#6B7280',
   },
   totalValue: {
-    fontSize: wp(5),
+    fontSize: 18,
     fontWeight: '700',
-    color: '#C539A5',
+    color: '#1F2937',
   },
   bottomBar: {
-    paddingHorizontal: wp(6),
-    paddingBottom: hp(3.5),
+    paddingHorizontal: wp(5),
+    paddingBottom: hp(3),
     paddingTop: hp(1),
     backgroundColor: 'transparent',
   },
   confirmButton: {
     width: '100%',
-    borderRadius: wp(4),
-    paddingVertical: hp(2.2),
+    borderRadius: wp(3),
+    paddingVertical: hp(2),
   },
   loadingContainer: {
     flex: 1,

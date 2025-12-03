@@ -64,6 +64,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   const { t, i18n: i18nInstance } = useTranslation('companies');
   const setCompanyData = useCampaignStore((state) => state.setCompanyData);
   const flow = route?.params?.flow ?? 'business';
+  const boardData = route?.params?.boardData;
   const [companyName, setCompanyName] = useState(
     company?.company_name || 'Adryd',
   );
@@ -388,10 +389,10 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         logoName: selectedImage?.name,
       });
 
-      // Navigate to AdvertismentCreateScreen on success with company_id
       navigation.navigate('AdvertismentCreateScreen', {
         flow,
-        companyId: result.id, // Pass the created company ID
+        companyId: result.id, 
+        boardData: boardData, 
       });
     } catch (error: any) {
       console.error('Create company error:', error);

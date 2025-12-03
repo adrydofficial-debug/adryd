@@ -58,8 +58,9 @@ interface BoardListProps {
   onPressDetail?: (item: BoardItem) => void;
   numColumns?: number; 
   showSeeAll?: boolean;
-  useWiderCards?: boolean; // When true, cards will be wider (for filters and favorites)
-  showFavoriteBadge?: boolean; // When true, shows a heart icon badge on cards (for favorites screen)
+  useWiderCards?: boolean;
+  showFavoriteBadge?: boolean; 
+  scrollEnabled?: boolean; 
 }
 
 const boardData: BoardItem[] = [
@@ -108,6 +109,7 @@ const BoardList: React.FC<BoardListProps> = ({
   showSeeAll = true,
   useWiderCards = false,
   showFavoriteBadge = false,
+  scrollEnabled = true,
 }) => {
   // Debug: Log the prop value to verify it's being received
   console.log('BoardList - useWiderCards prop:', useWiderCards, 'heading:', heading);
@@ -475,6 +477,8 @@ const BoardList: React.FC<BoardListProps> = ({
         horizontal={numColumns === 1}
         numColumns={numColumns > 1 ? numColumns : undefined}
         showsHorizontalScrollIndicator={false}
+        scrollEnabled={scrollEnabled}
+        nestedScrollEnabled={!scrollEnabled}
         contentContainerStyle={{
           paddingLeft: useWiderCards ? 5 : 15, // Minimal left padding for wider cards to maximize space
           paddingRight: useWiderCards ? 5 : 15, // Minimal right padding for wider cards

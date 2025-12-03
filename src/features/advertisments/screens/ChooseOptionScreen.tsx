@@ -1,18 +1,21 @@
 import React from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   SafeAreaView,
   StatusBar,
   StyleSheet,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
 import BackButton from '../../../components/BackButton';
 import PrimaryButton from '../../../components/PrimaryButton';
+import { useCompanies } from '../../companies/hooks/useCompanies';
+import { useCampaignFlowStore } from '../../../store/campaignFlowStore';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -31,6 +34,35 @@ type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
 const ChooseOptionScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<any>();
+  const boardData = route?.params?.boardData;
+  
+  const selectedBoard = useCampaignFlowStore(s => s.selectedBoard);
+  const setSelectedChoice = useCampaignFlowStore(s => s.setSelectedChoice);
+  const setCompaniesList = useCampaignFlowStore(s => s.setCompaniesList);
+  const resetCampaignFlow = useCampaignFlowStore(s => s.resetCampaignFlow);
+  
+  const { data: companies, isLoading: isLoadingCompanies } = useCompanies();
+  
+  React.useEffect(() => {
+    if (companies) {
+      setCompaniesList(companies);
+    }
+  }, [companies, setCompaniesList]);
+  
+  React.useEffect(() => {
+    console.log('ChooseOptionScreen - Received boardData:', boardData);
+    console.log('ChooseOptionScreen - Store selectedBoard:', selectedBoard);
+    if (!boardData && !selectedBoard) {
+      console.warn('ChooseOptionScreen - No boardData received in route params or store');
+    }
+  }, [boardData, selectedBoard]);
+
+  React.useEffect(() => {
+    console.log('ChooseOptionScreen - Companies:', companies);
+    console.log('ChooseOptionScreen - Companies count:', companies?.length || 0);
+  }, [companies]);
+  
   const { t, i18n: i18nInstance } = useTranslation();
   const [languageKey, setLanguageKey] = React.useState(0);
 
@@ -45,17 +77,40 @@ const ChooseOptionScreen: React.FC = () => {
   }, []);
 
   const handleBackPress = () => {
+    // Reset the campaign flow when going back from this screen
+    // This ensures a fresh start when user comes back later
+    resetCampaignFlow();
     navigation.goBack();
   };
 
   const handleIndividualPress = () => {
-    // Navigate to individual flow
-  navigation.navigate('AdvertismentCreateScreen', { flow: 'individual' } as never);
+    setSelectedChoice('individual');
+    
+    const board = boardData || selectedBoard;
+    navigation.navigate('AdvertismentCreateScreen', { 
+      flow: 'individual',
+      boardData: board 
+    } as never);
   };
 
   const handleBusinessPress = () => {
-    // Navigate to business flow
-  navigation.navigate('CreateCompanyScreen', { flow: 'business' } as never);
+    setSelectedChoice('business');
+    
+    const board = boardData || selectedBoard;
+    
+    if (companies && companies.length > 0) {
+      console.log('ChooseOptionScreen - User has companies, navigating to PreviousCompanyScreen');
+      navigation.navigate('PreviousCompanyScreen', { 
+        isSelectable: true,
+        boardData: board 
+      } as never);
+    } else {
+      console.log('ChooseOptionScreen - No companies found, navigating to CreateCompanyScreen');
+      navigation.navigate('CreateCompanyScreen', { 
+        flow: 'business',
+        boardData: board 
+      } as never);
+    }
   };
 
   return (
@@ -69,19 +124,25 @@ const ChooseOptionScreen: React.FC = () => {
 
       {/* Main Content - Two Buttons */}
       <View style={styles.content}>
-        <PrimaryButton
-          title="Individual"
-          onPress={handleIndividualPress}
-          buttonStyle={styles.optionButton}
-          textStyle={styles.buttonText}
-        />
+        {isLoadingCompanies ? (
+          <ActivityIndicator size="large" color="#C539A5" />
+        ) : (
+          <>
+            <PrimaryButton
+              title="Individual"
+              onPress={handleIndividualPress}
+              buttonStyle={styles.optionButton}
+              textStyle={styles.buttonText}
+            />
 
-        <PrimaryButton
-          title="Business"
-          onPress={handleBusinessPress}
-          buttonStyle={styles.optionButton}
-          textStyle={styles.buttonText}
-        />
+            <PrimaryButton
+              title="Business"
+              onPress={handleBusinessPress}
+              buttonStyle={styles.optionButton}
+              textStyle={styles.buttonText}
+            />
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
