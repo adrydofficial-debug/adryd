@@ -234,7 +234,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                 name="location" 
                 size={wp(3.5)} 
                 color="#666" 
-                style={styles.locationIcon} 
+                style={styles.locationIcon as any} 
               />
               <Text style={styles.locationText}>
                 {location}
@@ -289,7 +289,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                 <View style={[styles.summaryCard, styles.companyCard, companyCardPaymentPendingStyle]}>
                   <View style={styles.summaryImageWrapper}>
                     {companyDetail.logoUri ? (
-                      <Image source={{ uri: companyDetail.logoUri }} style={styles.summaryImage} resizeMode="cover" />
+                      <Image source={{ uri: companyDetail.logoUri }} style={styles.summaryImage as any} resizeMode="cover" />
                     ) : (
                       <View style={styles.logoPlaceholder}>
                         <Text style={[styles.logoText, { color: statusColor }]}>
@@ -315,25 +315,25 @@ const StatusCard: React.FC<StatusCardProps> = ({
                   {isPaymentPending ? (
                     <Image 
                       source={Images.paymentIcon} 
-                      style={styles.paymentIconImage}
+                      style={styles.paymentIconImage as any}
                       resizeMode="contain"
                     />
                   ) : isBlockedStatus ? (
                     <Image
                       source={Images.blockedIcon}
-                      style={styles.blockedIconImage}
+                      style={styles.blockedIconImage as any}
                       resizeMode="contain"
                     />
                   ) : status === 'Schedule' ? (
                     <Image
                       source={Images.scheduleIcon}
-                      style={styles.scheduleIconImage}
+                      style={styles.scheduleIconImage as any}
                       resizeMode="contain"
                     />
                   ) : isCompletedStatus ? (
                     <Image
                       source={Images.completeIcon}
-                      style={styles.completedIconImage}
+                      style={styles.completedIconImage as any}
                       resizeMode="contain"
                     />
                   ) : (
@@ -361,7 +361,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                       boardImageContainerCompletedStyle
                     ]}>
                       {campaignDetail?.boardImageUri ? (
-                        <Image source={{ uri: campaignDetail.boardImageUri }} style={styles.summaryImage} resizeMode="cover" />
+                        <Image source={{ uri: campaignDetail.boardImageUri }} style={styles.summaryImage as any} resizeMode="cover" />
                       ) : (
                         <View style={styles.boardImagePlaceholder}>
                           <Ionicons name="image-outline" size={wp(8)} color="#999" />
@@ -423,7 +423,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                     boardImageContainerCompletedStyle
                   ]}>
                     {campaignDetail?.boardImageUri ? (
-                      <Image source={{ uri: campaignDetail.boardImageUri }} style={styles.heroImage} />
+                      <Image source={{ uri: campaignDetail.boardImageUri }} style={styles.heroImage as any} />
                     ) : (
                       <View style={styles.boardImagePlaceholder}>
                         <Ionicons name="image-outline" size={wp(10)} color="#999" />
@@ -442,13 +442,13 @@ const StatusCard: React.FC<StatusCardProps> = ({
                 {isPaymentPending ? (
                   <Image
                     source={Images.paymentIcon}
-                    style={styles.heroPaymentIcon}
+                    style={styles.heroPaymentIcon as any}
                     resizeMode="contain"
                   />
                 ) : isCompletedStatus ? (
                   <Image
                     source={Images.completeIcon}
-                    style={styles.heroCompletedIcon}
+                    style={styles.heroCompletedIcon as any}
                     resizeMode="contain"
                   />
                 ) : (
