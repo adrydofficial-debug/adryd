@@ -846,7 +846,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F5F5F5',
     // padding:2,
   },
   cardImg:{
@@ -862,6 +862,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.02,
     paddingTop: hp(6),
     paddingBottom: hp(1),
+    backgroundColor: '#FFFFFF',
   },
   backButton: {
     backgroundColor: "#fff",
@@ -881,7 +882,7 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F5F5F5',
   },
   cardsContent: {
     paddingHorizontal: wp(4),
@@ -890,7 +891,7 @@ const styles = StyleSheet.create({
   },
   emptyWrapper: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: wp(4),

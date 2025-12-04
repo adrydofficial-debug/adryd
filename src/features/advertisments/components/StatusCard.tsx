@@ -138,14 +138,18 @@ const StatusCard: React.FC<StatusCardProps> = ({
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, isPaymentPending && styles.cardPaymentPending]}
       onPress={onPress}
       activeOpacity={0.9}
     >
       {/* Header Section */}
       <View style={styles.header}>
         {/* Status Badge */}
-        <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+        <View style={[
+          styles.statusBadge, 
+          { backgroundColor: statusColor },
+          isPaymentPending && styles.statusBadgePaymentPending
+        ]}>
           {isActiveStatus && (
             <GreenTickIcon width={wp(4)} height={wp(4)} />
           )}
@@ -156,8 +160,8 @@ const StatusCard: React.FC<StatusCardProps> = ({
           <Ionicons name="information-circle-outline" size={wp(5)} color="#9E9E9E" />
         </TouchableOpacity>
       </View>
-      <View style={styles.bodyContainer}>
-      <View style={styles.timelineWrapper}>
+      <View style={[styles.bodyContainer, isPaymentPending && styles.bodyContainerPaymentPending]}>
+      <View style={[styles.timelineWrapper, isPaymentPending && styles.timelineWrapperPaymentPending]}>
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.title} numberOfLines={2}>
@@ -165,26 +169,66 @@ const StatusCard: React.FC<StatusCardProps> = ({
           </Text>
           <View style={styles.typeTags}>
             {adType.map((type, index) => (
-              <View key={index} style={[styles.typeTag, { backgroundColor: statusColor }]}>
-                <Text style={[styles.typeTagText, isPaymentPending && styles.typeTagTextPayment]}>{type}</Text>
-              </View>
+              <React.Fragment key={index}>
+                {index > 0 && <View style={styles.connectionLines} />}
+                <View style={[styles.typeTag, { backgroundColor: statusColor }]}>
+                  <Text style={[styles.typeTagText, isPaymentPending && styles.typeTagTextPayment]}>{type}</Text>
+                </View>
+              </React.Fragment>
             ))}
           </View>
         </View>
+        {/* Payment Pending Message Row */}
+        {isPaymentPending && (
+          <View style={styles.paymentPendingMessageRow}>
+            <View style={styles.paymentBadgeSmall}>
+              <Text style={styles.paymentBadgeSmallText}>Payment</Text>
+            </View>
+            {/* Connection Line */}
+            <View style={styles.connectionLine} />
+            <Text style={styles.paymentPendingMessage}>Finish your payment to confirm your campaign</Text>
+          </View>
+        )}
+        {/* Draft Message Row */}
+        {status === 'Draft' && (
+          <View style={styles.paymentPendingMessageRow}>
+            <View style={styles.draftBadgeSmall}>
+              <Text style={styles.draftBadgeSmallText}>Draft</Text>
+            </View>
+            {/* Connection Line */}
+            <View style={styles.connectionLine} />
+            <Text style={styles.draftMessage}>Continue from here whenever you're ready</Text>
+          </View>
+        )}
         {/* Details Section */}
         <View style={styles.detailsSection}>
-          {/* Purchase Duration */}
-          <View style={styles.detailRow}>
-            <View style={styles.detailTag}>
-              <Ionicons name="checkmark-circle" size={wp(3.5)} style={{paddingHorizontal:8,paddingVertical:2}} color="#9E9E9E" />
-              <Text style={styles.detailTagText}>Board purchased for</Text>
+          {/* Purchase Duration - Only show when not Payment Pending or Draft */}
+          {!isPaymentPending && status !== 'Draft' && (
+            <View style={styles.detailRow}>
+              <View style={styles.detailTag}>
+                <Ionicons name="checkmark-circle" size={wp(3.5)} style={{paddingHorizontal:8,paddingVertical:2}} color="#9E9E9E" />
+                <Text style={styles.detailTagText}>Board purchased for</Text>
+              </View>
+              <View style={styles.detailValueTag}>
+                <Text style={styles.detailValueText}>{purchaseDuration}</Text>
+              </View>
             </View>
-            <View style={styles.detailValueTag}>
-              <Text style={styles.detailValueText}>{purchaseDuration}</Text>
+          )}
+          {/* Location Badges for Payment Pending and Draft */}
+          {(isPaymentPending || status === 'Draft') && (
+            <View style={styles.locationBadgesRow}>
+              <View style={styles.locationBadge}>
+                <Text style={styles.locationBadgeText}>{campaignDetail?.type || 'Static'}</Text>
+              </View>
+              {/* Connection Line */}
+              <View style={styles.connectionLine} />
+              <View style={styles.locationBadge}>
+                <Text style={styles.locationBadgeText}>{campaignDetail?.category || 'Billboard'}</Text>
+              </View>
             </View>
-          </View>
-          {/* Location */}
-          {location && location !== 'N/A' && (
+          )}
+          {/* Location - Only show when not Payment Pending or Draft */}
+          {!isPaymentPending && status !== 'Draft' && location && location !== 'N/A' && (
             <View style={styles.locationRow}>
               <Ionicons 
                 name="location" 
@@ -209,14 +253,16 @@ const StatusCard: React.FC<StatusCardProps> = ({
                 <Text style={styles.timelineLabel}>Timeline</Text>
               </View>
               <View style={styles.progressBarContainer}>
-                {isActiveStatus && (
-                  <View
-                    style={[
-                      styles.progressBarFill,
-                      { width: `${timelineProgress}%`, backgroundColor: statusColor },
-                    ]}
-                  />
-                )}
+                <View style={styles.progressBarInner}>
+                  {isActiveStatus && (
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        { width: `${timelineProgress}%`, backgroundColor: statusColor },
+                      ]}
+                    />
+                  )}
+                </View>
               </View>
             </View>
             {/* Expand/Collapse Icon */}
@@ -553,6 +599,16 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
     position: 'relative',
   },
+  cardPaymentPending: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 20,
+    paddingTop: 15,
+    paddingRight: 7,
+    paddingBottom: 8,
+    paddingLeft: 7,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -570,7 +626,11 @@ const styles = StyleSheet.create({
     paddingVertical: hp(0.6),
     borderRadius: wp(6),
     gap: wp(1.5),
-    
+  },
+  statusBadgePaymentPending: {
+    borderRadius: 24,
+    height: 24,
+    gap: 3,
   },
   dashedline:{
     marginTop:hp(5),
@@ -580,56 +640,60 @@ borderTopWidth:1,
 borderTopColor:'#D1D5DB',
 borderWidth:1,
 borderColor:'#D1D5DB',
-borderStyle:'dashed',
+borderStyle:'dotted',
   },
   statusText: {
-    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '500',
+    color: '#92400E',
   },
   titleSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: hp(0.3),
-     gap: wp(2),
-    
+    marginBottom: 6,
+    gap: 10,
   },
   bodyContainer: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: wp(3),
-    marginBottom: hp(0.4),
-    borderWidth: 0.6,
-    borderColor: '#E5E7EB',
+    // backgroundColor: '#F5F5F5',
+    // borderRadius: wp(5),
+    // marginBottom: hp(0.4),
+    // borderWidth: 0.6,
+    // borderColor: '#E5E7EB',
+  },
+  bodyContainerPaymentPending: {
+    // backgroundColor: '#F8F8F8',
+    // borderColor: '#E5E7EB',
+    // borderWidth: 0.3,
+    // borderRadius: 15,
+    // padding: 12,
   },
   title: {
     flex: 1,
-    fontSize: wp(3.6),
-    fontWeight: '700',
-    color: '#1E1E1E',
-    lineHeight: wp(5.4),
-    // paddingHorizontal: wp(2),
-    paddingVertical: hp(0.4),
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#18181B',
+    lineHeight: 17,
+    letterSpacing: -0.154,
   },
   typeTags: {
     flexDirection: 'row',
-    gap: wp(0.7),
+    alignItems: 'center',
     flexShrink: 0,
-    // paddingHorizontal: wp(1.5),
     paddingVertical: hp(0.2),
   },
   typeTag: {
-    paddingHorizontal: wp(1.6),
-    paddingVertical: hp(0.25),
-    borderRadius: wp(3),
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   typeTagText: {
-    color: '#FFFFFF',
-    fontSize: wp(2.8),
-    fontWeight: '600',
+    color: '#BD8700',
+    fontSize: 10,
+    fontWeight: '400',
   },
   typeTagTextPayment: {
-    color: '#BD8700',
+    color: '#92400E',
   },
   detailsSection: {
     gap: hp(0.4),
@@ -676,48 +740,63 @@ borderStyle:'dashed',
   timelineSectionWithIcon: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: wp(1.5),
-    paddingVertical: hp(1),
+    alignItems: 'flex-end',
+    paddingHorizontal: 8,
+    paddingTop: 12,
+    paddingBottom: 8,
     backgroundColor: '#F5F5F5',
-    borderRadius: wp(3),
-    marginTop: hp(0.2),
-    marginBottom: hp(1),
+    borderRadius: 12,
+    // marginTop: 8,
+    marginBottom: 8,
   },
   timelineSection: {
     flex: 1,
+    justifyContent: 'flex-end',
   },
   timelineHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: wp(1),
-    marginBottom: 0,
+    gap: 4,
+    marginBottom: 6,
   },
   timelineLabel: {
-    marginTop: hp(0.1),
-    fontSize: wp(3),
-    fontWeight: '600',
-    color: '#666',
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6B7280',
   },
   progressBarContainer: {
-    height: hp(0.6),
+    height: 20,
     backgroundColor: '#FFFFFF',
-    borderRadius: wp(3),
+    borderRadius: 20,
     overflow: 'hidden',
     position: 'relative',
-    width: '95%',
+    width: '100%',
     alignSelf: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    padding: 1,
+  },
+  progressBarInner: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#d8d8d8',
+    borderRadius: 10,
+    borderWidth: 7,
+    borderColor: '#FFFFFF',
   },
   timelineWrapper: {
     backgroundColor: '#F8F8F8',
     borderRadius: wp(2.5),
     padding: wp(2.3),
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#D8D8D8',
     marginTop: hp(0),
-    // paddingHorizontal: wp(3),
+  },
+  timelineWrapperPaymentPending: {
+    backgroundColor: '#F8F8F8',
+    width: '100%',
+    borderColor: '#E5E7EB',
+    borderWidth: 0.7,
+    padding: 10,
+    borderRadius: 15,
   },
   progressBarFill: {
     height: '100%',
@@ -727,8 +806,10 @@ borderStyle:'dashed',
     top: 0,
   },
   expandIcon: {
-    alignSelf: 'flex-end',
-    padding: wp(0.8),
+    alignSelf: 'center',
+    padding: 4,
+    marginBottom: -20,
+    marginRight: 0,
   },
   // Expanded Content Styles
   expandedContent: {
@@ -753,7 +834,7 @@ borderStyle:'dashed',
     borderRadius: wp(4),
     borderWidth: 1,
     borderColor: '#D9D9D9',
-    borderStyle: 'dashed',
+    borderStyle: 'dotted',
     // paddingVertical: hp(3),
     // paddingHorizontal: wp(2.5),
     alignItems: 'center',
@@ -765,17 +846,17 @@ borderStyle:'dashed',
   },
   companyCard: {
     borderWidth: 1, borderColor: '#D9D9D9',
-    borderStyle: 'dashed',
+    borderStyle: 'dotted',
   },
   companyCardPaymentPending: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#D9D9D9',
-    borderStyle: 'dashed',
+    borderStyle: 'dotted',
   },
   campaignCard: {
     borderWidth: 1,
-    borderStyle: 'dashed',
+    borderStyle: 'dotted',
     borderColor: '#C539A5',
     backgroundColor: '#FFF7FB',
     
@@ -912,7 +993,7 @@ borderStyle:'dashed',
     width: '65%',
     borderRadius: wp(5),
     borderWidth: 2,
-    borderStyle: 'dashed',
+    borderStyle: 'dotted',
     borderColor: '#74C391',
     backgroundColor: '#E6F9ED',
     alignItems: 'center',
@@ -922,8 +1003,8 @@ borderStyle:'dashed',
     alignSelf: 'center',
   },
   heroCardPaymentPending: {
-    borderColor: '#F2C977',
-    backgroundColor: '#FEEFC9',
+    borderColor: '#FCD34D',
+    backgroundColor: '#FEF9C3',
   },
   heroCardCompleted: {
     borderColor: '#D9D9D9',
@@ -941,8 +1022,8 @@ borderStyle:'dashed',
     overflow: 'hidden',
   },
   heroImageWrapperPaymentPending: {
-    backgroundColor: '#FEEFC9',
-    borderColor: '#F2C977',
+    backgroundColor: '#FEF9C3',
+    borderColor: '#FCD34D',
   },
   heroImageWrapperCompleted: {
     backgroundColor: '#FFFFFF',
@@ -953,15 +1034,15 @@ borderStyle:'dashed',
     height: '100%',
   },
   heroTitle: {
-    marginTop: hp(1.4),
-    fontSize: wp(4),
-    fontWeight: '700',
-    color: '#0F172A',
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#18181B',
   },
   heroSubtitle: {
-    marginTop: hp(0.2),
-    fontSize: wp(3),
-    color: '#6B7280',
+    marginTop: 2,
+    fontSize: 11,
+    color: '#9CA3AF',
   },
   heroTickWrapper: {
     marginTop: -hp(0.9),
@@ -969,7 +1050,7 @@ borderStyle:'dashed',
   heroPaymentIconWrapper: {
     padding: wp(1.2),
     borderRadius: wp(4),
-    backgroundColor: '#FEEFC9',
+    backgroundColor: '#FEF9C3',
   },
   heroPaymentIcon: {
     width: wp(5),
@@ -986,23 +1067,24 @@ borderStyle:'dashed',
   },
   // Confirmation Card Styles (matching both screens)
   confirmationCard: {
-    backgroundColor: '#FDFDFD',
-    borderRadius: wp(5),
-    paddingVertical: hp(2.2),
-    paddingHorizontal: wp(3),
+    backgroundColor: '#F5F5F5',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderStyle: 'dashed',
+    borderColor: '#E5E7EB',
+    borderStyle: 'dotted',
   },
   detailCardsWrapper: {
     width: '100%',
     marginTop: hp(0.5),
+    backgroundColor: '#F5F5F5',
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: wp(3.5),
-    borderStyle: 'dashed',
-    paddingHorizontal: wp(2),
-    paddingVertical: hp(2),
+    borderColor: '#E5E7EB',
+    borderRadius: 16,
+    borderStyle: 'dotted',
+    paddingHorizontal: 12,
+    paddingVertical: 16,
   },
   detailCardTop: {
     marginBottom: 0,
@@ -1014,23 +1096,22 @@ borderStyle:'dashed',
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
     borderTopWidth: 0,
-    borderStyle: 'dashed',
+    borderStyle: 'dotted',
     borderColor: '#D9D9D9',
   },
   cardHeading: {
-    fontSize: wp(4.5),
-    fontWeight: '700',
-    color: '#2D2D2D',
-    marginBottom: hp(1.5),
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#18181B',
+    marginBottom: 16,
     textAlign: 'center',
   },
   detailGrid: {
-    borderRadius: wp(3.5),
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderStyle: 'dashed',
-    paddingHorizontal: wp(2),
-    paddingVertical: hp(0.5),
+    borderColor: 'transparent',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   detailCard: {
     backgroundColor: '#F8F9FA',
@@ -1064,7 +1145,7 @@ borderStyle:'dashed',
     paddingHorizontal: wp(3),
     alignItems: 'center',
     borderWidth: 2,
-    borderStyle: 'dashed',
+    borderStyle: 'dotted',
     justifyContent: 'center',
   },
   oldCampaignCard: {
@@ -1076,7 +1157,7 @@ borderStyle:'dashed',
     paddingHorizontal: wp(3),
     alignItems: 'center',
     borderWidth: 2,
-    borderStyle: 'dashed',
+    borderStyle: 'dotted',
     justifyContent: 'center',
   },
   campaignCardSolo: {
@@ -1087,7 +1168,7 @@ borderStyle:'dashed',
   campaignCardSoloBox: {
     backgroundColor: '#E9FDF1',
     borderColor: '#7ACB99',
-    borderStyle: 'dashed',
+    borderStyle: 'dotted',
     borderWidth: 2,
     borderRadius: wp(6),
     paddingVertical: hp(3),
@@ -1222,7 +1303,6 @@ borderStyle:'dashed',
     paddingVertical: hp(1.6),
     paddingHorizontal: wp(4),
     borderTopWidth: 1,
-    borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
     borderTopColor: '#E5E7EB',
   },
@@ -1276,9 +1356,9 @@ borderStyle:'dashed',
     marginBottom: hp(0.8),
   },
   paymentStatusText: {
-    color: '#FFFFFF',
+    color: '#BD8700',
     fontSize: wp(3),
-    fontWeight: '600',
+    fontWeight: '500',
   },
   paymentAmount: {
     fontSize: wp(4.5),
@@ -1296,41 +1376,40 @@ borderStyle:'dashed',
     marginTop: hp(0.3),
     paddingTop: hp(0.3),
     borderTopColor: '#D8D8D8',
-    borderStyle: 'dashed',
+    borderStyle: 'dotted',
     gap: hp(0.4),
   },
   paymentTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: hp(0),
-    paddingTop: hp(1.5),
-    borderTopWidth: 0,
-    backgroundColor:'#F8F8F8',
-    paddingHorizontal: wp(3),
-    paddingVertical: hp(1),
-    borderTopColor: '#E5E7EB',
-    borderRadius: wp(2)
+    marginTop: 12,
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 10,
   },
   paymentTotalLabel: {
-    fontSize: wp(4),
-    fontWeight: '600',
-    color: '#70737D',
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
   },
   paymentTotalValue: {
-    fontSize: wp(4.5),
-    fontWeight: '700',
-    color: '#70737D',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#C539A5',
   },
   payNowButton: {
-    marginTop: hp(1.5),
+    marginTop: 16,
     width: '100%',
-    borderRadius: wp(3),
-    backgroundColor: '#FDD46C',
+    borderRadius: 25,
+    backgroundColor: '#C539A5',
+    paddingVertical: 14,
   },
   payNowButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
+    fontSize: 14,
   },
   locationRow: {
     flexDirection: 'row',
@@ -1351,6 +1430,107 @@ borderStyle:'dashed',
     color: '#666',
     fontWeight: '500',
   },
+  // Payment Pending specific styles - Labels matching Figma exactly
+  paymentPendingMessageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  paymentBadgeSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0000000D',
+    padding: 5,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 5,
+  },
+  paymentDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F59E0B',
+  },
+  paymentBadgeSmallText: {
+    fontSize: 10, 
+    fontWeight: '400',
+    color: '#9CA3AF',
+  },
+  paymentPendingMessage: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    fontWeight: '400',
+    backgroundColor: '#0000000D',
+    padding: 5,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  draftBadgeSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0000000D',
+    padding: 5,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  draftBadgeSmallText: {
+    fontSize: 10, 
+    fontWeight: '400',
+    color: '#9CA3AF',
+  },
+  draftMessage: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    fontWeight: '400',
+    backgroundColor: '#0000000D',
+    padding: 5,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flex: 1,
+  },
+  locationBadgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  locationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 5,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#0000000D',
+  },
+  locationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#22C55E',
+  },
+  locationBadgeText: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    fontWeight: '400',
+  },
+    connectionLine: {
+      width: 6,
+      height: 2,
+      backgroundColor: '#D8D8D8',
+    },
+     connectionLines: {
+       width: 6,
+       height: 2,
+       backgroundColor: '#92400E50',
+     },
   dateText: {
     fontSize: wp(3),
     color: '#666',

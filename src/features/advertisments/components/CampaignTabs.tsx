@@ -88,16 +88,15 @@ const CampaignTabs: React.FC<CampaignTabsProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ECECEC',
+    paddingVertical: 8,
+    borderBottomWidth: 0,
   },
   scrollView: {
     flexGrow: 0,
   },
   scrollContent: {
-    paddingLeft: 5,
-    paddingRight: 5,
+    paddingLeft: 12,
+    paddingRight: 12,
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
@@ -110,24 +109,24 @@ const styles = StyleSheet.create({
   tab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius:35,
-    marginRight: 8,
-    minHeight: 34,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginRight: 6,
   },
   activeTab: {
-    borderWidth:0.7,
+    borderWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#F5F5F5',
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '400',
-    color: '#6F7380',
+    color: '#6B7280',
   },
   activeTabText: {
-    color: '#18181B',
+    color: '#1F2937',
+    fontWeight: '500',
   },
   countBadge: {
     marginLeft: 8,
