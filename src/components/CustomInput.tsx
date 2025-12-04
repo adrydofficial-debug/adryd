@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    height: 50,
+    height: 55,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingTop: 10,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingLeft: 16,
     fontSize: 12,
-    borderWidth: 0.5,
+    borderWidth: 0.7,
     borderColor: '#E5E7EB',
     marginBottom: hp(1),
   },
@@ -306,11 +306,11 @@ const styles = StyleSheet.create({
   phoneInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 0.5,
+    borderWidth: 0.7,
     borderColor: '#E5E7EB',
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
-    height: 50,
+    height: 55,
     marginBottom: hp(1),
   },
   phoneInputWrapperWithError: {

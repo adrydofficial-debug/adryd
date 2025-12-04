@@ -129,7 +129,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     return 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80';
   };
   
-  const [campaignName] = useState<string>(boardData?.title || 'Test Ad');
+  const [campaignName, setCampaignName] = useState<string>(boardData?.title || 'Test Ad');
   const [size, setSize] = useState<string>(getBoardSize());
   const [type, setType] = useState<string>(getBoardType());
   const [category, setCategory] = useState<string>(getBoardCategory());
@@ -149,7 +149,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     ).filter(day => !isNaN(day.getTime()));
   }, [selectedDaysFromStore]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [description] = useState<string>(getBoardDescription());
+  const [description, setDescription] = useState<string>(getBoardDescription());
   const [locationName] = useState<string>(getBoardLocation());
   const [errorText, setErrorText] = useState<string>('');
 
@@ -723,53 +723,58 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                 label={t('createScreen.campaignName')}
                 placeholder={t('createScreen.enterCampaignName')}
                 value={campaignName}
-                onChangeText={() => {}}
+                onChangeText={setCampaignName}
                 containerStyle={styles.customInputContainer}
               />
               
-              {/* Size Field */}
+              {/* Size Field - Disabled */}
               <CustomInput
                 label="Size"
                 placeholder="Enter size"
                 value={size}
                 onChangeText={setSize}
                 containerStyle={styles.customInputContainer}
+                disabled={true}
               />
 
-              {/* Type Field */}
+              {/* Type Field - Disabled */}
               <CustomInput
                 label="Type"
                 placeholder="Enter type"
                 value={type}
                 onChangeText={setType}
                 containerStyle={styles.customInputContainer}
+                disabled={true}
               />
 
-              {/* Category Field */}
+              {/* Category Field - Disabled */}
               <CustomInput
                 label="Category"
                 placeholder="Enter category"
                 value={category}
                 onChangeText={setCategory}
                 containerStyle={styles.customInputContainer}
+                disabled={true}
               />
 
-              {/* Location Field */}
+              {/* Location Field - Disabled */}
               <CustomInput
                 label="City"
                 placeholder="Enter location"
                 value={location}
                 onChangeText={setLocation}
                 containerStyle={styles.customInputContainer}
+                disabled={true}
               />
 
-              {/* Area Field */}
+              {/* Area Field - Disabled */}
               <CustomInput
                 label="Area"
                 placeholder="Enter area"
                 value={area}
                 onChangeText={setArea}
                 containerStyle={styles.customInputContainer}
+                disabled={true}
               />
               <View style={styles.dateTimeContainer}>
                 <Text style={styles.dateTimeLabel}>{t('createScreen.startDate')}</Text>
@@ -798,7 +803,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                 label={t('createScreen.description')}
                 placeholder={t('createScreen.enterDescription')}
                 value={description}
-                onChangeText={() => {}}
+                onChangeText={setDescription}
                 multiline={true}
                 numberOfLines={8}
                 containerStyle={styles.descriptionContainer}
