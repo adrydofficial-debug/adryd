@@ -13,16 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {
-  default as LinearGradient,
-  default as LinearGradientLib,
-} from 'react-native-linear-gradient';
-import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
+import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Images } from '../../../assets/images';
 import HomeSplash from '../../../assets/images/HomeSplash.svg';
 import BoardList from '../../../components/BoardList';
 import DrawerComponent from '../../../components/DrawerComponent';
+import Loader from '../../../components/Loader';
 import NoInternet from '../../../components/NoInternet';
 import { useAuthStore } from '../../../store/authStore';
 import { useDrawerStore } from '../../../store/drawerStore';
@@ -33,12 +30,13 @@ import { useBoardFilters } from '../hooks/useBoardFilters';
 
 type Props = {
   navigation: any;
+  onLoadingChange?: (loading: boolean) => void;
 };
 
 const { width, height } = Dimensions.get('window');
 const RIGHT_ACTIONS_WIDTH = width * 0.38;
 
-const HomeScreen: React.FC<Props> = ({ navigation }) => {
+const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
   const { t } = useTranslation('boards');
   // Styling state - set to true to show active state (with badge), false for default state
   const [hasUnreadNotifications] = useState(true);
@@ -254,6 +252,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const isLoading = isBoardFiltersLoading;
   const hasError = boardFiltersError;
 
+  useEffect(() => {
+    onLoadingChange?.(isLoading);
+    return () => onLoadingChange?.(false);
+  }, [isLoading, onLoadingChange]);
+
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
@@ -322,20 +325,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           />
         </View>
 
-        {isLoading ? (
-          [...Array(3)].map((_, idx) => (
-            <ShimmerPlaceholder
-              key={idx}
-              LinearGradient={LinearGradientLib}
-              style={{
-                height: 150,
-                borderRadius: 12,
-                marginBottom: 16,
-                marginHorizontal: 20,
-              }}
-            />
-          ))
-        ) : hasError ? (
+        {hasError ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{t('errorLoadingBoards')}</Text>
             <TouchableOpacity
@@ -348,6 +338,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         ) : (
+          !isLoading && (
           <>
             {boardFiltersData?.recommended &&
               boardFiltersData.recommended.length > 0 && (
@@ -423,9 +414,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               ));
             })()}
           </>
+          )
         )}
       </ScrollView>
 
+      {isLoading && <Loader />}
       <DrawerComponent visible={drawerVisible} onClose={handleCloseDrawer} />
       <NoInternet />
     </View>

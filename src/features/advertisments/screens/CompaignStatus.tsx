@@ -19,6 +19,7 @@ import CampaignEmptyState from '../components/CampaignEmptyState';
 import StatusCard from '../components/StatusCard';
 import { SUPABASE_URL } from '../../../config';
 import { AdvertisementStatus } from '../domain/entities';
+import BackButton from '../../../components/BackButton';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -66,9 +67,11 @@ interface CampaignCard {
   id: number;
   title: string;
   location: string;
+  locationDetail?: string;
   date: string;
   status:
     | 'Publish'
+    | 'Active'
     | 'Schedule'
     | 'Review'
     | 'Blocked'
@@ -88,9 +91,10 @@ interface CampaignCard {
 
 interface ActiveCampaignProps {
   navigation?: any;
+  onBackToHome?: () => void;
 }
 
-const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
+const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
   const navigation = useNavigation<any>();
   const [expandedCard, setExpandedCard] = useState<number | null>(1);
   const [activeBottomTab, setActiveBottomTab] = useState<string>('Boards');
@@ -136,24 +140,27 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
 
   // Create tabs configuration
   const tabs: CampaignTab[] = useMemo(() => {
-    if (!advertisementList || advertisementList.length === 0) {
-      return [];
-    }
-
-    const statusCounts = advertisementList.reduce((acc, ad) => {
+    const statusCounts = advertisementList?.reduce((acc, ad) => {
       const statusKey = (ad.status || 'UNKNOWN').toUpperCase();
       acc[statusKey] = (acc[statusKey] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
+    }, {} as Record<string, number>) || {};
 
     const getStatusCount = (...statuses: string[]) =>
       statuses.reduce((sum, status) => sum + (statusCounts[status] || 0), 0);
 
     return [
       {
-        id: 'all',
-        label: 'All',
-        count: advertisementList.length,
+        id: AdvertisementStatus.PUBLISHED,
+        label: 'Active',
+        status: AdvertisementStatus.PUBLISHED,
+        count: getStatusCount(AdvertisementStatus.PUBLISHED),
+      },
+      {
+        id: 'IN_PROGRESS',
+        label: 'In Progress',
+        status: 'IN_PROGRESS',
+        count: getStatusCount('IN_PROGRESS', 'IN_REVIEW', 'UNDER_REVIEW'),
       },
       {
         id: AdvertisementStatus.PAYMENT_PENDING,
@@ -163,13 +170,13 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       },
       {
         id: AdvertisementStatus.SCHEDULED,
-        label: 'Schedule',
+        label: 'Scheduled',
         status: AdvertisementStatus.SCHEDULED,
         count: getStatusCount(AdvertisementStatus.SCHEDULED),
       },
       {
         id: AdvertisementStatus.DRAFT,
-        label: 'DRAFT',
+        label: 'Draft',
         status: AdvertisementStatus.DRAFT,
         count: getStatusCount(AdvertisementStatus.DRAFT),
       },
@@ -180,14 +187,8 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         count: getStatusCount('BLOCKED'),
       },
       {
-        id: AdvertisementStatus.PUBLISHED,
-        label: 'Publish',
-        status: AdvertisementStatus.PUBLISHED,
-        count: getStatusCount(AdvertisementStatus.PUBLISHED),
-      },
-      {
         id: AdvertisementStatus.COMPLETED,
-        label: 'Completed',
+        label: 'Complete',
         status: AdvertisementStatus.COMPLETED,
         count: getStatusCount(AdvertisementStatus.COMPLETED),
       },
@@ -200,16 +201,16 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       case 'DRAFT':
         return { uiStatus: 'Draft', color: '#9E9E9E', tab: 'Draft' };
       case 'IN_PROGRESS':
-        return { uiStatus: 'InProgress', color: '#ECBDF3', tab: 'Draft' };
+        return { uiStatus: 'InProgress', color: '#ECBDF3', tab: 'In Progress' };
       case 'PAYMENT_PENDING':
         return { uiStatus: 'Payment Pending', color: '#FDD46C', tab: 'Payment' };
       case 'IN_REVIEW':
       case 'UNDER_REVIEW':
-        return { uiStatus: 'Review', color: '#E91E63', tab: 'Review' };
+        return { uiStatus: 'InProgress', color: '#ECBDF3', tab: 'In Progress' };
       case 'SCHEDULED':
         return { uiStatus: 'Schedule', color: '#83B1FA', tab: 'Schedule' };
       case 'PUBLISHED':
-        return { uiStatus: 'Publish', color: '#4CAF50', tab: 'Publish' };
+        return { uiStatus: 'Active', color: '#36BD79', tab: 'Active' };
       case 'COMPLETED':
         return { uiStatus: 'Completed', color: '#9E9E9E', tab: 'Completed' };
       case 'BLOCKED':
@@ -293,6 +294,18 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         });
         return (found || 'N/A').toString();
       })();
+    const boardCity = (() => {
+      const candidates = [
+        board?.location?.city?.name,
+        board?.location?.name,
+        boardLocationName,
+      ];
+      const found = candidates.find(value => {
+        if (typeof value !== 'string') return false;
+        return value.trim().length > 0;
+      });
+      return (found || 'N/A').toString();
+    })();
 
       const normalizeMediaUrl = (url?: string | null) => {
         if (!url) return undefined;
@@ -389,6 +402,13 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
           item.rawStatus === 'IN_PROGRESS'
         );
       }
+      if (activeTab === 'IN_PROGRESS') {
+        return (
+          item.rawStatus === 'IN_PROGRESS' ||
+          item.rawStatus === 'IN_REVIEW' ||
+          item.rawStatus === 'UNDER_REVIEW'
+        );
+      }
       if (activeTab === 'BLOCKED') {
         return item.rawStatus === 'BLOCKED';
       }
@@ -438,15 +458,90 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       });
       return (found || 'N/A').toString();
     })();
+    const boardCity = (() => {
+      const candidates = [
+        board?.location?.city?.name,
+        board?.location?.name,
+        boardLocationName,
+      ];
+      const found = candidates.find(value => {
+        if (typeof value !== 'string') return false;
+        return value.trim().length > 0;
+      });
+      return (found || 'N/A').toString();
+    })();
+
+    // Derive ad type tags from backend data instead of static placeholders
+    const normalizeLabel = (value?: string | null) => {
+      if (typeof value !== 'string') return undefined;
+      const trimmed = value.trim();
+      if (!trimmed) return undefined;
+      return trimmed
+        .split(/[\s-_]+/)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+    };
+    const rawCategory = normalizeLabel(originalAd?.board?.category?.name);
+    const rawGroup = normalizeLabel(originalAd?.board?.category?.group?.name);
+    const slugLabel = normalizeLabel(originalAd?.board?.slug?.replace(/-/g, ' '));
+    const explicitType = normalizeLabel(
+      typeof originalAd?.board?.type === 'string'
+        ? originalAd.board.type
+        : typeof originalAd?.ad_type === 'string'
+        ? originalAd.ad_type
+        : undefined,
+    );
+    const typeFromGroup = (() => {
+      if (!rawGroup) return undefined;
+      const [first] = rawGroup.split(' ');
+      if (!first) return undefined;
+      const lower = first.toLowerCase();
+      return lower === 'digital' || lower === 'static'
+        ? first.charAt(0).toUpperCase() + first.slice(1)
+        : undefined;
+    })();
+    let typeFromCategory: string | undefined;
+    let categoryFromCategory: string | undefined = rawCategory;
+    if (rawCategory) {
+      const [first, ...rest] = rawCategory.split(' ');
+      if (first && (first.toLowerCase() === 'digital' || first.toLowerCase() === 'static')) {
+        typeFromCategory = first;
+        if (rest.length) {
+          categoryFromCategory = rest.join(' ');
+        }
+      }
+    }
+    const typeFromSlug = (() => {
+      if (!slugLabel) return undefined;
+      const [first] = slugLabel.split(' ');
+      if (!first) return undefined;
+      const lower = first.toLowerCase();
+      return lower === 'digital' || lower === 'static'
+        ? first.charAt(0).toUpperCase() + first.slice(1)
+        : undefined;
+    })();
+    const typeLabel =
+      explicitType ||
+      typeFromCategory ||
+      typeFromGroup ||
+      typeFromSlug ||
+      'Static';
+    const categoryLabel = categoryFromCategory || rawGroup || rawCategory || slugLabel;
+    const adTypeTags = Array.from(
+      new Set(
+        [typeLabel, categoryLabel].filter(Boolean) as string[],
+      ),
+    );
 
     let startDate = '01.12. Dec';
     let endDate = '22.12. Dec';
     let purchaseDuration = '15 days';
+    let daysDiff: number | null = null;
 
     if (booking) {
       const start = new Date(booking.start_at);
       const end = new Date(booking.end_at);
-      const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
 
       const formatDate = (date: Date) => {
         const day = date.getDate().toString().padStart(2, '0');
@@ -461,6 +556,36 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
     } else if (item.details?.days) {
       purchaseDuration = item.details.days.replace('days Ad', 'days').replace(' Ad', ' days') || '15 days';
     }
+
+    const estimatedTimeLabel =
+      (daysDiff ? `${daysDiff} days` : undefined) ||
+      (item.daysLeft ? item.daysLeft : undefined) ||
+      (item.details?.days
+        ? item.details.days.replace('days Ad', 'days').replace(' Ad', ' days')
+        : undefined) ||
+      purchaseDuration;
+
+    const statusMessage = (() => {
+      switch (item.status) {
+        case 'InProgress':
+          return estimatedTimeLabel ? `Estimated Time ${estimatedTimeLabel}` : getStatusDescription(item.rawStatus);
+        case 'Schedule':
+          return 'Your campaign is all set to go live as scheduled';
+        case 'Blocked':
+          return 'Your campaign has been blocked due to a violation of our content policy';
+        case 'Payment Pending':
+          return 'Finish your payment to confirm your campaign';
+        case 'Draft':
+          return "Continue from here whenever you're ready";
+        case 'Completed':
+          return 'Campaign completed';
+        case 'Publish':
+        case 'Active':
+          return 'Your campaign is live';
+        default:
+          return getStatusDescription(item.rawStatus);
+      }
+    })();
 
     const timelineProgress = item.status === 'Publish'
       ? 75
@@ -534,9 +659,11 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         title={item.title || 'Adryd Pole Sign Board ad'}
         status={item.status || 'Draft'}
         statusColor={item.statusColor}
-        adType={['Static', 'Billboard']}
+        adType={adTypeTags.length ? adTypeTags : ['Static', 'Billboard']}
         purchaseDuration={purchaseDuration}
-        location={boardLocationName}
+        startDate={startDate}
+        endDate={endDate}
+        location={boardCity}
         locationDetail={boardArea}
         // startDate={startDate}
         // endDate={endDate}
@@ -544,6 +671,8 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
         isExpanded={expandedCard === item.id}
         onPress={() => toggleCardExpansion(item.id)}
         navigation={navigation}
+        estimatedTimeLabel={estimatedTimeLabel}
+        statusMessage={statusMessage}
         showCompanyDetail={hasCompanyInfo}
         companyDetail={hasCompanyInfo && originalAd?.company && originalAd.company.company_name ? {
           name: originalAd.company.company_name,
@@ -780,11 +909,24 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = () => {
       <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
       {/* Header with Campaign Tabs */}
       <View style={styles.header}>
-        <CampaignTabs
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabPress={handleCampaignTabPress}
+        <BackButton
+          style={styles.headerBackButton}
+          onPress={() => {
+            if (onBackToHome) {
+              onBackToHome();
+              return;
+            }
+            navigation.navigate('BottomTab' as never, { tab: 'Home' } as never);
+          }}
         />
+        <View style={styles.headerTabsWrapper}>
+          <CampaignTabs
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabPress={handleCampaignTabPress}
+          />
+        </View>
+        <View style={styles.headerSpacer} />
       </View>
 
       {/* Loading State */}
@@ -864,6 +1006,16 @@ const styles = StyleSheet.create({
     paddingBottom: hp(1),
     backgroundColor: '#FFFFFF',
   },
+  headerBackButton: {
+    position: 'relative',
+    left: 0,
+    top: 0,
+  },
+  headerTabsWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   backButton: {
     backgroundColor: "#fff",
     width: wp(10),
@@ -887,14 +1039,13 @@ const styles = StyleSheet.create({
   cardsContent: {
     paddingHorizontal: wp(4),
     paddingVertical: hp(2),
-    paddingBottom: hp(12), // Increased padding for bottom tab
+    paddingBottom: hp(2),
   },
   emptyWrapper: {
     flex: 1,
     backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: wp(4),
   },
   emptyContent: {
     flexGrow: 1,

@@ -11,6 +11,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { GreenTickIcon, Images } from '../../../assets/images';
 import CustomButton from '../../../components/CustomButton';
+import PrimaryButton from '../../../components/PrimaryButton';
 import { useGenerateUploadUrl } from '../hooks/hooks';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -51,6 +52,7 @@ export interface StatusCardProps {
   title: string;
   status:
     | 'Publish'
+    | 'Active'
     | 'Schedule'
     | 'Review'
     | 'Payment Pending'
@@ -63,8 +65,8 @@ export interface StatusCardProps {
   purchaseDuration?: string;
   location?: string;
   locationDetail?: string;
-  // startDate?: string;
-  // endDate?: string;
+  startDate?: string;
+  endDate?: string;
   timelineProgress?: number; // 0-100
   isExpanded?: boolean;
   onPress?: () => void;
@@ -74,6 +76,8 @@ export interface StatusCardProps {
   campaignDetail?: CampaignDetail;
   paymentDetail?: PaymentDetail;
   showCompanyDetail?: boolean; // Control whether to show company detail section with boxes
+  estimatedTimeLabel?: string; // e.g. "10 to 12 days" from backend/booking
+  statusMessage?: string; // dynamic status copy coming from backend mapping
 }
 
 const StatusCard: React.FC<StatusCardProps> = ({
@@ -85,8 +89,8 @@ const StatusCard: React.FC<StatusCardProps> = ({
   purchaseDuration = '15 days',
   location = 'Lahore',
   locationDetail = 'Area DHA Phase 4 DD',
-  // startDate = '01.12. Dec',
-  // endDate = '22.12. Dec',
+  startDate,
+  endDate,
   timelineProgress = 65,
   isExpanded = false,
   onPress,
@@ -95,17 +99,45 @@ const StatusCard: React.FC<StatusCardProps> = ({
   campaignDetail,
   paymentDetail,
   showCompanyDetail = true,
+  estimatedTimeLabel,
+  statusMessage,
 }) => {
   const { mutateAsync: generateUploadUrl, isPending: isGeneratingUrl } = useGenerateUploadUrl();
   const [isLoading, setIsLoading] = useState(false);
   const isPaymentPending = status === 'Payment Pending';
+  const isDraftStatus = status === 'Draft';
+  const isScheduleStatus = status === 'Schedule';
   const isBlockedStatus = status === 'Blocked';
   const isCompletedStatus = status === 'Completed';
-  const isActiveStatus = status === 'Publish';
+  const isInProgressStatus = status === 'InProgress';
+  const isActiveStatus = status === 'Publish' || (status as string) === 'Active';
+  const normalizedEstimatedTime = estimatedTimeLabel?.trim() || purchaseDuration;
+  const normalizedStatusMessage = statusMessage?.trim();
+  const labelAccentColor = (() => {
+    if (isPaymentPending) return '#FDD46C';
+    if (isDraftStatus) return '#00000033';
+    if (isScheduleStatus) return '#83B1FA';
+    if (isInProgressStatus) return '#ECBDF3';
+    if (isBlockedStatus) return '#F25255';
+    if (isCompletedStatus) return '#E5E7EB';
+    if (isActiveStatus) return '#36BD79'; // Active / published accent
+    return '#92400E50';
+  })();
+  const heroAccentColor = statusColor || labelAccentColor;
+  const heroBackgroundColor = `${heroAccentColor}33`; // subtle tint
+  const connectionLineAccentStyle = { backgroundColor: labelAccentColor };
   const hasCompanyDetail = showCompanyDetail && !!companyDetail;
   const isSingleCardLayout = !hasCompanyDetail;
-  const statusBadgeTextColor = isPaymentPending ? '#BD8700' : '#FFFFFF';
-  const typeTagTextColor = isPaymentPending ? '#BD8700' : '#FFFFFF';
+  const statusBadgeTextColor = isCompletedStatus
+    ? '#00000033'
+    : isInProgressStatus
+    ? '#C539A5'
+    : isPaymentPending
+    ? '#92400E'
+    : isScheduleStatus
+    ? '#0046B7'
+    : '#FFFFFF';
+  const typeTagTextColor = isInProgressStatus ? '#C539A5' : statusBadgeTextColor;
   const companyCardPaymentPendingStyle = isPaymentPending ? styles.companyCardPaymentPending : undefined;
   const campaignCardPaymentPendingStyle = isPaymentPending ? styles.campaignCardPaymentPending : undefined;
   const campaignCardBlockedStyle = isBlockedStatus ? styles.campaignCardBlocked : undefined;
@@ -133,6 +165,23 @@ const StatusCard: React.FC<StatusCardProps> = ({
     }
     return '#F0F8F0'; // Default green tint for Publish
   };
+  const showPurchaseDurationRow =
+    !isPaymentPending && !isBlockedStatus && !isDraftStatus && (isCompletedStatus || isActiveStatus);
+  const showLocationRow = Boolean(!isBlockedStatus && !isDraftStatus && location && location !== 'N/A');
+  const showCampaignPeriod =
+    !isPaymentPending &&
+    !isBlockedStatus &&
+    !isDraftStatus &&
+    !isScheduleStatus &&
+    !isInProgressStatus &&
+    (startDate || endDate);
+  const statusTickImage = (() => {
+    if (isDraftStatus) return Images.Draft;
+    if (isInProgressStatus) return Images.inprogress;
+    if (isBlockedStatus) return Images.Blocked;
+    if (isScheduleStatus) return Images.Scheduled;
+    return null;
+  })();
 
   
 
@@ -147,12 +196,10 @@ const StatusCard: React.FC<StatusCardProps> = ({
         {/* Status Badge */}
         <View style={[
           styles.statusBadge, 
-          { backgroundColor: statusColor },
-          isPaymentPending && styles.statusBadgePaymentPending
+          { backgroundColor: isCompletedStatus ? '#E5E7EB' : statusColor },
+          isPaymentPending && styles.statusBadgePaymentPending,
+          isScheduleStatus && styles.statusBadgeSchedule
         ]}>
-          {isActiveStatus && (
-            <GreenTickIcon width={wp(4)} height={wp(4)} />
-          )}
           <Text style={[styles.statusText, { color: statusBadgeTextColor }]}>{status}</Text>
         </View>
         {/* Info Icon */}
@@ -161,7 +208,13 @@ const StatusCard: React.FC<StatusCardProps> = ({
         </TouchableOpacity>
       </View>
       <View style={[styles.bodyContainer, isPaymentPending && styles.bodyContainerPaymentPending]}>
-      <View style={[styles.timelineWrapper, isPaymentPending && styles.timelineWrapperPaymentPending]}>
+      <View
+        style={[
+          styles.timelineWrapper,
+          isPaymentPending && styles.timelineWrapperPaymentPending,
+          isDraftStatus && styles.timelineWrapperDraft,
+        ]}
+      >
         {/* Title Section */}
         <View style={styles.titleSection}>
           <Text style={styles.title} numberOfLines={2}>
@@ -170,9 +223,29 @@ const StatusCard: React.FC<StatusCardProps> = ({
           <View style={styles.typeTags}>
             {adType.map((type, index) => (
               <React.Fragment key={index}>
-                {index > 0 && <View style={styles.connectionLines} />}
-                <View style={[styles.typeTag, { backgroundColor: statusColor }]}>
-                  <Text style={[styles.typeTagText, isPaymentPending && styles.typeTagTextPayment]}>{type}</Text>
+                {index > 0 && (
+                  <View
+                    style={[
+                      styles.connectionLines,
+                      connectionLineAccentStyle,
+                    ]}
+                  />
+                )}
+                <View
+                  style={[
+                    styles.typeTag,
+                    { backgroundColor: statusColor },
+                    isCompletedStatus && styles.typeTagCompleted,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.typeTagText,
+                      { color: typeTagTextColor },
+                    ]}
+                  >
+                    {type}
+                  </Text>
                 </View>
               </React.Fragment>
             ))}
@@ -184,68 +257,163 @@ const StatusCard: React.FC<StatusCardProps> = ({
             <View style={styles.paymentBadgeSmall}>
               <Text style={styles.paymentBadgeSmallText}>Payment</Text>
             </View>
-            {/* Connection Line */}
-            <View style={styles.connectionLine} />
+            <View style={styles.connectionLineLabel} />
             <Text style={styles.paymentPendingMessage}>Finish your payment to confirm your campaign</Text>
           </View>
         )}
         {/* Draft Message Row */}
-        {status === 'Draft' && (
+        {isDraftStatus && (
           <View style={styles.paymentPendingMessageRow}>
             <View style={styles.draftBadgeSmall}>
               <Text style={styles.draftBadgeSmallText}>Draft</Text>
             </View>
-            {/* Connection Line */}
-            <View style={styles.connectionLine} />
-            <Text style={styles.draftMessage}>Continue from here whenever you're ready</Text>
+            <View style={styles.connectionLineLabel} />
+            <Text
+              style={styles.draftMessage}
+            >
+              Continue from here whenever you're ready
+            </Text>
+          </View>
+        )}
+        {/* In Progress Message Row */}
+        {isInProgressStatus && (normalizedStatusMessage || normalizedEstimatedTime) && (
+          <View style={styles.statusInfoRow}>
+            <View style={styles.statusInfoBadge}>
+              <Text style={[styles.statusInfoBadgeText, { color: '#70737D' }]}>Estimated Time</Text>
+            </View>
+            <View style={styles.connectionLineLabel} />
+            <Text style={styles.statusInfoMessage}>
+              {normalizedStatusMessage || `Estimated Time ${normalizedEstimatedTime}`}
+            </Text>
+          </View>
+        )}
+        {/* Scheduled Message Row */}
+        {isScheduleStatus && normalizedStatusMessage && (
+          <View style={styles.statusInfoRow}>
+            <View style={styles.statusInfoBadge}>
+              <Text style={[styles.statusInfoBadgeText, { color: '#70737D' }]}>Scheduled</Text>
+            </View>
+            <View style={styles.connectionLineLabel} />
+            <Text style={styles.statusInfoMessage}>{normalizedStatusMessage}</Text>
+          </View>
+        )}
+        {/* Blocked Message Row */}
+        {isBlockedStatus && normalizedStatusMessage && (
+          <View style={styles.statusInfoRow}>
+            <View style={styles.statusInfoBadge}>
+              <Text style={[styles.statusInfoBadgeText, { color: '#70737D' }]}>Blocked</Text>
+            </View>
+            <View style={styles.connectionLineLabel} />
+            <Text
+              style={[styles.statusInfoMessage, { color: '#70737D' }]}
+            >
+              {normalizedStatusMessage}
+              {normalizedEstimatedTime ? ` • Estimated Time ${normalizedEstimatedTime}` : ''}
+            </Text>
           </View>
         )}
         {/* Details Section */}
         <View style={styles.detailsSection}>
-          {/* Purchase Duration - Only show when not Payment Pending or Draft */}
-          {!isPaymentPending && status !== 'Draft' && (
+          {/* Purchase Duration - Only show for active or completed states */}
+          {showPurchaseDurationRow && (
             <View style={styles.detailRow}>
-              <View style={styles.detailTag}>
-                <Ionicons name="checkmark-circle" size={wp(3.5)} style={{paddingHorizontal:8,paddingVertical:2}} color="#9E9E9E" />
-                <Text style={styles.detailTagText}>Board purchased for</Text>
+              <View style={[styles.detailTag, styles.detailTagIcon, isCompletedStatus && styles.detailTagCompleted]}>
+                <Text
+                  style={[styles.detailTagText, isCompletedStatus && styles.detailTagTextCompleted]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  Board purchased for
+                </Text>
               </View>
-              <View style={styles.detailValueTag}>
-                <Text style={styles.detailValueText}>{purchaseDuration}</Text>
+              <View style={styles.connectionLineLabel} />
+              <View style={[styles.detailValueTag, isCompletedStatus && styles.detailValueTagCompleted]}>
+                <Text
+                  style={[styles.detailValueText, isCompletedStatus && styles.detailValueTextCompleted]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {purchaseDuration}
+                </Text>
               </View>
             </View>
           )}
-          {/* Location Badges for Payment Pending and Draft */}
-          {(isPaymentPending || status === 'Draft') && (
+          {/* Location and Area */}
+          {showLocationRow && (
             <View style={styles.locationBadgesRow}>
-              <View style={styles.locationBadge}>
-                <Text style={styles.locationBadgeText}>{campaignDetail?.type || 'Static'}</Text>
+              <View
+                style={[
+                  styles.locationBadge,
+                  styles.locationBadgeValue,
+                  isCompletedStatus && styles.locationBadgeCompleted,
+                ]}
+              >
+                <Text
+                  style={[styles.locationBadgeText, isCompletedStatus && styles.locationBadgeTextCompleted]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {location}
+                </Text>
               </View>
-              {/* Connection Line */}
-              <View style={styles.connectionLine} />
-              <View style={styles.locationBadge}>
-                <Text style={styles.locationBadgeText}>{campaignDetail?.category || 'Billboard'}</Text>
-              </View>
+              {locationDetail && (
+                <>
+                  <View style={styles.connectionLineLabel} />
+                  <View
+                    style={[
+                      styles.locationBadge,
+                      styles.locationBadgeValue,
+                      isCompletedStatus && styles.locationBadgeCompleted,
+                    ]}
+                  >
+                    <Text
+                      style={[styles.locationBadgeText, isCompletedStatus && styles.locationBadgeTextCompleted]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {locationDetail}
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
           )}
-          {/* Location - Only show when not Payment Pending or Draft */}
-          {!isPaymentPending && status !== 'Draft' && location && location !== 'N/A' && (
-            <View style={styles.locationRow}>
-              <Ionicons 
-                name="location" 
-                size={wp(3.5)} 
-                color="#666" 
-                style={styles.locationIcon as any} 
-              />
-              <Text style={styles.locationText}>
-                {location}
-              </Text>
+          {/* Campaign period start / end */}
+          {showCampaignPeriod && (
+            <View style={styles.dateTags}>
+              <View style={styles.detailTag}>
+                <Text style={styles.detailTagText} numberOfLines={1} ellipsizeMode="tail">
+                  Campaign Period
+                </Text>
+              </View>
+              {startDate && <View style={styles.connectionLineLabel} />}
+              {startDate && (
+                <View style={styles.detailValueTag}>
+                  <Text style={styles.detailValueText} numberOfLines={1} ellipsizeMode="tail">
+                    Start: {startDate}
+                  </Text>
+                </View>
+              )}
+              {endDate && <View style={styles.connectionLineLabel} />}
+              {endDate && (
+                <View style={styles.detailValueTag}>
+                  <Text style={styles.detailValueText} numberOfLines={1} ellipsizeMode="tail">
+                    End: {endDate}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
         </View>
-       </View> 
 
-        {/* Timeline Section with Expand Icon */}
-        {/* <View style={styles.timelineWrapper}> */}
+        <View
+          style={[
+            styles.curvedBottomInfo,
+            isPaymentPending && styles.curvedBottomInfoPayment,
+          ]}
+        />
+
+        {/* Timeline Section with Expand Icon - Inside the wrapper */}
           <View style={styles.timelineSectionWithIcon}>
             <View style={styles.timelineSection}>
               <View style={styles.timelineHeader}>
@@ -274,7 +442,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
               />
             </TouchableOpacity>
           </View>
-        {/* </View> */}
+       </View>
       </View>
 
       {/* Expanded Content */}
@@ -410,12 +578,20 @@ const StatusCard: React.FC<StatusCardProps> = ({
 
           {/* CompanywithoutInfoScreen Layout - Single centered hero card */}
           {isSingleCardLayout && (
-            <View style={styles.heroCardContainer}>
-              <View style={[styles.heroCard, heroCardPaymentPendingStyle, heroCardCompletedStyle]}>
+          <View style={styles.heroCardContainer}>
+            <View
+              style={[
+                styles.heroCard,
+                heroCardPaymentPendingStyle,
+                heroCardCompletedStyle,
+                { borderColor: heroAccentColor, backgroundColor: heroBackgroundColor },
+              ]}
+            >
                 <View style={[
-                  styles.heroImageWrapper,
-                  isPaymentPending && styles.heroImageWrapperPaymentPending,
-                  isCompletedStatus && styles.heroImageWrapperCompleted
+                styles.heroImageWrapper,
+                isPaymentPending && styles.heroImageWrapperPaymentPending,
+                isCompletedStatus && styles.heroImageWrapperCompleted,
+                { borderColor: heroAccentColor }
                 ]}>
                   <View style={[
                     styles.boardImageContainer,
@@ -434,10 +610,13 @@ const StatusCard: React.FC<StatusCardProps> = ({
                 <Text style={styles.heroTitle}>{campaignDetail?.name || title}</Text>
                 <Text style={styles.heroSubtitle}>Your Campaign Board</Text>
               </View>
+              <View style={[styles.verticalConnectionLineTop, { backgroundColor: heroAccentColor }]} />
               <View style={[
                 styles.heroTickWrapper,
                 isPaymentPending && styles.heroPaymentIconWrapper,
                 isCompletedStatus && styles.heroCompletedIconWrapper
+                ,
+                !isPaymentPending && !isCompletedStatus && { backgroundColor: heroBackgroundColor, borderColor: heroAccentColor }
               ]}>
                 {isPaymentPending ? (
                   <Image
@@ -451,10 +630,17 @@ const StatusCard: React.FC<StatusCardProps> = ({
                     style={styles.heroCompletedIcon as any}
                     resizeMode="contain"
                   />
+                ) : statusTickImage ? (
+                  <Image
+                    source={statusTickImage}
+                    style={styles.heroStatusIcon as any}
+                    resizeMode="contain"
+                  />
                 ) : (
-                  <GreenTickIcon width={wp(5)} height={wp(5)} />
+                  <GreenTickIcon width={wp(8)} height={wp(8)} fill={heroAccentColor} />
                 )}
               </View>
+              <View style={[styles.verticalConnectionLineBottom]} />
             </View>
           )}
 
@@ -475,14 +661,19 @@ const StatusCard: React.FC<StatusCardProps> = ({
           {/* Payment Summary Card */}
           {paymentDetail && status !== 'Draft' && (
             <View style={[styles.paymentCard, status === 'Payment Pending' && styles.paymentCardPending]}>
-              {/* <View
-                style={[
-                  styles.paymentDetails,
-                  status === 'Payment Pending' && styles.paymentDetailsCompact,
-                ]}
-              > */}
-                {/* <DetailRow label="Tax" value={paymentDetail.tax || 'PKR 20000'} /> */}
-              {/* </View> */}
+              <View style={styles.paymentDashedLine} />
+              
+              <View style={styles.taxRow}>
+                <Text style={styles.taxLabel}>Tax</Text>
+                <Text style={styles.taxValue}>
+                  {paymentDetail.tax || 'PKR 20000'}
+                </Text>
+              </View>
+
+              {/* Dashed Separator */}
+              <View style={styles.paymentDashedLine} />
+
+              {/* Total Row */}
               <View style={styles.paymentTotalRow}>
                 <Text style={styles.paymentTotalLabel}>Total</Text>
                 <Text style={styles.paymentTotalValue}>
@@ -491,12 +682,9 @@ const StatusCard: React.FC<StatusCardProps> = ({
               </View>
 
               {status === 'Payment Pending' && (
-                <CustomButton
+                <PrimaryButton
                   title="Pay Now"
-                  variant="primary"
-                  size="medium"
                   buttonStyle={styles.payNowButton}
-                  textStyle={styles.payNowButtonText}
                   onPress={() => {
                     if (!navigation) return;
                     navigation.navigate?.('PaymentScreen', { campaignId: id });
@@ -508,8 +696,11 @@ const StatusCard: React.FC<StatusCardProps> = ({
 
           {/* Let's Continue Button - Only for Draft status and when card is expanded */}
           {status === 'Draft' && (
-            <CustomButton
+            <PrimaryButton
               title="Let's Continue"
+              disabled={isLoading || isGeneratingUrl}
+              loading={isLoading || isGeneratingUrl}
+              buttonStyle={styles.continueButton}
               onPress={async () => {
                 if (!navigation) {
                   Alert.alert('Error', 'Navigation is not available');
@@ -564,11 +755,6 @@ const StatusCard: React.FC<StatusCardProps> = ({
                   setIsLoading(false);
                 }
               }}
-              variant="primary"
-              size="medium"
-              disabled={isLoading || isGeneratingUrl}
-              loading={isLoading || isGeneratingUrl}
-              buttonStyle={styles.continueButton}
             />
           )}
         </View>
@@ -598,16 +784,21 @@ const styles = StyleSheet.create({
     padding: wp(2.5),
     marginBottom: hp(2),
     position: 'relative',
+    width: '100%',
+    minHeight: hp(28),
+    alignSelf: 'stretch',
   },
   cardPaymentPending: {
     backgroundColor: '#FFFFFF',
     borderWidth: 0.5,
     borderColor: '#E5E7EB',
-    borderRadius: 20,
-    paddingTop: 15,
-    paddingRight: 7,
-    paddingBottom: 8,
-    paddingLeft: 7,
+    borderRadius: wp(4),
+    padding: wp(2.5),
+    marginBottom: hp(2),
+    position: 'relative',
+    width: '100%',
+    minHeight: hp(28),
+    alignSelf: 'stretch',
   },
   header: {
     flexDirection: 'row',
@@ -632,19 +823,26 @@ const styles = StyleSheet.create({
     height: 24,
     gap: 3,
   },
+  statusBadgeSchedule: {
+    borderRadius: 24,
+    height: 22,
+    paddingHorizontal: 12,
+    paddingVertical: 0,
+    gap: 3,
+  },
   dashedline:{
     marginTop:hp(5),
     marginBottom:hp(5),
-width:'100%',
-borderTopWidth:1,
-borderTopColor:'#D1D5DB',
-borderWidth:1,
-borderColor:'#D1D5DB',
-borderStyle:'dotted',
+    width:'100%',
+    borderTopWidth:1,
+    borderTopColor:'#D1D5DB',
+    borderWidth:1,
+    borderColor:'#D1D5DB',
+    borderStyle:'dotted',
   },
   statusText: {
     fontSize: 10,
-    fontWeight: '500',
+    fontWeight: '400',
     color: '#92400E',
   },
   titleSection: {
@@ -655,18 +853,26 @@ borderStyle:'dotted',
     gap: 10,
   },
   bodyContainer: {
-    // backgroundColor: '#F5F5F5',
-    // borderRadius: wp(5),
-    // marginBottom: hp(0.4),
-    // borderWidth: 0.6,
-    // borderColor: '#E5E7EB',
+    width: '100%',
+  },
+  curvedBottomInfo: {
+    width: '106.7%',
+    height: hp(2),
+    backgroundColor: '#F8F8F8',
+    alignSelf: 'center',
+    borderBottomLeftRadius: 100,
+    borderBottomRightRadius: 100,
+    marginTop: -1,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: '#E5E7EB',
+  },
+  curvedBottomInfoPayment: {
+    backgroundColor: '#F8F8F8',
+    borderColor: '#E5E7EB',
   },
   bodyContainerPaymentPending: {
-    // backgroundColor: '#F8F8F8',
-    // borderColor: '#E5E7EB',
-    // borderWidth: 0.3,
-    // borderRadius: 15,
-    // padding: 12,
+    width: '100%',
   },
   title: {
     flex: 1,
@@ -686,14 +892,31 @@ borderStyle:'dotted',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    backgroundColor: '#0000000D',
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   typeTagText: {
-    color: '#BD8700',
-    fontSize: 10,
+    color: '#FFFFFF',
+    fontSize: 8,
     fontWeight: '400',
   },
   typeTagTextPayment: {
-    color: '#92400E',
+    color: '#FFFFFF',
+  },
+  typeTagTextDraft: {
+    color: '#FFFFFF',
+  },
+  typeTagTextSchedule: {
+    color: '#FFFFFF',
+  },
+  typeTagCompleted: {
+    backgroundColor: '#0000000D',
+    borderWidth: 0,
+    borderColor: 'transparent',
+  },
+  typeTagTextCompleted: {
+    color: '#00000033',
   },
   detailsSection: {
     gap: hp(0.4),
@@ -702,52 +925,73 @@ borderStyle:'dotted',
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: wp(0.9),
+    flexWrap: 'nowrap',
+    paddingVertical: hp(0.2),
   },
   detailTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    // backgroundColor: '#E5E7EB',
-    paddingHorizontal: wp(0.5),
-    borderRadius: wp(4),
-     backgroundColor: '#E5E7EB',
-
-    // paddingHorizontal: wp(2),
-    paddingVertical: hp(0.35),
+    paddingHorizontal: wp(1.6),
+    paddingVertical: hp(0.8),
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F4F4F5',
+    flexShrink: 1,
+    minWidth: 0,
   },
   detailTagText: {
-    color: '#666',
-    fontSize: wp(3),
-    fontWeight: '500',
+    color: '#70737D',
+    fontSize: 10,
+    fontWeight: '400',
+  },
+  detailTagIcon: {
+    // gap: wp(0.8),
   },
   detailValueTag: {
-    backgroundColor: '#E5E7EB',
-    paddingHorizontal: wp(1.8),
-    paddingVertical: hp(0.35),
-    borderRadius: wp(3),
+    backgroundColor: '#F4F4F5',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    flexShrink: 1,
+    minWidth: 0,
   },
   detailValueText: {
-    color: '#1E1E1E',
-    fontSize: wp(3),
-    fontWeight: '500',
+    color: '#70737D',
+    fontSize: 10,
+    fontWeight: '400',
+  },
+  detailTagCompleted: {
+    backgroundColor: '#F4F4F5',
+    borderColor: '#E5E7EB',
+  },
+  detailTagTextCompleted: {
+    color: '#70737D',
+  },
+  detailValueTagCompleted: {
+    backgroundColor: '#F4F4F5',
+    borderColor: '#E5E7EB',
+  },
+  detailValueTextCompleted: {
+    color: '#70737D',
   },
   dateTags: {
     flexDirection: 'row',
-    gap: wp(1.5),
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
+    alignItems: 'center',
   },
   timelineSectionWithIcon: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    paddingHorizontal: 8,
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    // marginTop: 8,
-    marginBottom: 8,
+    paddingHorizontal: 0,
+    paddingTop: 8,
+    paddingBottom: 0,
+    backgroundColor: 'transparent',
+    marginBottom: 0,
+    marginTop: 4,
   },
   timelineSection: {
     flex: 1,
@@ -784,11 +1028,12 @@ borderStyle:'dotted',
   },
   timelineWrapper: {
     backgroundColor: '#F8F8F8',
-    borderRadius: wp(2.5),
-    padding: wp(2.3),
-    borderWidth: 1,
-    borderColor: '#D8D8D8',
-    marginTop: hp(0),
+    width: '100%',
+    borderColor: '#E5E7EB',
+    borderWidth: 0.7,
+    padding: 10,
+    paddingBottom: 8,
+    borderRadius: 15,
   },
   timelineWrapperPaymentPending: {
     backgroundColor: '#F8F8F8',
@@ -796,7 +1041,15 @@ borderStyle:'dotted',
     borderColor: '#E5E7EB',
     borderWidth: 0.7,
     padding: 10,
+    paddingBottom: 8,
     borderRadius: 15,
+  },
+  // Draft inner card - slightly larger than base
+  timelineWrapperDraft: {
+    width: '100%',
+    alignSelf: 'stretch',
+    paddingVertical: 12,
+    paddingBottom: 12,
   },
   progressBarFill: {
     height: '100%',
@@ -805,6 +1058,7 @@ borderStyle:'dotted',
     left: 0,
     top: 0,
   },
+  
   expandIcon: {
     alignSelf: 'center',
     padding: 4,
@@ -987,7 +1241,7 @@ borderStyle:'dotted',
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    marginBottom: hp(1.5),
+    marginBottom: -17,
   },
   heroCard: {
     width: '65%',
@@ -1045,25 +1299,52 @@ borderStyle:'dotted',
     color: '#9CA3AF',
   },
   heroTickWrapper: {
-    marginTop: -hp(0.9),
+    zIndex: 10,
+    padding: wp(2),
+    borderRadius: wp(8),
+    backgroundColor: '#E6F9ED',
+    borderWidth: 0.5,
+    borderColor: '#74C391',
+  },
+  verticalConnectionLineTop: {
+    width: 2,
+    height: hp(1),
+    backgroundColor: '#D8D8D8',
+    alignSelf: 'center',
+    marginTop: hp(0),
+  },
+  verticalConnectionLineBottom: {
+    width: 2,
+    height: hp(1),
+    backgroundColor: '#D8D8D8',
+    alignSelf: 'center',
+    marginBottom: -hp(0.5),
   },
   heroPaymentIconWrapper: {
-    padding: wp(1.2),
-    borderRadius: wp(4),
+    padding: wp(2),
+    borderRadius: wp(8),
     backgroundColor: '#FEF9C3',
+    borderWidth: 0.5,
+    borderColor: '#FCD34D',
   },
   heroPaymentIcon: {
-    width: wp(5),
-    height: wp(5),
+    width: wp(8),
+    height: wp(8),
+  },
+  heroStatusIcon: {
+    width: wp(8),
+    height: wp(8),
   },
   heroCompletedIconWrapper: {
-    padding: wp(1.2),
-    borderRadius: wp(4),
+    padding: wp(2),
+    borderRadius: wp(8),
     backgroundColor: '#F4F4F5',
+    borderWidth: 0.5,
+    borderColor: '#D1D5DB',
   },
   heroCompletedIcon: {
-    width: wp(5),
-    height: wp(5),
+    width: wp(8),
+    height: wp(8),
   },
   // Confirmation Card Styles (matching both screens)
   confirmationCard: {
@@ -1100,9 +1381,9 @@ borderStyle:'dotted',
     borderColor: '#D9D9D9',
   },
   cardHeading: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#18181B',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E1E1E',
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -1379,15 +1660,41 @@ borderStyle:'dotted',
     borderStyle: 'dotted',
     gap: hp(0.4),
   },
+  paymentDashedLine: {
+    width: '100%',
+    borderTopWidth: 1,
+    borderTopColor: '#D1D5DB',
+    borderStyle: 'dashed',
+    marginVertical: 12,
+  },
+  taxRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  taxLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#18181B',
+  },
+  taxValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#18181B',
+  },
   paymentTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
-    backgroundColor: '#F5F5F5',
+    marginTop: 8,
+    backgroundColor: '#F9FAFB',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   paymentTotalLabel: {
     fontSize: 14,
@@ -1397,19 +1704,13 @@ borderStyle:'dotted',
   paymentTotalValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#C539A5',
+    color: '#70737D',
   },
   payNowButton: {
     marginTop: 16,
-    width: '100%',
-    borderRadius: 25,
-    backgroundColor: '#C539A5',
-    paddingVertical: 14,
-  },
-  payNowButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
+    width: '50%',
+    alignSelf: 'center',
+    paddingVertical: 12,
   },
   locationRow: {
     flexDirection: 'row',
@@ -1433,17 +1734,24 @@ borderStyle:'dotted',
   // Payment Pending specific styles - Labels matching Figma exactly
   paymentPendingMessageRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 4,
     marginTop: 4,
     flexWrap: 'wrap',
   },
+  statusInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    marginTop: 4,
+    flexWrap: 'nowrap',
+  },
   paymentBadgeSmall: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0000000D',
+    backgroundColor: '#F4F4F5',
     padding: 5,
-    borderRadius: 5,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     gap: 5,
@@ -1457,58 +1765,95 @@ borderStyle:'dotted',
   paymentBadgeSmallText: {
     fontSize: 10, 
     fontWeight: '400',
-    color: '#9CA3AF',
+    color: '#70737D',
   },
   paymentPendingMessage: {
     fontSize: 10,
-    color: '#9CA3AF',
+    color: '#70737D',
     fontWeight: '400',
-    backgroundColor: '#0000000D',
+    backgroundColor: '#F4F4F5',
     padding: 5,
-    borderRadius: 5,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  statusInfoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F4F4F5',
+    padding: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    gap: 5,
+  },
+  statusInfoBadgeText: {
+    fontSize: 10,
+    fontWeight: '400',
+    color: '#70737D',
+  },
+  statusInfoMessage: {
+    fontSize: 10,
+    color: '#70737D',
+    fontWeight: '400',
+    backgroundColor: '#F4F4F5',
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    lineHeight: 16,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexShrink: 1,
+    minWidth: 0,
   },
   draftBadgeSmall: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0000000D',
+    backgroundColor: '#F4F4F5',
     padding: 5,
-    borderRadius: 5,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   draftBadgeSmallText: {
     fontSize: 10, 
     fontWeight: '400',
-    color: '#9CA3AF',
+    color: '#70737D',
   },
   draftMessage: {
     fontSize: 10,
-    color: '#9CA3AF',
+    color: '#70737D',
     fontWeight: '400',
-    backgroundColor: '#0000000D',
-    padding: 5,
-    borderRadius: 5,
+    backgroundColor: '#F4F4F5',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    lineHeight: 14,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
   },
   locationBadgesRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
     marginTop: 4,
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
   },
   locationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 5,
-    borderRadius: 5,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    backgroundColor: '#0000000D',
+    backgroundColor: '#F4F4F5',
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  locationBadgeValue: {
+    // flex: 1,
   },
   locationDot: {
     width: 6,
@@ -1518,19 +1863,46 @@ borderStyle:'dotted',
   },
   locationBadgeText: {
     fontSize: 10,
-    color: '#9CA3AF',
+    color: '#70737D',
     fontWeight: '400',
   },
+  locationBadgeIcon: {
+    gap: wp(0.8),
+  },
+  locationBadgeCompleted: {
+    backgroundColor: '#F4F4F5',
+    borderColor: '#E5E7EB',
+  },
+  locationBadgeTextCompleted: {
+    color: '#70737D',
+  },
     connectionLine: {
-      width: 6,
+      width: 12,
       height: 2,
       backgroundColor: '#D8D8D8',
     },
+  connectionLineLabel: {
+    width: 12,
+    height: 2,
+    // borderRadius: 4,
+    backgroundColor: '#E5E7EB',
+    alignSelf: 'center',
+  },
      connectionLines: {
-       width: 6,
+       width: 8,
        height: 2,
+      //  borderRadius: 4,
        backgroundColor: '#92400E50',
      },
+     connectionLinesDraft: {
+        backgroundColor: '#00000033',
+       },
+     connectionLinesPayment: {
+        backgroundColor: '#FDD46C',
+       },
+     connectionLinesSchedule: {
+        backgroundColor: '#83B1FA',
+      },
   dateText: {
     fontSize: wp(3),
     color: '#666',
@@ -1538,7 +1910,9 @@ borderStyle:'dotted',
   },
   continueButton: {
     marginTop: hp(2),
-    width: '100%',
+    width: '50%',
+    alignSelf: 'center',
+    paddingVertical: 12,
   },
 });
 

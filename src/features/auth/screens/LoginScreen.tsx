@@ -17,7 +17,6 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import * as Yup from 'yup';
 import CustomInput from '../../../components/CustomInput';
-import Loader from '../../../components/Loader';
 import NoInternet from '../../../components/NoInternet';
 import PrimaryButton from '../../../components/PrimaryButton';
 import { useAuthStore } from '../../../store/authStore';
@@ -230,15 +229,13 @@ const LoginScreen: React.FC = () => {
                 <PrimaryButton
                   title={t('login.cta')}
                   onPress={handleSubmit}
-                  loading={loginMutation.isPending}
+                  disabled={loginMutation.isPending}
                   buttonStyle={{
                     alignSelf: 'center',
                     width: 161,
                     height: 50,
                   }}
                 />
-                {/* Loading indicator */}
-                {loginMutation.isPending && <Loader />}
               </>
             )}
           </Formik>
