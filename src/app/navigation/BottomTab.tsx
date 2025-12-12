@@ -32,10 +32,13 @@ type TabName = 'Home' | 'Boards' | 'Add' | 'Chat' | 'Profile';
 interface BottomTabProps {
 }
 const BottomTab: React.FC<BottomTabProps> = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const route = useRoute() as any;
   const [activeTab, setActiveTab] = useState<TabName>('Home');
+  const [isHomeLoading, setIsHomeLoading] = useState(false);
   const isDrawerVisible = useDrawerStore(s => s.isVisible);
+  const setNavigatedFromDrawer = useDrawerStore(s => s.setNavigatedFromDrawer);
+  const reopenDrawerCallback = useDrawerStore(s => s.reopenDrawerCallback);
 
   React.useEffect(() => {
     const desiredTab = route?.params?.tab as TabName | undefined;
@@ -57,26 +60,37 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       case 'Chat':
         break;
       case 'Profile':
+        // Open the side drawer when tapping Profile
+        setActiveTab('Home');
+        setNavigatedFromDrawer(true);
+        if (reopenDrawerCallback) {
+          reopenDrawerCallback();
+        }
         break;
       default:
         break;
     }
   };
 
+  const handleNavigateHome = () => {
+    setActiveTab('Home');
+    navigation.setParams?.({ tab: 'Home' });
+  };
+
   const renderActiveScreen = () => {
     switch (activeTab) {
       case 'Home':
-        return <HomeScreen navigation={navigation} />;
+        return <HomeScreen navigation={navigation} onLoadingChange={setIsHomeLoading} />;
       case 'Boards':
-        return <CompaignStatus navigation={navigation} />; 
+        return <CompaignStatus navigation={navigation} onBackToHome={handleNavigateHome} />; 
       case 'Add':
-        return <HomeScreen navigation={navigation} />; 
+        return <HomeScreen navigation={navigation} onLoadingChange={setIsHomeLoading} />; 
       case 'Chat':
         return <FavouritesScreen navigation={navigation} />; 
       case 'Profile':
-        return <CompaignStatus navigation={navigation} />;
+        return <CompaignStatus navigation={navigation} onBackToHome={handleNavigateHome} />;
       default:
-        return <HomeScreen navigation={navigation} />;
+        return <HomeScreen navigation={navigation} onLoadingChange={setIsHomeLoading} />;
     }
   };
 
@@ -164,6 +178,14 @@ const BottomTab: React.FC<BottomTabProps> = () => {
     );
   };
 
+  const shouldShowBottomTab = activeTab !== 'Boards' && !(activeTab === 'Home' && isHomeLoading);
+
+  React.useEffect(() => {
+    if (activeTab !== 'Home') {
+      setIsHomeLoading(false);
+    }
+  }, [activeTab]);
+
   return (
     <View style={styles.mainContainer}>
       {/* Main Content */}
@@ -172,7 +194,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       </View>
       
       {/* Bottom Tab Navigation */}
-      {!isDrawerVisible && (
+      {!isDrawerVisible && shouldShowBottomTab && (
         <View style={styles.bottomTabContainer}>
           {/* Curved Navigation Bar Background */}
           {renderCurvedBar()}
@@ -202,7 +224,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#FAF9F6',
+    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,

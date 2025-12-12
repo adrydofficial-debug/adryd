@@ -645,8 +645,8 @@ const styles = StyleSheet.create({
     }),
     // No elevation for Android to prevent bottom shadow
     elevation: 0,
-    borderLeftWidth: 2,
-    borderRightWidth: 2,      
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
     // Force drawer to always open from left, ignore RTL
     ...({ writingDirection: 'ltr' } as any),
   },

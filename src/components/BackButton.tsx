@@ -8,30 +8,28 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDrawerStore } from '../store/drawerStore';
 
 // Screen width & height
 const { width, height } = Dimensions.get('window');
 
-// You can type your navigation stack here if you want strong typing
-type RootStackParamList = {
-  [key: string]: any;
-};
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
 interface BackButtonProps {
   style?: StyleProp<ViewStyle>;
   iconColor?: string;
+  onPress?: () => void;
 }
 
-const BackButton: React.FC<BackButtonProps> = ({ style, iconColor = '#70737D' }) => {
-  const navigation = useNavigation<NavigationProp>();
+const BackButton: React.FC<BackButtonProps> = ({ style, iconColor = '#70737D', onPress }) => {
+  const navigation = useNavigation<any>();
   const navigatedFromDrawer = useDrawerStore(s => s.navigatedFromDrawer);
   const setNavigatedFromDrawer = useDrawerStore(s => s.setNavigatedFromDrawer);
   const reopenDrawerCallback = useDrawerStore(s => s.reopenDrawerCallback);
 
   const handleBackPress = () => {
+    if (onPress) {
+      onPress();
+      return;
+    }
     try {
       if (navigatedFromDrawer && reopenDrawerCallback) {
         reopenDrawerCallback();

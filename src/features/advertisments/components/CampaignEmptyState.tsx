@@ -388,16 +388,17 @@ const CampaignEmptyState: React.FC<CampaignEmptyStateProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     width: '100%',
-    marginTop: hp(10),
-    paddingVertical: hp(3),
-    backgroundColor: '#FFFFFF',
+    paddingTop: hp(1),
+    paddingBottom: hp(12),
+    backgroundColor: '#F5F5F5',
   },
   animationContainer: {
     width: wp(75),
     height: hp(24),
     alignSelf: 'center',
-    marginBottom: hp(2),
     position: 'relative',
   },
   cardWrapper: {

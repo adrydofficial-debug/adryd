@@ -25,6 +25,10 @@ export const Images = {
   greenTick: require('./greenTick.png'),
   bannerSetting: require('./Banner_setting.png'),
   editSquare: require('./Edit Square.png'),
+  Draft: require('./Draft.png'),
+  inprogress: require('./inprogress.png'),
+  Blocked: require('./Blocked.png'),
+  Scheduled: require('./Scheduled.png'),
 
   paymentIcon: require('./paymentIcon.png'),
   blockedIcon: require('./BlockedIcon.png'),
