@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
   RefreshControl,
@@ -12,6 +11,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
+import Loader from '../../../components/Loader';
 import { useCompanies, useDeleteCompany } from '../hooks';
 import { Company } from '../types';
 
@@ -141,12 +141,7 @@ const CompanyListScreen: React.FC<CompanyListScreenProps> = ({
   );
 
   if (isLoading && !refreshing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#C539A5" />
-        <Text style={styles.loadingText}>{t('list.loading')}</Text>
-      </View>
-    );
+    return <Loader />;
   }
 
   if (error) {

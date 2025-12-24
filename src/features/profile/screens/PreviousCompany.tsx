@@ -9,9 +9,9 @@ import {
   View,
   SafeAreaView,
   Image,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
+import Loader from '../../../components/Loader';
 import { useFocusEffect, useNavigation, useRoute, CommonActions } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
@@ -391,12 +391,7 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
         {/* Only show add company card when there are companies */}
         {!isLoading && !error && companies.length > 0 && renderAddCompanyCard()}
         {/* Loading State */}
-        {isLoading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#C539A5" />
-            <Text style={styles.loadingText}>{t('previousCompany.loading')}</Text>
-          </View>
-        )}
+        {isLoading && <Loader />}
         {/* Error State */}
         {error && (
           <View style={styles.errorContainer}>

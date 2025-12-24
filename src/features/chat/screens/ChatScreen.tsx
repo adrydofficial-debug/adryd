@@ -10,10 +10,10 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Loader from '../../../components/Loader';
 import { useAuthStore } from '../../../store/authStore';
 import { Message } from '../domain/entities';
 import { MessageBubble } from '../components/MessageBubble';
@@ -220,11 +220,7 @@ const ChatScreen: React.FC = () => {
   };
 
   if (chatLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#C539A5" />
-      </View>
-    );
+    return <Loader />;
   }
 
   return (

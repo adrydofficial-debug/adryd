@@ -16,6 +16,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useMutation } from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Loader from '../../../components/Loader';
 import { useCities, useLocations } from '../hooks/hooks';
 import { City, Location } from '../domain/entities';
 import BoardList, { BoardItem } from '../../../components/BoardList';
@@ -1149,13 +1150,6 @@ const SearchLocation: React.FC = () => {
               </ScrollView>
             )}
 
-            {isApplyingFilters && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#C538A5" />
-                <Text style={styles.loadingText}>Applying filters…</Text>
-              </View>
-            )}
-
             {apiError && (
               <View style={styles.errorBanner}>
                 <Text style={styles.errorBannerText}>{apiError}</Text>
@@ -1435,6 +1429,9 @@ const SearchLocation: React.FC = () => {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Loader overlay - placed at root level to cover entire screen */}
+      {isApplyingFilters && <Loader />}
     </SafeAreaView>
   );
 };

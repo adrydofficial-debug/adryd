@@ -6,7 +6,7 @@ import {
     StyleSheet,
     Dimensions,
 } from "react-native";
-import { useFocusEffect, useNavigation, useRoute, CommonActions } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Card from "../../../assets/images/Card.svg";
 import JazzCash from "../../../assets/images/JazzCash.svg";
 import EasyPaisa from "../../../assets/images/EasyPaisa.svg";
@@ -16,17 +16,54 @@ import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
 import ProgressBar from "../../../components/ProgressBar";
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
-
-
+type ChoosePaymentRouteProp = RouteProp<AppStackParamList, 'ChoosePayment'>;
 
 const { width, height } = Dimensions.get("window");
 
 
 const PaymentMethodScreen: React.FC = () => {
     const navigation = useNavigation<NavigationProp>();
+    const route = useRoute<ChoosePaymentRouteProp>();
+    
+    // Get payment details from route params
+    const { campaignId, amount, customerEmail, customerPhone } = route.params || {
+        campaignId: '',
+        amount: 0,
+        customerEmail: '',
+        customerPhone: '',
+    };
+
     const handleBackPress = () => {
         navigation.goBack();
     };
+
+    const handleCardPayment = () => {
+        navigation.navigate('CardPaymentScreen', {
+            campaignId,
+            amount,
+            customerEmail,
+            customerPhone,
+        });
+    };
+
+    const handleJazzCashPayment = () => {
+        navigation.navigate('WalletPaymentScreen', {
+            campaignId,
+            amount,
+            walletType: 'jazzcash',
+            customerEmail,
+        });
+    };
+
+    const handleEasyPaisaPayment = () => {
+        navigation.navigate('WalletPaymentScreen', {
+            campaignId,
+            amount,
+            walletType: 'easypaisa',
+            customerEmail,
+        });
+    };
+
     return (
         <View style={{ flex: 1, backgroundColor: "#F8F8F8" }}>
 
@@ -44,9 +81,17 @@ const PaymentMethodScreen: React.FC = () => {
                 Add a payment method to complete payments
             </Text>
 
+            {/* Amount Display */}
+            {amount > 0 && (
+                <View style={styles.amountContainer}>
+                    <Text style={styles.amountLabel}>Amount to Pay</Text>
+                    <Text style={styles.amountValue}>Rs. {amount.toLocaleString()}</Text>
+                </View>
+            )}
+
             {/* Payment Cards */}
             <View style={{ alignItems: "center", marginTop: height * 0.03, gap: 15 }}>
-                <TouchableOpacity style={styles.card}>
+                <TouchableOpacity style={styles.card} onPress={handleCardPayment}>
                     <View style={styles.iconCircle}>
                         <Card
                             width={width * 0.09}
@@ -63,7 +108,7 @@ const PaymentMethodScreen: React.FC = () => {
                     </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.card}>
+                <TouchableOpacity style={styles.card} onPress={handleJazzCashPayment}>
                     <View style={styles.iconCircle}>
                         <JazzCash
                             width={width * 0.07}
@@ -80,7 +125,7 @@ const PaymentMethodScreen: React.FC = () => {
                     </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.card}>
+                <TouchableOpacity style={styles.card} onPress={handleEasyPaisaPayment}>
                     <View style={styles.iconCircle}>
                         <EasyPaisa
                             width={width * 0.1}
@@ -165,6 +210,28 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         backgroundColor: "#FFF",
         borderColor: "#E5E7EB",
+    },
+
+    amountContainer: {
+        alignItems: "center",
+        marginTop: height * 0.02,
+        paddingVertical: height * 0.015,
+        paddingHorizontal: width * 0.05,
+        backgroundColor: "#FDF4FB",
+        borderRadius: 12,
+        marginHorizontal: width * 0.05,
+    },
+
+    amountLabel: {
+        fontSize: 12,
+        color: "#70737D",
+        marginBottom: 4,
+    },
+
+    amountValue: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#C539A5",
     },
 });
 

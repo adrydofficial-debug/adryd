@@ -187,9 +187,17 @@ export const useChangeAdvertisementStatus = (id: number) => {
       const res = await changeAdvertisementStatus(id, { new_status });
       return mapAdvertisement(res);
     },
-    onSuccess: () => {
+    onSuccess: (data, new_status) => {
       queryClient.invalidateQueries({ queryKey: AD_KEYS.detail(id) });
       queryClient.invalidateQueries({ queryKey: AD_KEYS.lists() });
+      
+      // Invalidate campaign chats to show status update message
+      queryClient.invalidateQueries({ queryKey: ['campaignChats'] });
+      queryClient.invalidateQueries({ queryKey: ['campaignMessages', id] });
+      
+      // Note: Backend should automatically create a status_update message
+      // when status changes. If not, you may need to call an API endpoint
+      // to send the status update message here.
     },
   });
 };

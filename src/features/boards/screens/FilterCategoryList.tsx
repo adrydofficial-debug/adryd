@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import BachButton from '../../../components/BackButton';
+import Loader from '../../../components/Loader';
 import BoardList, { BoardItem } from '../../../components/BoardList';
 import NoInternet from '../../../components/NoInternet';
 import { useAuthStore } from '../../../store/authStore';
@@ -163,11 +164,7 @@ const FilterCategoryList: React.FC<any> = ({ route, navigation }) => {
       {!user ? (
         <Text style={{ padding: 20 }}>Please login to view listings</Text>
       ) : isLoading ? (
-        <ActivityIndicator
-          size="large"
-          color="#C539A5"
-          style={{ marginTop: 20 }}
-        />
+        <Loader />
       ) : data.length === 0 ? (
         <Text style={{ padding: 20 }}>No listings found</Text>
       ) : (

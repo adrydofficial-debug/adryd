@@ -27,7 +27,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import PrimaryButton from '../../../components/PrimaryButton';
 import { useTranslation } from 'react-i18next';
 import { useCampaignStore } from '../../../store/campaignStore';
-import { useUploadAdvertisementFiles, useAddAdvertisementMedia } from '../hooks/hooks';
+import { useUploadAdvertisementFiles, useAddAdvertisementMedia, useChangeAdvertisementStatus, useAdvertisement } from '../hooks/hooks';
+import { AdvertisementStatus } from '../domain/entities';
 import  ProgressBar from '../../../components/ProgressBar';
 // Types for navigation
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -105,12 +106,18 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
   // Extract params - could be direct string or nested in object
   const params = typeof route?.params === 'string' 
     ? { uploadUrl: route.params } 
-    : route?.params || {};
+    : (route?.params as any) || {};
   
   const uploadUrl = params.uploadUrl;
   const campaignId = params.campaignId ? parseInt(params.campaignId, 10) : null;
   const publicUrl = params.publicUrl;
   const flow = params.flow || 'business';
+  
+  // Hook to change campaign status
+  const changeStatusMutation = useChangeAdvertisementStatus(campaignId || 0);
+  
+  // Fetch campaign details for navigation
+  const { data: campaign } = useAdvertisement(campaignId || undefined);
 
   const { mutateAsync: uploadFiles, isPending } = useUploadAdvertisementFiles();
   const { mutateAsync: addMedia, isPending: isAddingMedia } = useAddAdvertisementMedia(campaignId || 0);
@@ -732,11 +739,67 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
                 }
                 
                 console.log('✅ [CampaignUploadFiles] Upload process completed successfully!');
-                if (flow === 'individual') {
-                  navigation.navigate('CompanywithoutInfoScreen');
+                
+                // Update campaign status to PAYMENT_PENDING after upload
+                if (campaignId) {
+                  try {
+                    console.log('🔄 [CampaignUploadFiles] Updating campaign status to PAYMENT_PENDING...');
+                    await changeStatusMutation.mutateAsync(AdvertisementStatus.PAYMENT_PENDING);
+                    console.log('✅ [CampaignUploadFiles] Campaign status updated to PAYMENT_PENDING');
+                  } catch (statusError: any) {
+                    console.error('❌ [CampaignUploadFiles] Failed to update campaign status:', statusError);
+                    // Continue with navigation even if status update fails
+                  }
+                }
+                
+                // Navigate directly to the campaign's chat detail screen after upload
+                if (campaignId) {
+                  // Get campaign details for navigation
+                  // The chat screen will fetch full details, but we can pass basic info
+                  const board = campaign?.board || {};
+                  const campaignName = 
+                    campaign?.title ||
+                    (board && 'title' in board ? board.title : undefined) ||
+                    (board && 'name' in board ? board.name : undefined) ||
+                    'Campaign';
+                  const boardLocation = 
+                    board && 'location' in board
+                      ? (typeof board.location === 'string'
+                          ? board.location
+                          : (board.location && typeof board.location === 'object' && 'name' in board.location
+                              ? board.location.name
+                              : 'Unknown Location'))
+                      : 'Unknown Location';
+                  
+                  console.log('📱 Navigating to campaign chat:', {
+                    campaignId,
+                    campaignName,
+                    boardLocation,
+                  });
+                  
+                  navigation.reset({
+                    index: 0,
+                    routes: [
+                      { name: 'BottomTab' },
+                      { 
+                        name: 'CampaignChatDetail', 
+                        params: {
+                          campaignId: campaignId, // Should be number according to AppNavigator
+                          campaignName: campaignName,
+                          boardLocation: boardLocation,
+                        }
+                      },
+                    ],
+                  });
                 } else {
-                  navigation.navigate('CompanyWithInfoScreen', {
-                    campaignId: campaignId?.toString() || '',
+                  // Fallback to inbox if no campaignId
+                  console.warn('⚠️ No campaignId available, navigating to InboxScreen');
+                  navigation.reset({
+                    index: 0,
+                    routes: [
+                      { name: 'BottomTab' },
+                      { name: 'InboxScreen' },
+                    ],
                   });
                 }
               } catch (error: any) {

@@ -10,6 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Loader from '../../../components/Loader';
 import {useFavoritesBoards} from '../../boards/hooks/useFavorites';
 import type {BoardItem} from '../../../components/BoardList';
 import BoardList from '../../../components/BoardList';
@@ -95,9 +96,7 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
         )}
 
         {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading favourites...</Text>
-          </View>
+          <Loader />
         ) : error ? (
           <View style={styles.emptyContainer}>
             <Ionicons
