@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   StatusBar,
   Image,
-  ActivityIndicator,
   FlatList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Loader from '../../../components/Loader';
 import BottomTab from '../../../app/navigation/BottomTab';
 import { useAdvertisements } from '../hooks/useAdvertisements';
 import CampaignTabs, { CampaignTab } from '../components/CampaignTabs';
@@ -20,6 +20,7 @@ import StatusCard from '../components/StatusCard';
 import { SUPABASE_URL } from '../../../config';
 import { AdvertisementStatus } from '../domain/entities';
 import BackButton from '../../../components/BackButton';
+import { useNotificationsStore } from '../../notifications/store/notifications';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -99,6 +100,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
   const [expandedCard, setExpandedCard] = useState<number | null>(1);
   const [activeBottomTab, setActiveBottomTab] = useState<string>('Boards');
   const [activeTab, setActiveTab] = useState<string>('all');
+  const { notifications } = useNotificationsStore();
   
   const {
     advertisements: advertisementList,
@@ -106,6 +108,19 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
     error,
     refetch,
   } = useAdvertisements({ limit: 1000, page: 1, status: undefined }); // Fetch ALL data - no status filter
+
+  // Helper function to get unread notification count for a campaign
+  const getUnreadNotificationCount = (campaignId: number): number => {
+    return notifications.filter(n => {
+      if (n.read) return false;
+      const notificationAdId = n.data?.advertisement_id || n.data?.advertisementId;
+      // Convert to number for comparison
+      const adId = typeof notificationAdId === 'string' 
+        ? parseInt(notificationAdId, 10) 
+        : notificationAdId;
+      return adId === campaignId;
+    }).length;
+  };
   
   // Debug: Log what we received
   React.useEffect(() => {
@@ -653,6 +668,8 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
 
     const primaryMediaUrl = item.boardMediaUrl;
 
+    const unreadNotificationCount = getUnreadNotificationCount(item.id);
+
     return (
       <StatusCard
         id={item.id}
@@ -674,6 +691,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
         estimatedTimeLabel={estimatedTimeLabel}
         statusMessage={statusMessage}
         showCompanyDetail={hasCompanyInfo}
+        notificationBadgeCount={unreadNotificationCount}
         companyDetail={hasCompanyInfo && originalAd?.company && originalAd.company.company_name ? {
           name: originalAd.company.company_name,
           business: originalAd.company.category?.name || undefined,
@@ -930,12 +948,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
       </View>
 
       {/* Loading State */}
-      {loading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#C539A5" />
-          <Text style={styles.loadingText}>Loading campaigns...</Text>
-        </View>
-      )}
+      {loading && <Loader />}
 
       {/* Error State */}
       {error && (

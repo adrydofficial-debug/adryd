@@ -1,32 +1,11 @@
 import { firebase } from '@react-native-firebase/app';
 
-consimport { firebase } from '@react-native-firebase/app';
+// For React Native Firebase, initialization is usually automatic
+// if you have google-services.json (Android) and GoogleService-Info.plist (iOS)
+// This import ensures the Firebase module is loaded
 
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
-};
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
-export { firebase };
- firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
-};
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+// React Native Firebase auto-initializes from native config files
+// We just need to ensure the module is imported
+// The native side will handle initialization
 
 export { firebase };

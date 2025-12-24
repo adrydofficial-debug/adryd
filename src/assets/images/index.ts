@@ -47,6 +47,7 @@ export const Images = {
   cart2: require('./cart2.png'),
   dp: require('./dp.png'),
   image: require('./image.png'),
+  chat: require('./Chat.png'),
 };
 
 /* SVG exports */

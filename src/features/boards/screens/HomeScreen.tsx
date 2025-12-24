@@ -24,6 +24,8 @@ import NoInternet from '../../../components/NoInternet';
 import { useAuthStore } from '../../../store/authStore';
 import { useDrawerStore } from '../../../store/drawerStore';
 import { useProfile } from '../../profile/hooks/useProfile';
+import { useNotifications } from '../../notifications/hooks/useNotifications';
+import { useNotificationsStore } from '../../notifications/store/notifications';
 import type { Tab } from '../components/BoardTabs';
 import ProfileRow from '../components/ProfileRow';
 import { useBoardFilters } from '../hooks/useBoardFilters';
@@ -38,8 +40,13 @@ const RIGHT_ACTIONS_WIDTH = width * 0.38;
 
 const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
   const { t } = useTranslation('boards');
-  // Styling state - set to true to show active state (with badge), false for default state
-  const [hasUnreadNotifications] = useState(true);
+  const { user } = useAuthStore();
+  
+  // Fetch notifications when user is logged in - this populates the store early
+  useNotifications();
+  
+  const { unreadCount } = useNotificationsStore();
+  const hasUnreadNotifications = unreadCount > 0;
   const [, setSelectedTab] = useState<Tab | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
 
@@ -58,7 +65,6 @@ const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
     await AsyncStorage.setItem('welcome_popup_shown', 'true');
   };
 
-  const { user } = useAuthStore();
   const { data: profile } = useProfile();
 
   const avatarUrl = (

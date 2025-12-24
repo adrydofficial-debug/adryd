@@ -19,6 +19,7 @@ export interface NotificationEntity {
   type: string;
   read: boolean;
   createdAt: string;
+  data?: Record<string, any> | null;
 }
 
 function mapNotification(n: NotificationResponse): NotificationEntity {
@@ -29,6 +30,7 @@ function mapNotification(n: NotificationResponse): NotificationEntity {
     type: n.type,
     read: n.read,
     createdAt: n.created_at,
+    data: n.data || null,
   };
 }
 
@@ -48,9 +50,19 @@ export const notificationsApi = {
     console.log('[Notifications] mark-all-read response================:', res.status, res.data);
     return res.data;
   },
+  async markAsRead(notificationId: string): Promise<{ success: boolean; message: string }> {
+    console.log('[Notifications] PUT /api/notifications/' + notificationId + '/mark-read');
+    const res = await apiClient.put<{ success: boolean; message: string }>(
+      `/api/notifications/${notificationId}/mark-read`,
+      {},
+    );
+    console.log('[Notifications] mark-read response:', res.status, res.data);
+    return res.data;
+  },
 };
 
 export const fetchNotifications = notificationsApi.getAll;
 export const markAllNotificationsRead = notificationsApi.markAllRead;
+export const markNotificationAsRead = notificationsApi.markAsRead;
 
 

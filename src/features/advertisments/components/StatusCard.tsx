@@ -78,6 +78,7 @@ export interface StatusCardProps {
   showCompanyDetail?: boolean; // Control whether to show company detail section with boxes
   estimatedTimeLabel?: string; // e.g. "10 to 12 days" from backend/booking
   statusMessage?: string; // dynamic status copy coming from backend mapping
+  notificationBadgeCount?: number; // Unread notification count for this campaign
 }
 
 const StatusCard: React.FC<StatusCardProps> = ({
@@ -101,6 +102,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
   showCompanyDetail = true,
   estimatedTimeLabel,
   statusMessage,
+  notificationBadgeCount = 0,
 }) => {
   const { mutateAsync: generateUploadUrl, isPending: isGeneratingUrl } = useGenerateUploadUrl();
   const [isLoading, setIsLoading] = useState(false);
@@ -201,6 +203,13 @@ const StatusCard: React.FC<StatusCardProps> = ({
           isScheduleStatus && styles.statusBadgeSchedule
         ]}>
           <Text style={[styles.statusText, { color: statusBadgeTextColor }]}>{status}</Text>
+          {notificationBadgeCount > 0 && (
+            <View style={styles.notificationBadge}>
+              <Text style={styles.notificationBadgeText}>
+                {notificationBadgeCount > 99 ? '99+' : notificationBadgeCount}
+              </Text>
+            </View>
+          )}
         </View>
         {/* Info Icon */}
         <TouchableOpacity style={styles.alertIcon}>
@@ -844,6 +853,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '400',
     color: '#92400E',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#C539A5',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: 'bold',
   },
   titleSection: {
     flexDirection: 'row',

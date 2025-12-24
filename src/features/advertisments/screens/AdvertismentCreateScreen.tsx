@@ -21,6 +21,8 @@ import CustomInput from '../../../components/CustomInput';
 import PrimaryButton from '../../../components/PrimaryButton';
 import { useTranslation } from 'react-i18next';
 import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
+import { changeAdvertisementStatus } from '../api/api';
+import { AdvertisementStatus } from '../domain/entities';
 import ProgressBar from '../../../components/ProgressBar';
 // Removed global selected dates - now using only unavailable-times API
 import { CreateAdvertisementRequest } from '../types';
@@ -561,14 +563,28 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       onSuccess: async response => {
         console.log('upload url is :', response.upload.uploadUrl);
         
+        const createdCampaignId = response.advertisement?.id;
+        
+        // Set campaign status to IN_PROGRESS by default after creation
+        if (createdCampaignId) {
+          try {
+            console.log('🔄 [AdvertismentCreateScreen] Setting campaign status to IN_PROGRESS...');
+            await changeAdvertisementStatus(createdCampaignId, { new_status: AdvertisementStatus.IN_PROGRESS });
+            console.log('✅ [AdvertismentCreateScreen] Campaign status set to IN_PROGRESS');
+          } catch (statusError: any) {
+            console.error('❌ [AdvertismentCreateScreen] Failed to set campaign status:', statusError);
+            // Continue with navigation even if status update fails
+          }
+        }
+        
         // Clear selected days from local store since they're now in the API
         clearSelectedDays();
        
         resetCampaignFlow();
-        
+       
         // Refetch unavailable times to update booked dates immediately
         await refetchUnavailableTimes();
-        
+       
         // Navigate to CampaignUploadFiles with upload info
         navigation.navigate('CampaignUploadFiles', {
           campaignId: response.advertisement?.id?.toString() || '',

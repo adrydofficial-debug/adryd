@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,14 @@ import {
   StatusBar,
   Image,
 } from 'react-native';
+import Loader from '../../../components/Loader';
 import { useNotifications } from '../hooks/useNotifications';
 import { markAllNotificationsRead } from '../api/api';
 import Header from '../../../components/Header';
 import { useAuthStore } from '../../../store/authStore';
 import { Images } from '../../../assets/images';
+import { useNotificationsStore } from '../store/notifications';
+import { useFocusEffect } from '@react-navigation/native';
 const { width, height } = Dimensions.get('window');
 
 type Props = {
@@ -23,19 +26,7 @@ type Props = {
 const GetAllNotification: React.FC<Props> = ({ navigation }) => {
   const { data, isLoading, error, refetch } = useNotifications();
   const { user } = useAuthStore();
-
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      try {
-        const res = await markAllNotificationsRead();
-        console.log('[Notifications] markAll after 5s:', res);
-        refetch();
-      } catch (e) {
-        console.warn('[Notifications] markAll failed:', e);
-      }
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [refetch]);
+  const { markAllAsRead } = useNotificationsStore();
 
   // Create welcome notification object - always visible
   const welcomeNotification = {
@@ -49,6 +40,32 @@ const GetAllNotification: React.FC<Props> = ({ navigation }) => {
     isHighlighted: true,
   };
 
+  // Mark all notifications as read when screen is opened/focused
+  useFocusEffect(
+    React.useCallback(() => {
+      const markAllRead = async () => {
+        // Only mark as read if there are unread notifications
+        const hasUnread = data?.some(n => !n.read);
+        if (hasUnread) {
+          try {
+            await markAllNotificationsRead();
+            markAllAsRead();
+            refetch();
+          } catch (error) {
+            console.warn('[Notifications] Failed to mark all as read:', error);
+          }
+        }
+      };
+
+      // Small delay to ensure data is loaded
+      const timer = setTimeout(() => {
+        markAllRead();
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }, [data, refetch, markAllAsRead])
+  );
+
   // Combine welcome notification with backend notifications - always show welcome notification if user is logged in
   const allNotifications = user
     ? [welcomeNotification, ...(data || [])]
@@ -56,19 +73,23 @@ const GetAllNotification: React.FC<Props> = ({ navigation }) => {
 
   const renderNotificationItem = ({ item }: any) => {
     const isWelcome = item.isWelcome || item.id === 'welcome-notification';
+    // After marking all as read, all backend notifications will be read
+    // Only welcome notification should show as unread/highlighted
+    const isUnread = isWelcome ? true : !item.read;
     
     return (
       <View
         style={[
           styles.notificationCard,
-          item.isHighlighted && styles.highlightedCard,
+          // Apply highlighted styling to unread notifications (same as welcome)
+          (isUnread || isWelcome) && styles.highlightedCard,
           isWelcome && styles.welcomeCard,
         ]}
       >
         <View style={styles.cardContent}>
           <View style={[
             styles.iconContainer, 
-            isWelcome ? styles.welcomeIconContainer : { backgroundColor: '#F5F5F5' }
+            (isWelcome || isUnread) ? styles.welcomeIconContainer : { backgroundColor: '#F5F5F5' }
           ]}>
             {isWelcome ? (
               <Image
@@ -108,7 +129,7 @@ const GetAllNotification: React.FC<Props> = ({ navigation }) => {
 
       <View style={styles.listContainer}>
         {isLoading ? (
-          <Text>Loading...</Text>
+          <Loader />
         ) : error ? (
           <View>
             <Text>Failed to load notifications</Text>

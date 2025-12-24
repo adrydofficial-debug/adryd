@@ -225,6 +225,23 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
     },
 
     {
+      id: 3,
+      title: t('drawer.favorite'),
+      subtitle: t('drawer.favoriteSubtitle'),
+      onPress: () => {
+        try {
+          setNavigatedFromDrawer(true);
+          navigation.navigate('FavouritesScreen' as never);
+          console.log('✅ Navigation to FavouritesScreen successful');
+          setTimeout(() => onClose(), 100);
+        } catch (error) {
+          console.error('❌ Navigation error:', error);
+          onClose();
+        }
+      },
+      icon: 'favorite',
+    },
+    {
       id: 5,
       title: t('drawer.invite'),
       subtitle: t('drawer.inviteSubtitle'),

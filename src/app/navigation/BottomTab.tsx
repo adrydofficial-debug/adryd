@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -18,15 +18,14 @@ import {
   GrayMsgIcon,
   PinkProfileIcon,
   GrayProfileIcon,
-  HeartIcon,
-  FavoriteIcon,
   Images,
 } from '../../assets/images';
 import HomeScreen from '../../features/boards/screens/HomeScreen';
 import CompaignStatus from '../../features/advertisments/screens/CompaignStatus';
-import FavouritesScreen from '../../features/favourites/screens/FavouritesScreen';
+import InboxScreen from '../../features/chat/screens/InboxScreen';
 import UpdateProfile from '../../features/profile/screens/UpdateProfile';
 import { useDrawerStore } from '../../store/drawerStore';
+import { useNotificationsStore } from '../../features/notifications/store/notifications';
 const { width, height } = Dimensions.get('window');
 type TabName = 'Home' | 'Boards' | 'Add' | 'Chat' | 'Profile';
 interface BottomTabProps {
@@ -39,6 +38,19 @@ const BottomTab: React.FC<BottomTabProps> = () => {
   const isDrawerVisible = useDrawerStore(s => s.isVisible);
   const setNavigatedFromDrawer = useDrawerStore(s => s.setNavigatedFromDrawer);
   const reopenDrawerCallback = useDrawerStore(s => s.reopenDrawerCallback);
+  const { notifications } = useNotificationsStore();
+
+  // Calculate unread campaign notifications count
+  const unreadCampaignNotificationsCount = useMemo(() => {
+    return notifications.filter(n => {
+      // Check if notification is unread and related to a campaign
+      if (n.read) return false;
+      // Check if notification has advertisement_id in data
+      const hasAdvertisementId = n.data?.advertisement_id || n.data?.advertisementId;
+      // Include status_update type notifications or any notification with advertisement_id
+      return n.type === 'status_update' || hasAdvertisementId;
+    }).length;
+  }, [notifications]);
 
   React.useEffect(() => {
     const desiredTab = route?.params?.tab as TabName | undefined;
@@ -86,7 +98,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       case 'Add':
         return <HomeScreen navigation={navigation} onLoadingChange={setIsHomeLoading} />; 
       case 'Chat':
-        return <FavouritesScreen navigation={navigation} />; 
+        return <InboxScreen />; 
       case 'Profile':
         return <CompaignStatus navigation={navigation} onBackToHome={handleNavigateHome} />;
       default:
@@ -98,7 +110,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
     { name: 'Home', icon: GrayHomeIcon, activeIcon: PinkHomeIcon },
     { name: 'Boards', icon: GrayActiveIcon, activeIcon: PinkActiveIcon },
     { name: 'Add', icon: AddIcon, isFAB: true },
-    { name: 'Chat', icon: HeartIcon, activeIcon: FavoriteIcon },
+    { name: 'Chat', icon: Images.chat, activeIcon: Images.chat, isImage: true },
     { name: 'Profile', icon: GrayProfileIcon, activeIcon: PinkProfileIcon },
   ];
 
@@ -108,6 +120,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
     const IconComponent = isActive ? tab.activeIcon : tab.icon;
     // Check if it's an image source (number) or SVG component (function)
     const isImageSource = typeof IconComponent === 'number' || (typeof IconComponent !== 'function' && IconComponent !== null && IconComponent !== undefined);
+    const isImageTab = tab.isImage || false;
 
     if (isFAB) {
       return (
@@ -126,6 +139,10 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       );
     }
 
+    // Check if this is the Chat tab and has unread notifications
+    const isChatTab = tab.name === 'Chat';
+    const showBadge = isChatTab && unreadCampaignNotificationsCount > 0;
+
     return (
       <TouchableOpacity
         key={tab.name}
@@ -133,15 +150,24 @@ const BottomTab: React.FC<BottomTabProps> = () => {
         onPress={() => handleTabPress(tab.name)}
         activeOpacity={0.7}
       >
-        {isImageSource ? (
-          <Image 
-            source={IconComponent} 
-            style={styles.tabIconImage}
-            resizeMode="contain"
-          />
-        ) : (
-          <IconComponent width={20} height={20} />
-        )}
+        <View style={styles.tabIconContainer}>
+          {isImageSource || isImageTab ? (
+            <Image 
+              source={IconComponent} 
+              style={[
+                styles.tabIconImage,
+                isImageTab && isActive && styles.chatIconActive,
+                isImageTab && !isActive && styles.chatIconInactive,
+              ]}
+              resizeMode="contain"
+            />
+          ) : (
+            <IconComponent width={20} height={20} />
+          )}
+          {showBadge && (
+            <View style={styles.badgeDot} />
+          )}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -340,6 +366,28 @@ const styles = StyleSheet.create({
   tabIconImage: {
     width: 20,
     height: 20,
+  },
+  chatIconActive: {
+    tintColor: '#C539A5',
+  },
+  chatIconInactive: {
+    tintColor: '#9CA3AF',
+  },
+  tabIconContainer: {
+    position: 'relative',
+    width: 20,
+    height: 20,
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#C539A5',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
 });
 

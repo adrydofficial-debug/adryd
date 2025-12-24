@@ -2,16 +2,29 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../services/supabase';
 import { fetchNotifications, NotificationEntity } from '../api/api';
+import { useNotificationsStore } from '../store/notifications';
 
 export function useNotifications() {
-  return useQuery<NotificationEntity[]>({
+  const { setNotifications } = useNotificationsStore();
+  
+  const query = useQuery<NotificationEntity[]>({
     queryKey: ['notifications'],
     queryFn: fetchNotifications,
   });
+
+  // Sync store when data changes
+  useEffect(() => {
+    if (query.data) {
+      setNotifications(query.data);
+    }
+  }, [query.data, setNotifications]);
+
+  return query;
 }
 
 export function useNotificationsStream(userId: string | null) {
   const queryClient = useQueryClient();
+  const { setNotifications } = useNotificationsStore();
 
   useEffect(() => {
     if (!userId) return;
@@ -34,20 +47,29 @@ export function useNotificationsStream(userId: string | null) {
             ['notifications'],
             (old = []) => {
               // handle insert/update/delete correctly
+              let updated: NotificationEntity[];
               switch (payload.eventType) {
                 case 'INSERT':
-                  return [newRow, ...old];
+                  updated = [newRow, ...old];
+                  break;
 
                 case 'UPDATE':
-                  return old.map((n) => (n.id === newRow.id ? newRow : n));
+                  updated = old.map((n) => (n.id === newRow.id ? newRow : n));
+                  break;
 
                 case 'DELETE':
                   const deletedId = payload.old.id;
-                  return old.filter((n) => n.id !== deletedId);
+                  updated = old.filter((n) => n.id !== deletedId);
+                  break;
 
                 default:
-                  return old;
+                  updated = old;
               }
+              
+              // Sync store with updated data
+              setNotifications(updated);
+              
+              return updated;
             }
           );
         }
@@ -57,5 +79,5 @@ export function useNotificationsStream(userId: string | null) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId, queryClient]);
+  }, [userId, queryClient, setNotifications]);
 }

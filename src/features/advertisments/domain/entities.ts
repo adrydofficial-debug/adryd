@@ -39,6 +39,7 @@ export interface Advertisement {
 
 export enum AdvertisementStatus {
   DRAFT = 'DRAFT',
+  IN_PROGRESS = 'IN_PROGRESS',
   PAYMENT_PENDING = 'PAYMENT_PENDING',
   UNDER_REVIEW = 'UNDER_REVIEW',
   APPROVED = 'APPROVED',

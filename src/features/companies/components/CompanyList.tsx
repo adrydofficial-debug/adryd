@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import Loader from '../../../components/Loader';
 import { useCompanies, useCompanyMutations } from '../hooks';
 import { Company } from '../types';
 
@@ -64,12 +65,7 @@ const CompanyList: React.FC<CompanyListProps> = ({
   );
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading companies...</Text>
-      </View>
-    );
+    return <Loader />;
   }
 
   if (error) {

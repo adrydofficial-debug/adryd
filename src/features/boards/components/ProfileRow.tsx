@@ -12,6 +12,7 @@ import {
   PinkLocationIcon,
   PinkNotifyIcon,
 } from '../../../assets/images';
+import { useNotificationsStore } from '../../notifications/store/notifications';
 
 const { width } = Dimensions.get('window');
 const RIGHT_ACTIONS_WIDTH = width * 0.38;
@@ -44,6 +45,8 @@ const ProfileRow: React.FC<ProfileRowProps> = ({
   onNotificationsClick,
 }) => {
   const [avatarError, setAvatarError] = useState(false);
+  const { unreadCount } = useNotificationsStore();
+  const hasUnread = unreadCount > 0;
 
   const getFirstName = () => {
     const fullName =
@@ -121,11 +124,11 @@ const ProfileRow: React.FC<ProfileRowProps> = ({
         <TouchableOpacity
           style={[
             styles.bellBtn,
-            hasUnreadNotifications && styles.bellBtnActive,
+            hasUnread && styles.bellBtnActive,
           ]}
           onPress={onNotificationsClick}
         >
-          {hasUnreadNotifications ? (
+          {hasUnread ? (
             <>
               <PinkNotifyIcon width={width * 0.05} height={width * 0.047} />
               <View style={styles.notificationBadge} />

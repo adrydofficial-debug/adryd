@@ -1,8 +1,8 @@
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { Linking } from 'react-native';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import 'react-native-get-random-values';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
@@ -25,6 +25,14 @@ import {
   setOnboardingCompleted,
 } from './src/services/onboardingStorage';
 import { useAuthStore } from './src/store/authStore';
+import { useNotificationsStream } from './src/features/notifications/hooks/useNotifications';
+import { useRegisterFcmToken } from './src/features/fcmtoken/hooks/useRegisterFcmToken';
+import {
+  requestNotificationPermission,
+  getFCMToken,
+  setupForegroundMessageHandler,
+  setupNotificationOpenedHandler,
+} from './src/services/notificationService';
 enableScreens();
 // ⚡ React Query client with conservative defaults to avoid auto-refetching
 const queryClient = new QueryClient({
@@ -50,6 +58,12 @@ const AuthGate = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
   const [splashComplete, setSplashComplete] = useState(false);
+  const navigationRef = useRef<NavigationContainerRef<any>>(null);
+  const registerFcmToken = useRegisterFcmToken();
+  const fcmTokenRegistered = useRef<string | null>(null);
+
+  // Initialize notification stream to listen for new notifications
+  useNotificationsStream(user?.id || null);
 
   useEffect(() => {
     initializeSession();
@@ -69,6 +83,57 @@ const AuthGate = () => {
       linkingListener.remove();
     };
   }, [initializeSession]);
+
+  // Setup notifications when user is logged in
+  useEffect(() => {
+    if (!user || !splashComplete) return;
+
+    const setupNotifications = async () => {
+      try {
+        // Request permission
+        const hasPermission = await requestNotificationPermission();
+        if (!hasPermission) {
+          console.log('⚠️ Notification permission not granted');
+          return;
+        }
+
+        // Get FCM token
+        const token = await getFCMToken();
+        if (token && fcmTokenRegistered.current !== token) {
+          // Register token with backend (only if not already registered)
+          fcmTokenRegistered.current = token;
+          registerFcmToken.mutate(token);
+        }
+
+        // Setup foreground handler (when app is open)
+        const unsubscribeForeground = setupForegroundMessageHandler();
+
+        // Setup notification opened handler (when user taps notification)
+        const unsubscribeOpened = setupNotificationOpenedHandler((data) => {
+          console.log('📨 Notification tapped, data:', data);
+          
+          // Navigate to relevant screen based on notification type
+          if (data?.type === 'status_update' && data?.advertisement_id && navigationRef.current) {
+            navigationRef.current.navigate('CampaignChatDetail', {
+              campaignId: parseInt(data.advertisement_id, 10),
+              campaignName: data.campaign_name || 'Campaign',
+              boardLocation: data.location,
+            });
+          }
+        });
+
+        return () => {
+          unsubscribeForeground();
+          unsubscribeOpened();
+        };
+      } catch (error) {
+        console.error('Error setting up notifications:', error);
+      }
+    };
+
+    setupNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, splashComplete]); // Removed registerFcmToken from deps to prevent infinite loop
 
   // --------------------
   // Referral Handling
@@ -185,7 +250,7 @@ const AuthGate = () => {
   // Show main app (Home or Login based on user state)
   return (
     <>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         {user ? <AppNavigator /> : <AuthNavigator />}
       </NavigationContainer>
       <LanguageSelectionModal

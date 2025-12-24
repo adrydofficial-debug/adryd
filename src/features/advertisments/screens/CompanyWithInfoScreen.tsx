@@ -9,10 +9,10 @@ import {
   ScrollView,
   Platform,
   Image,
-  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import Loader from '../../../components/Loader';
 import PrimaryButton from '../../../components/PrimaryButton';
 import { useCampaign } from '../hooks/useCampaign';
 import { getAdvertisement } from '../api/api';
@@ -230,10 +230,7 @@ const CompanyWithInfoScreen: React.FC<any> = ({ navigation, route }) => {
     return (
       <View style={styles.container}>
         <StatusBar barStyle={Platform.OS === 'ios' ? 'dark-content' : 'light-content'} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#C539A5" />
-          <Text style={styles.loadingText}>Loading campaign data...</Text>
-        </View>
+        <Loader />
       </View>
     );
   }

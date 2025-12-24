@@ -9,8 +9,8 @@ interface LoaderProps {
 }
 
 const Loader: React.FC<LoaderProps> = ({
-  size = 32,
-  circleSize = 16,
+  size = 40,
+  circleSize = 20,
   color = "#C539A5",
   duration = 1000,
 }) => {
@@ -69,21 +69,29 @@ export default Loader;
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 999,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9999,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
   },
   loaderContainer: {
     position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
     opacity: 1,
   },
   circleOutlined: {
     position: "absolute",
     borderWidth: 2,
+    top: 0,
   },
   circleFilled: {
     position: "absolute",
+    top: 0,
   },
 });
