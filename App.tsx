@@ -1,8 +1,11 @@
-import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
-import { Linking } from 'react-native';
+import {
+  NavigationContainer,
+  NavigationContainerRef,
+} from '@react-navigation/native';
+import { I18nManager, Linking } from 'react-native';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import 'react-native-get-random-values';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
@@ -12,6 +15,8 @@ import AppNavigator from './src/app/navigation/AppNavigator';
 import LanguageSelectionModal from './src/components/LanguageSelectionModal';
 import SplashScreen from './src/components/SplashScreen';
 import AuthNavigator from './src/features/auth/AuthNavigator';
+import { useRegisterFcmToken } from './src/features/fcmtoken/hooks/useRegisterFcmToken';
+import { useNotificationsStream } from './src/features/notifications/hooks/useNotifications';
 import Onboard from './src/features/splash/screens/OnBoard';
 import i18n from './src/i18n';
 import {
@@ -21,18 +26,16 @@ import {
   setLanguageSelected,
 } from './src/services/languageStorage';
 import {
+  getFCMToken,
+  requestNotificationPermission,
+  setupForegroundMessageHandler,
+  setupNotificationOpenedHandler,
+} from './src/services/notificationService';
+import {
   isOnboardingCompleted,
   setOnboardingCompleted,
 } from './src/services/onboardingStorage';
 import { useAuthStore } from './src/store/authStore';
-import { useNotificationsStream } from './src/features/notifications/hooks/useNotifications';
-import { useRegisterFcmToken } from './src/features/fcmtoken/hooks/useRegisterFcmToken';
-import {
-  requestNotificationPermission,
-  getFCMToken,
-  setupForegroundMessageHandler,
-  setupNotificationOpenedHandler,
-} from './src/services/notificationService';
 enableScreens();
 // ⚡ React Query client with conservative defaults to avoid auto-refetching
 const queryClient = new QueryClient({
@@ -109,11 +112,15 @@ const AuthGate = () => {
         const unsubscribeForeground = setupForegroundMessageHandler();
 
         // Setup notification opened handler (when user taps notification)
-        const unsubscribeOpened = setupNotificationOpenedHandler((data) => {
+        const unsubscribeOpened = setupNotificationOpenedHandler(data => {
           console.log('📨 Notification tapped, data:', data);
-          
+
           // Navigate to relevant screen based on notification type
-          if (data?.type === 'status_update' && data?.advertisement_id && navigationRef.current) {
+          if (
+            data?.type === 'status_update' &&
+            data?.advertisement_id &&
+            navigationRef.current
+          ) {
             navigationRef.current.navigate('CampaignChatDetail', {
               campaignId: parseInt(data.advertisement_id, 10),
               campaignName: data.campaign_name || 'Campaign',
@@ -170,8 +177,13 @@ const AuthGate = () => {
       } else {
         // Load saved language
         const savedLanguage = await getLanguage();
+        console.log('Selected Language is ', savedLanguage);
         if (savedLanguage) {
-          i18n.changeLanguage(savedLanguage);
+          if (savedLanguage === 'ur') {
+            I18nManager.allowRTL(true);
+            I18nManager.forceRTL(true);
+            i18n.changeLanguage(savedLanguage);
+          }
         }
       }
     } catch (error) {

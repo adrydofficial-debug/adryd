@@ -225,21 +225,24 @@ const RegisterScreen: React.FC = () => {
 
     setPhone(values.phoneNumber);
 
+    console.log('📱 [RegisterScreen] Sending OTP to:', values.phoneNumber);
     // Send OTP
     registerMutation.mutate(
       { phone: values.phoneNumber, fullName: values.username },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
+          console.log('✅ [RegisterScreen] OTP sent successfully:', data);
           formikHelpers.setSubmitting(false);
           setShowOtpModal(true);
         },
         onError: (err: any) => {
           formikHelpers.setSubmitting(false);
-          console.warn('Send OTP error:', err);
+          console.error('❌ [RegisterScreen] Send OTP error:', err);
+          const errorMessage = err?.message || 'Failed to send OTP. Please try again.';
           Toast.show({
             type: 'error',
             text1: 'Error',
-            text2: 'Failed to send OTP. Please try again.',
+            text2: errorMessage,
             position: 'bottom',
           });
         },
@@ -469,13 +472,13 @@ const RegisterScreen: React.FC = () => {
                     </TouchableOpacity>
                     <PrimaryButton
                       title={
-                        isSubmitting || forgotPassword.isPending
+                        isSubmitting || registerMutation.isPending
                           ? t('forgot.sending', { lng: currentLanguage }) ||
                           'Sending...'
                           : t('register.cta', { lng: currentLanguage })
                       }
                       onPress={formikSubmit as any}
-                      loading={isSubmitting || forgotPassword.isPending}
+                      loading={isSubmitting || registerMutation.isPending}
                       buttonStyle={{
                         alignSelf: 'center',
                         width: 161,
@@ -483,7 +486,7 @@ const RegisterScreen: React.FC = () => {
                         marginTop: hp(2),
                       }}
                     />
-                    {(isSubmitting || forgotPassword.isPending) && <Loader />}
+                    {(isSubmitting || registerMutation.isPending) && <Loader />}
                   </>
                 );
               }}

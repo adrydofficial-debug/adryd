@@ -1,29 +1,27 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dimensions,
   FlatList,
+  I18nManager,
   ImageBackground,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  I18nManager,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useFocusEffect } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = 165;
-const CARD_WIDTH_WIDER = 185; 
+const CARD_WIDTH_WIDER = 185;
 const CARD_HEIGHT = 237;
 
 import { Images } from '../assets/images';
 
 const FALLBACK_IMAGE = Images.image;
-
-
 
 interface BoardMediaItem {
   url?: string | null;
@@ -38,11 +36,11 @@ export interface BoardItem {
   size?: string;
   price?: number;
   currency?: string;
-  image?: any; 
+  image?: any;
   image_url?: string;
   rating?: number | string;
-  reviewCount?: number; 
-  category?: string; 
+  reviewCount?: number;
+  category?: string;
   isRecommended?: boolean;
   labels?: string[]; // Array of labels like "Special", "20% Less", "Recommended", "Near"
   discount?: string; // Discount label like "20% Less"
@@ -56,11 +54,11 @@ interface BoardListProps {
   subHeading?: string;
   navigation?: any;
   onPressDetail?: (item: BoardItem) => void;
-  numColumns?: number; 
+  numColumns?: number;
   showSeeAll?: boolean;
   useWiderCards?: boolean;
-  showFavoriteBadge?: boolean; 
-  scrollEnabled?: boolean; 
+  showFavoriteBadge?: boolean;
+  scrollEnabled?: boolean;
 }
 
 const boardData: BoardItem[] = [
@@ -93,10 +91,8 @@ const boardData: BoardItem[] = [
 const renderStars = (rating: number | string | undefined) => {
   const starColor = '#FFB800';
   const starSize = 12;
-  
-  return (
-    <Ionicons name="star" size={starSize} color={starColor} />
-  );
+
+  return <Ionicons name="star" size={starSize} color={starColor} />;
 };
 
 const BoardList: React.FC<BoardListProps> = ({
@@ -105,16 +101,21 @@ const BoardList: React.FC<BoardListProps> = ({
   subHeading,
   navigation,
   onPressDetail,
-  numColumns = 1, 
+  numColumns = 1,
   showSeeAll = true,
   useWiderCards = false,
   showFavoriteBadge = false,
   scrollEnabled = true,
 }) => {
   // Debug: Log the prop value to verify it's being received
-  console.log('BoardList - useWiderCards prop:', useWiderCards, 'heading:', heading);
+  console.log(
+    'BoardList - useWiderCards prop:',
+    useWiderCards,
+    'heading:',
+    heading,
+  );
   const { i18n: i18nInstance } = useTranslation();
-  
+
   // Track current language to force re-renders
   const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
   // Track RTL state to force layout re-render
@@ -142,7 +143,7 @@ const BoardList: React.FC<BoardListProps> = ({
       i18n.off('languageChanged', handleLanguageChange);
     };
   }, [i18nInstance.language]);
-  
+
   // Update language key when screen comes into focus (if navigation is available)
   useFocusEffect(
     useCallback(() => {
@@ -154,7 +155,7 @@ const BoardList: React.FC<BoardListProps> = ({
         setLanguageKey(prev => prev + 1);
       }
       return () => {};
-    }, [i18nInstance.language, navigation])
+    }, [i18nInstance.language, navigation]),
   );
 
   const handleCardPress = (item: BoardItem) => {
@@ -183,12 +184,12 @@ const BoardList: React.FC<BoardListProps> = ({
     }
   };
 
-  const renderItem = ({item}: {item: BoardItem}) => {
+  const renderItem = ({ item }: { item: BoardItem }) => {
     // Render "More" card if flag is set
     if (item.isMore) {
       // Determine card width for "More" card
       const moreCardWidth = useWiderCards ? CARD_WIDTH_WIDER : CARD_WIDTH;
-      
+
       return (
         <TouchableOpacity
           style={[
@@ -223,9 +224,7 @@ const BoardList: React.FC<BoardListProps> = ({
           return trimmed;
         }
       }
-      const normalizedPath = trimmed.startsWith('/')
-        ? trimmed
-        : `/${trimmed}`;
+      const normalizedPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
       return `https://adryd-backend-production.up.railway.app${normalizedPath}`;
     };
 
@@ -277,12 +276,16 @@ const BoardList: React.FC<BoardListProps> = ({
     const location = item.location || 'Unknown Location';
     const distance = item.distance || '1.6 km';
     const size = item.size || '';
-    const rating = typeof item.rating === 'string' ? parseFloat(item.rating) : (item.rating || 0);
+    const rating =
+      typeof item.rating === 'string'
+        ? parseFloat(item.rating)
+        : item.rating || 0;
     const reviewCount = item.reviewCount || 112; // Default to 112 if not provided
     // Ensure category is always available - check multiple possible sources
-    const rawCategory = item.category || (item as any).category_name || 'Static';
+    const rawCategory =
+      item.category || (item as any).category_name || 'Static';
     const isRecommended = item.isRecommended || false;
-    
+
     // Normalize category to only show "Static" or "Dynamic"
     const normalizeCategory = (cat: string): string => {
       const normalized = cat.toLowerCase().trim();
@@ -297,47 +300,52 @@ const BoardList: React.FC<BoardListProps> = ({
       return 'Static';
     };
     const category = normalizeCategory(rawCategory);
-    
+
     // Determine labels to display - prioritize explicit labels, then fallback
     const labels: string[] = [];
-    
+
     // Start with explicit labels if provided
     if (item.labels && Array.isArray(item.labels) && item.labels.length > 0) {
       labels.push(...item.labels);
     } else {
-      
       // Check for special flag
       if ((item as any).isSpecial || (item as any).special) {
         labels.push('Special');
       }
-      
+
       // Add discount label if available
       if (item.discount) {
         // Ensure format is "20% Less" or similar
-        const discountText = item.discount.includes('%') 
-          ? item.discount 
+        const discountText = item.discount.includes('%')
+          ? item.discount
           : `${item.discount}% Less`;
         labels.push(discountText);
       }
     }
 
-    // Format size for tag - convert to "Size 2ft by 4ft" 
-    const formatSizeTag = (sizeStr: string, itemWidth?: number, itemHeight?: number): string => {
+    // Format size for tag - convert to "Size 2ft by 4ft"
+    const formatSizeTag = (
+      sizeStr: string,
+      itemWidth?: number,
+      itemHeight?: number,
+    ): string => {
       // If we have explicit width/height from the item, use those (assumed to be in feet)
       if (itemWidth && itemHeight) {
         return `Size ${itemWidth}ft by ${itemHeight}ft`;
       }
-      
+
       if (!sizeStr || sizeStr.trim() === '') {
         // Default size if nothing provided
         return 'Size 2ft by 4ft';
       }
-      
+
       if (sizeStr.includes('ft') || sizeStr.includes('by')) {
         // Already formatted, just add "Size " prefix if needed
-        return sizeStr.toLowerCase().includes('size') ? sizeStr : `Size ${sizeStr}`;
+        return sizeStr.toLowerCase().includes('size')
+          ? sizeStr
+          : `Size ${sizeStr}`;
       }
-      
+
       // Parse "12x8" or similar format
       const parts = sizeStr.split('x');
       if (parts.length === 2) {
@@ -358,11 +366,13 @@ const BoardList: React.FC<BoardListProps> = ({
           }
         }
       }
-      
+
       // Fallback
-      return sizeStr.toLowerCase().includes('size') ? sizeStr : `Size ${sizeStr}`;
+      return sizeStr.toLowerCase().includes('size')
+        ? sizeStr
+        : `Size ${sizeStr}`;
     };
-    
+
     // Try to get width/height from item if available
     const itemWidth = (item as any).width;
     const itemHeight = (item as any).height;
@@ -378,18 +388,26 @@ const BoardList: React.FC<BoardListProps> = ({
           { width: cardWidth }, // Always set width based on useWiderCards prop
         ]}
         onPress={() => handleCardPress(item)}
-        activeOpacity={0.9}>
+        activeOpacity={0.9}
+      >
         {/* Image Container */}
         <View style={styles.imageContainer}>
           <ImageBackground
             source={imageSource}
             style={styles.image}
-            imageStyle={styles.imageBg}>
+            imageStyle={styles.imageBg}
+          >
             {/* Labels Container (top-left) */}
             {labels.length > 0 && (
               <View style={styles.labelsContainer}>
                 {labels.map((label, index) => (
-                  <View key={index} style={[styles.labelTag, index === labels.length - 1 && { marginBottom: 0 }]}>
+                  <View
+                    key={index}
+                    style={[
+                      styles.labelTag,
+                      index === labels.length - 1 && { marginBottom: 0 },
+                    ]}
+                  >
                     <Text style={styles.labelText}>{label}</Text>
                   </View>
                 ))}
@@ -419,9 +437,7 @@ const BoardList: React.FC<BoardListProps> = ({
 
           <View style={styles.ratingRow}>
             <Text style={styles.ratingValue}>{rating.toFixed(1)}</Text>
-            <View style={styles.starsContainer}>
-              {renderStars(rating)}
-            </View>
+            <View style={styles.starsContainer}>{renderStars(rating)}</View>
             {reviewCount > 0 && (
               <Text style={styles.reviewCount}>({reviewCount})</Text>
             )}
@@ -431,16 +447,22 @@ const BoardList: React.FC<BoardListProps> = ({
           <View style={styles.tagsContainer}>
             {/* Category tag - always show */}
             <View style={styles.tag}>
-              <Text style={styles.tagText} numberOfLines={1}>{category || 'Static'}</Text>
+              <Text style={styles.tagText} numberOfLines={1}>
+                {category || 'Static'}
+              </Text>
             </View>
             {/* Size tag - always show */}
             <View style={styles.tag}>
-              <Text style={styles.tagText} numberOfLines={1}>{sizeTag || 'Size 2ft by 4ft'}</Text>
+              <Text style={styles.tagText} numberOfLines={1}>
+                {sizeTag || 'Size 2ft by 4ft'}
+              </Text>
             </View>
             {/* Location tag - show if available */}
             {location && location !== 'Unknown Location' ? (
               <View style={styles.tag}>
-                <Text style={styles.tagText} numberOfLines={1}>{location}</Text>
+                <Text style={styles.tagText} numberOfLines={1}>
+                  {location}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -604,7 +626,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#F054A6',
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 4,
@@ -634,7 +656,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     paddingTop: 2,
     paddingHorizontal: 4,
-    paddingBottom: 4, 
+    paddingBottom: 4,
     width: '100%',
     flex: 1,
   },
@@ -709,5 +731,3 @@ const styles = StyleSheet.create({
 });
 
 export default BoardList;
-
-

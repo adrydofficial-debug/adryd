@@ -31,15 +31,15 @@ const companiesLocales = {
     create: {
       title: 'Company Details',
       companyName: 'Company Name',
-      companyNumber:' Company Number',
+      companyNumber: ' Company Number',
       category: 'Business Category',
       selectCategory: 'Select category',
       ntn: 'Company NTN',
-      enterNtn: 'Optional',
+      enterNtn: 'xxxxxxx-x',
       address: 'Company Address',
-      enterAddress: 'Optional',
+      enterAddress: 'Address Of Company',
       email: 'Company Email',
-      enterEmail: 'Optional',
+      enterEmail: 'Email Of Company',
       contactNumber: 'Contact Number',
       enterContactNumber: 'Enter contact number',
       save: 'Next',
@@ -50,8 +50,8 @@ const companiesLocales = {
       ok: 'OK',
       uploadLogo: 'Your Company Logo',
       uploadFormat: 'JPEG, PNG Max file size: 25 MB',
-      uploadAction:"Upload",
-      province:"Company Location"
+      uploadAction: 'Upload',
+      province: 'Company Location',
     },
   },
   ur: {
@@ -110,5 +110,3 @@ const companiesLocales = {
 };
 
 export default companiesLocales;
-
-

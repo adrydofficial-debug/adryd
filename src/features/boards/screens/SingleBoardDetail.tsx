@@ -979,7 +979,10 @@ const styles = StyleSheet.create({
   heroImageWrapper: {
     width: '100%',
     height: '100%',
-    borderRadius: 30,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,  
     overflow: 'hidden',
     backgroundColor: '#E5E7EB',
   },
@@ -997,7 +1000,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 18,
-    paddingTop: heroTopBarPaddingTop, // Status bar height + safe padding
+    paddingTop: heroTopBarPaddingTop,
   },
   heroActions: {
     flexDirection: 'row',
@@ -1160,7 +1163,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '400',
     color: '#C539A5',
-    // textTransform: 'uppercase',
   },
   tagTextLight: {
     color: '#F8F8F8',
@@ -1174,7 +1176,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '400',
     color: '#70737D',
-    // textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
   infoValue: {
@@ -1216,7 +1217,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   map: {
-    width: 299,
+    width: 310,
     height: 156,
   },
   connectButton: {

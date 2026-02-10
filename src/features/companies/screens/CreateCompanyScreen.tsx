@@ -1,40 +1,38 @@
 // src/features/companies/screens/CompanyDetailScreen.tsx
-import React, { useMemo, useState ,useCallback} from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Dimensions,
+  I18nManager,
   Image,
   Modal,
   PermissionsAndroid,
   Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,  I18nManager,
+  View,
 } from 'react-native';
-import Header from '../../../components/Header';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { UploadIcon } from '../../../assets/images';
 import BusinessCategoryDropdown from '../../../components/BusinessCategoryDropdown';
-import PrimaryButton from '../../../components/PrimaryButton';
 import CustomInput from '../../../components/CustomInput';
-import { useTranslation } from 'react-i18next';
+import Header from '../../../components/Header';
+import PrimaryButton from '../../../components/PrimaryButton';
 import { Company } from '../domain/entities';
 // import {AppScreens} from '../../../app/navigation/AppNavigator';
+import NoInternet from '../../../components/NoInternet';
 import { supabase } from '../../../services/supabase';
+import { useCampaignStore } from '../../../store/campaignStore';
+import { useCities } from '../../locations/hooks/hooks';
 import {
   useCompanyCategoryGroups,
   useCreateCompany,
 } from '../hooks/useCompanies';
-import { useCities } from '../../locations/hooks/hooks';
-import NoInternet from '../../../components/NoInternet';
-import { useCampaignStore } from '../../../store/campaignStore';
-import ProgressBar from '../../../components/ProgressBar';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -60,28 +58,27 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   route,
   company,
 }) => {
- 
   const { t, i18n: i18nInstance } = useTranslation('companies');
-  const setCompanyData = useCampaignStore((state) => state.setCompanyData);
+  const setCompanyData = useCampaignStore(state => state.setCompanyData);
   const flow = route?.params?.flow ?? 'business';
   const boardData = route?.params?.boardData;
-  const [companyName, setCompanyName] = useState(
-    company?.company_name || 'Adryd',
-  );
+  const [companyName, setCompanyName] = useState(company?.company_name);
   const [companyNTN, setCompanyNTN] = useState(company?.company_ntn || '');
   const [companyAddress, setCompanyAddress] = useState(company?.address || '');
   const [companyEmail, setCompanyEmail] = useState(company?.email || '');
-  const [companyNumber, setCompanyNumber] = useState(company?.contact_number || '+92');
+  const [companyNumber, setCompanyNumber] = useState(
+    company?.contact_number || '+92',
+  );
   const [selectedImage, setSelectedImage] = useState<SelectedImage | null>(
     null,
   );
-   const [languageKey, setLanguageKey] = useState(0);
-    const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
+  const [languageKey, setLanguageKey] = useState(0);
+  const [currentLanguage, setCurrentLanguage] = useState(i18nInstance.language);
   const [selectedBusinessCategory, setSelectedBusinessCategory] =
     useState<string>('');
   const [selectedCityId, setSelectedCityId] = useState<string>('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
-   const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
+  const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
 
   // Validation states
   const [validationErrors, setValidationErrors] = useState<{
@@ -150,7 +147,9 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       return [];
     }
     return citiesData.map(city => ({
-      label: city.province_name ? `${city.name}, ${city.province_name}` : city.name,
+      label: city.province_name
+        ? `${city.name}, ${city.province_name}`
+        : city.name,
       value: String(city.id),
     }));
   }, [citiesData]);
@@ -200,7 +199,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         if (response.didCancel) {
           return;
         } else if (response.errorMessage) {
-          ''
+          ('');
         } else if (response.assets && response.assets[0]) {
           const asset = response.assets[0];
           const maxSize = 25 * 1024 * 1024; // 25MB
@@ -308,11 +307,11 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
   // Extract submission logic to be called after confirmation
   const handleSubmit = async (): Promise<void> => {
     const parsedCategoryId = Number(selectedBusinessCategory);
-    
+
     try {
       setIsSubmitting(true);
       setShowConfirmModal(false);
-      
+
       const {
         data: { user },
         error: userError,
@@ -367,10 +366,10 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         data: companyData,
         file: selectedImage
           ? {
-            uri: selectedImage.uri,
-            type: selectedImage.type,
-            name: selectedImage.name,
-          }
+              uri: selectedImage.uri,
+              type: selectedImage.type,
+              name: selectedImage.name,
+            }
           : undefined,
       });
 
@@ -384,16 +383,19 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
         companyAddress: companyAddress.trim(),
         companyNTN: companyNTN.trim() || '0000000-0',
         companyNumber: companyNumber.trim() || '+923000000000',
-        logoUri: selectedImage?.uri || 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=400&q=80',
+        logoUri:
+          selectedImage?.uri ||
+          'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=400&q=80',
         logoType: selectedImage?.type,
         logoName: selectedImage?.name,
       });
+      navigation.goBack();
 
-      navigation.navigate('AdvertismentCreateScreen', {
-        flow,
-        companyId: result.id, 
-        boardData: boardData, 
-      });
+      // navigation.navigate('AdvertismentCreateScreen', {
+      //   flow,
+      //   companyId: result.id,
+      //   boardData: boardData,
+      // });
     } catch (error: any) {
       console.error('Create company error:', error);
 
@@ -459,7 +461,7 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       }
     }
   };
- useFocusEffect(
+  useFocusEffect(
     useCallback(() => {
       const lang = i18nInstance.language;
       setCurrentLanguage(lang);
@@ -467,227 +469,242 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
       setIsRTL(rtlLangs.has(lang));
       setLanguageKey(prev => prev + 1);
       return () => {};
-    }, [i18nInstance.language])
+    }, [i18nInstance.language]),
   );
- const handleBackPress = () => {
+  const handleBackPress = () => {
     navigation.goBack();
+  };
+
+  const formatNTN = (text: string) => {
+    // Strip everything except numbers
+    const digitsOnly = text.replace(/\D/g, '');
+
+    // Limit to 8 digits max
+    const limited = digitsOnly.slice(0, 8);
+
+    // Insert dash after 7 digits
+    if (limited.length > 7) {
+      return `${limited.slice(0, 7)}-${limited.slice(7)}`;
+    }
+
+    return limited;
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
-         <Header
-              title={t('create.title', { lng: currentLanguage })}
-              onBackPress={handleBackPress} 
-              showBackButton
-              // showRightIcon
-              containerStyle={{
-                flexDirection: isRTL ? 'row-reverse' : 'row',
-                paddingHorizontal: 0,
-                marginBottom: hp(2),
-              }}
-            />
-       
-        <View style={styles.progressContainer}>
+      {/* <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" /> */}
+      <Header
+        title={t('create.title', { lng: currentLanguage })}
+        onBackPress={handleBackPress}
+        showBackButton
+        // showRightIcon
+        // containerStyle={{
+        //   flexDirection: isRTL ? 'row-reverse' : 'row',
+        //   paddingHorizontal: 0,
+        //   // marginBottom: hp(2),
+        // }}
+      />
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* <View style={styles.progressContainer}>
           <ProgressBar currentStep={1} />
-        </View>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.formCard}>
-            <TouchableOpacity
-              style={styles.uploadSection}
-              onPress={openImagePicker}
-              activeOpacity={0.9}
+        </View> */}
+        <View style={styles.formCard}>
+          <TouchableOpacity
+            style={styles.uploadSection}
+            onPress={openImagePicker}
+            activeOpacity={0.9}
+          >
+            <View
+              style={[
+                styles.uploadContainer,
+                !selectedImage && styles.uploadContainerEmpty,
+              ]}
             >
-              <View
-                style={[
-                  styles.uploadContainer,
-                  !selectedImage && styles.uploadContainerEmpty,
-                ]}
-              >
-                {selectedImage ? (
-                  <View style={styles.imagePreviewContainer}>
-                    <Image
-                      source={{ uri: selectedImage.uri }}
-                      style={styles.previewImage}
-                      resizeMode="cover"
+              {selectedImage ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image
+                    source={{ uri: selectedImage.uri }}
+                    style={styles.previewImage}
+                    resizeMode="cover"
+                  />
+                  <TouchableOpacity
+                    style={styles.deleteImageButton}
+                    onPress={() => setSelectedImage(null)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="trash"
+                      size={width * 0.06}
+                      color="#ff4444"
                     />
-                    <TouchableOpacity
-                      style={styles.deleteImageButton}
-                      onPress={() => setSelectedImage(null)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons
-                        name="trash"
-                        size={width * 0.06}
-                        color="#ff4444"
-                      />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <>
-                    <View style={styles.uploadButton}>
-                      <UploadIcon width={width * 0.06} height={width * 0.06} />
-                      <Text style={styles.uploadButtonText}>
-                        {t('create.uploadAction')}
-                      </Text>
-                    </View>
-                    <Text style={styles.uploadTitle}>{t('create.uploadLogo')}</Text>
-                    <Text style={styles.uploadHint}>
-                      {t('create.uploadFormat')}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.uploadButton}>
+                    <UploadIcon width={width * 0.06} height={width * 0.06} />
+                    <Text style={styles.uploadButtonText}>
+                      {t('create.uploadAction')}
                     </Text>
-                  </>
-                )}
-              </View>
-            </TouchableOpacity>
-            <View style={styles.formFields}>
-              <CustomInput
-                label={t('create.companyName')}
-                placeholder={''}
-                value={companyName}
-                onChangeText={text => {
-                  setCompanyName(text);
-                  // Clear validation error when user starts typing
-                  if (validationErrors.companyName) {
-                    setValidationErrors(prev => ({
-                      ...prev,
-                      companyName: false,
-                    }));
-                  }
-                }}
-                containerStyle={styles.customInputContainer}
-                error={validationErrors.companyName}
-              />
+                  </View>
+                  <Text style={styles.uploadTitle}>
+                    {t('create.uploadLogo')}
+                  </Text>
+                  <Text style={styles.uploadHint}>
+                    {t('create.uploadFormat')}
+                  </Text>
+                </>
+              )}
+            </View>
+          </TouchableOpacity>
+          <View style={styles.formFields}>
+            <CustomInput
+              label={t('create.companyName')}
+              placeholder={'Name Of Company'}
+              value={companyName}
+              onChangeText={text => {
+                setCompanyName(text);
+                // Clear validation error when user starts typing
+                if (validationErrors.companyName) {
+                  setValidationErrors(prev => ({
+                    ...prev,
+                    companyName: false,
+                  }));
+                }
+              }}
+              containerStyle={styles.customInputContainer}
+              error={validationErrors.companyName}
+            />
 
-              {/* Business Category Input Field with Element Dropdown */}
-              <View
-                style={styles.customInputContainer}
-              >
-                <Text style={styles.inputLabel}>{t('create.category')}</Text>
-                <BusinessCategoryDropdown
-                  label=""
-                  data={businessCategoryData}
-                  value={selectedBusinessCategory}
-                  onSelect={value => {
-                    console.log('Category selected:', value);
-                    setSelectedBusinessCategory(value);
-                    // Clear validation error when user selects
-                    if (validationErrors.businessCategory) {
-                      setValidationErrors(prev => ({
-                        ...prev,
-                        businessCategory: false,
-                      }));
-                    }
-                  }}
-                  placeholder={t('create.selectCategory')}
-                  required={true}
-                  containerStyle={styles.dropdownWrapper}
-                  error={validationErrors.businessCategory}
-                />
-              </View>
-
-              {/* Company Location (City) */}
-              <View
-                style={styles.customInputContainer}
-              >
-                <Text style={styles.inputLabel}>
-                  {t('create.city', 'Company location')}
-                </Text>
-                <BusinessCategoryDropdown
-                  label=""
-                  data={cityOptions}
-                  value={selectedCityId}
-                  onSelect={value => {
-                    setSelectedCityId(value);
-                    if (validationErrors.city) {
-                      setValidationErrors(prev => ({
-                        ...prev,
-                        city: false,
-                      }));
-                    }
-                  }}
-                  placeholder={
-                    citiesLoading
-                      ? t('create.loading', 'Loading...')
-                      : t('create.selectCity', 'Select city')
-                  }
-                  containerStyle={styles.dropdownWrapper}
-                  error={validationErrors.city}
-                />
-              </View>
-
-              {/* Company Number Input - Same as Login Screen */}
-              <CustomInput
-                label={t('create.companyNumber')}
-                placeholder="3XXXXXXXXX"
-                keyboardType="phone-pad"
-                value={companyNumber}
-                onChangeText={handlePhoneNumberChange}
-                onBlur={() => setFocusedField(null)}
-                onFocus={() => setFocusedField('companyNumber')}
-                focused={focusedField === 'companyNumber'}
-                error={!!validationErrors.companyNumber}
-                showErrorText={false}
-                containerStyle={styles.customInputContainer}
-              />
-              <CustomInput
-                label={t('create.email')}
-                placeholder={t('create.enterEmail')}
-                value={companyEmail}
-                onChangeText={text => {
-                  setCompanyEmail(text);
-                  // Clear validation error when user starts typing
-                  if (validationErrors.companyEmail) {
+            {/* Business Category Input Field with Element Dropdown */}
+            <View style={styles.customInputContainer}>
+              <Text style={styles.inputLabel}>{t('create.category')}</Text>
+              <BusinessCategoryDropdown
+                label=""
+                data={businessCategoryData}
+                value={selectedBusinessCategory}
+                onSelect={value => {
+                  console.log('Category selected:', value);
+                  setSelectedBusinessCategory(value);
+                  // Clear validation error when user selects
+                  if (validationErrors.businessCategory) {
                     setValidationErrors(prev => ({
                       ...prev,
-                      companyEmail: false,
+                      businessCategory: false,
                     }));
                   }
                 }}
-                keyboardType="email-address"
-                containerStyle={styles.customInputContainer}
-                error={validationErrors.companyEmail}
-              />
-                <CustomInput
-                label={t('create.ntn')}
-                placeholder={t('create.enterNtn')}
-                value={companyNTN}
-                onChangeText={text => {
-                  setCompanyNTN(text);
-                  // Clear validation error when user starts typing
-                  if (validationErrors.companyNTN) {
-                    setValidationErrors(prev => ({
-                      ...prev,
-                      companyNTN: false,
-                    }));
-                  }
-                }}
-                containerStyle={styles.customInputContainer}
-                error={validationErrors.companyNTN}
-              />
-              <CustomInput
-                label={t('create.address')}
-                placeholder={t('create.enterAddress')}
-                value={companyAddress}
-                onChangeText={text => {
-                  setCompanyAddress(text);
-                  // Clear validation error when user starts typing
-                  if (validationErrors.companyAddress) {
-                    setValidationErrors(prev => ({
-                      ...prev,
-                      companyAddress: false,
-                    }));
-                  }
-                }}
-                containerStyle={styles.customInputContainer}
-                error={validationErrors.companyAddress}
+                placeholder={t('create.selectCategory')}
+                required={true}
+                containerStyle={styles.dropdownWrapper}
+                error={validationErrors.businessCategory}
               />
             </View>
+
+            {/* Company Location (City) */}
+            <View style={styles.customInputContainer}>
+              <Text style={styles.inputLabel}>
+                {t('create.city', 'Company location')}
+              </Text>
+              <BusinessCategoryDropdown
+                label=""
+                data={cityOptions}
+                value={selectedCityId}
+                onSelect={value => {
+                  setSelectedCityId(value);
+                  if (validationErrors.city) {
+                    setValidationErrors(prev => ({
+                      ...prev,
+                      city: false,
+                    }));
+                  }
+                }}
+                placeholder={
+                  citiesLoading
+                    ? t('create.loading', 'Loading...')
+                    : t('create.selectCity', 'Select city')
+                }
+                containerStyle={styles.dropdownWrapper}
+                error={validationErrors.city}
+              />
+            </View>
+
+            {/* Company Number Input - Same as Login Screen */}
+            <CustomInput
+              label={t('create.companyNumber')}
+              placeholder="3XXXXXXXXX"
+              keyboardType="phone-pad"
+              value={companyNumber}
+              onChangeText={handlePhoneNumberChange}
+              onBlur={() => setFocusedField(null)}
+              onFocus={() => setFocusedField('companyNumber')}
+              focused={focusedField === 'companyNumber'}
+              error={!!validationErrors.companyNumber}
+              showErrorText={false}
+              containerStyle={styles.customInputContainer}
+            />
+            <CustomInput
+              label={t('create.email')}
+              placeholder={t('create.enterEmail')}
+              value={companyEmail}
+              onChangeText={text => {
+                setCompanyEmail(text);
+                // Clear validation error when user starts typing
+                if (validationErrors.companyEmail) {
+                  setValidationErrors(prev => ({
+                    ...prev,
+                    companyEmail: false,
+                  }));
+                }
+              }}
+              keyboardType="email-address"
+              containerStyle={styles.customInputContainer}
+              error={validationErrors.companyEmail}
+            />
+            <CustomInput
+              label={t('create.ntn')}
+              placeholder={t('create.enterNtn')}
+              value={companyNTN}
+              onChangeText={text => {
+                const formatted = formatNTN(text);
+                setCompanyNTN(formatted);
+
+                if (validationErrors.companyNTN) {
+                  setValidationErrors(prev => ({
+                    ...prev,
+                    companyNTN: false,
+                  }));
+                }
+              }}
+              keyboardType="number-pad"
+              containerStyle={styles.customInputContainer}
+              error={validationErrors.companyNTN}
+            />
+
+            <CustomInput
+              label={t('create.address')}
+              placeholder={t('create.enterAddress')}
+              value={companyAddress}
+              onChangeText={text => {
+                setCompanyAddress(text);
+                // Clear validation error when user starts typing
+                if (validationErrors.companyAddress) {
+                  setValidationErrors(prev => ({
+                    ...prev,
+                    companyAddress: false,
+                  }));
+                }
+              }}
+              containerStyle={styles.customInputContainer}
+              error={validationErrors.companyAddress}
+            />
           </View>
-        </ScrollView>
+        </View>
         <View style={styles.buttonContainer}>
           <PrimaryButton
             title={isSubmitting ? t('create.saving') : t('create.save')}
@@ -697,38 +714,39 @@ const CompanyDetailScreen: React.FC<CompanyDetailScreenProps> = ({
             buttonStyle={styles.nextButton}
           />
         </View>
+      </ScrollView>
 
-        {/* Confirmation Modal */}
-        <Modal
-          visible={showConfirmModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowConfirmModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>
-                Are You Save This Business Detail
-              </Text>
-              <View style={styles.modalButtonsContainer}>
-                <TouchableOpacity
-                  style={styles.modalCancelButton}
-                  onPress={() => setShowConfirmModal(false)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.modalYesButton}
-                  onPress={handleSubmit}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.modalYesButtonText}>Yes</Text>
-                </TouchableOpacity>
-              </View>
+      {/* Confirmation Modal */}
+      <Modal
+        visible={showConfirmModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>
+              Are you sure you want to create this company?
+            </Text>
+            <View style={styles.modalButtonsContainer}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowConfirmModal(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalYesButton}
+                onPress={handleSubmit}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalYesButtonText}>Yes</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
       <NoInternet />
     </View>
@@ -746,7 +764,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.05,
     paddingTop: hp(5),
     paddingBottom: height * 0.03,
-    backgroundColor: "#FFFFFF"
+    backgroundColor: '#FFFFFF',
   },
   backButton: {
     backgroundColor: '#fff',
@@ -772,7 +790,7 @@ const styles = StyleSheet.create({
     paddingBottom: height * 0.04,
     paddingTop: height * 0.04,
   },
- 
+
   progressStepContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -829,7 +847,8 @@ const styles = StyleSheet.create({
     // elevation: 5,
   },
   uploadSection: {
-    marginBottom: height * 0.03,
+    marginBottom: hp(3),
+    marginTop: hp(4),
     borderRadius: 24,
     backgroundColor: '#FFFFFF',
     paddingVertical: 10,
@@ -932,14 +951,14 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
   },
   buttonContainer: {
-    paddingHorizontal: width * 0.05,
+    // paddingHorizontal: width * 0.0005,
     paddingTop: 16,
     paddingBottom: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   nextButton: {
-    width: '70%',
+    width: '100%',
   },
   label: {
     fontSize: 16,

@@ -1,30 +1,37 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-  Dimensions,
-  StatusBar,
-  SafeAreaView,
-  ActivityIndicator,
-  Modal,
-  Image,
-} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useMutation } from '@tanstack/react-query';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import Loader from '../../../components/Loader';
-import { useCities, useLocations } from '../hooks/hooks';
-import { City, Location } from '../domain/entities';
 import BoardList, { BoardItem } from '../../../components/BoardList';
-import { useBoardFilters } from '../../boards/hooks/useBoardFilters';
+import Loader from '../../../components/Loader';
 import { fetchFilteredBoards } from '../../boards/api/api';
 import { FilterBoardsParams } from '../../boards/api/types/requests';
 import { FilteredBoardsResponse } from '../../boards/api/types/responses';
 import { mapFilteredBoards } from '../../boards/domain/mappers';
+import { useBoardFilters } from '../../boards/hooks/useBoardFilters';
+import { City, Location } from '../domain/entities';
+import { useCities, useLocations } from '../hooks/hooks';
+import { useCityStore } from '../store/cityStore';
 
 const filterIcon = require('../../../assets/icons/filter_button.png');
 
@@ -52,7 +59,9 @@ const SearchLocation: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const [searchQuery, setSearchQuery] = useState('');
-  const [draftSelectedFilters, setDraftSelectedFilters] = useState<Set<string>>(new Set());
+  const [draftSelectedFilters, setDraftSelectedFilters] = useState<Set<string>>(
+    new Set(),
+  );
   const [appliedFilters, setAppliedFilters] = useState<Set<string>>(new Set());
   const [appliedFilterOrder, setAppliedFilterOrder] = useState<string[]>([]);
   const [filteredBoards, setFilteredBoards] = useState<BoardItem[]>([]);
@@ -64,14 +73,29 @@ const SearchLocation: React.FC = () => {
     total: 0,
     limit: DEFAULT_LIMIT,
   });
-  const [selectedLocation, setSelectedLocation] = useState('Lahore');
-  const [selectedCityId, setSelectedCityId] = useState<number | undefined>(undefined);
+
+  const { selectedCity, setSelectedCity } = useCityStore();
+
+  const selectedCityId = selectedCity?.id;
+  const selectedLocation = selectedCity?.name ?? 'Select City';
+  const isLocationExplicitlySelected = Boolean(selectedCity);
+
+  // const [selectedLocation, setSelectedLocation] = useState('Lahore');
+  // const [selectedCityId, setSelectedCityId] = useState<number | undefined>(
+  //   undefined,
+  // );
   const [selectedArea, setSelectedArea] = useState<string>('');
-  const [selectedLocationId, setSelectedLocationId] = useState<number | undefined>(undefined);
-  const [isLocationExplicitlySelected, setIsLocationExplicitlySelected] = useState(false);
+  const [selectedLocationId, setSelectedLocationId] = useState<
+    number | undefined
+  >(undefined);
+  // const [isLocationExplicitlySelected, setIsLocationExplicitlySelected] =
+  //   useState(false);
   const [draftSelectedArea, setDraftSelectedArea] = useState<string>('');
-  const [draftSelectedLocationId, setDraftSelectedLocationId] = useState<number | undefined>(undefined);
-  const [isLocationDropdownVisible, setIsLocationDropdownVisible] = useState(false);
+  const [draftSelectedLocationId, setDraftSelectedLocationId] = useState<
+    number | undefined
+  >(undefined);
+  const [isLocationDropdownVisible, setIsLocationDropdownVisible] =
+    useState(false);
   const [isCitiesDropdownOpen, setIsCitiesDropdownOpen] = useState(false);
   const [isFilterSectionVisible, setIsFilterSectionVisible] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -102,14 +126,16 @@ const SearchLocation: React.FC = () => {
     refetch: refetchBoardFilters,
   } = useBoardFilters();
 
-  const {
-    mutateAsync: runFilterRequest,
-    isPending: isApplyingFilters,
-  } = useMutation<FilteredBoardsResponse, Error, FilterBoardsParams>({
-    mutationFn: (variables: FilterBoardsParams) => fetchFilteredBoards(variables),
-  });
+  const { mutateAsync: runFilterRequest, isPending: isApplyingFilters } =
+    useMutation<FilteredBoardsResponse, Error, FilterBoardsParams>({
+      mutationFn: (variables: FilterBoardsParams) =>
+        fetchFilteredBoards(variables),
+    });
 
-  const cities: City[] = citiesData ?? [];
+  const cities: City[] = useMemo(() => {
+    return citiesData ?? [];
+  }, [citiesData]);
+
   const filteredCities = useMemo(() => {
     if (!searchQuery.trim()) {
       return cities;
@@ -118,16 +144,14 @@ const SearchLocation: React.FC = () => {
     return cities.filter(city => city.name.toLowerCase().includes(query));
   }, [cities, searchQuery]);
 
-  // Initialize selectedCityId when cities load (but don't mark as explicitly selected)
   useEffect(() => {
-    if (cities.length > 0 && !selectedCityId && !isLocationExplicitlySelected) {
-      const defaultCity = cities.find(city => city.name === selectedLocation);
+    if (!selectedCity && cities.length > 0) {
+      const defaultCity = cities.find(c => c.name === 'Lahore');
       if (defaultCity) {
-        setSelectedCityId(defaultCity.id);
-        // Don't set isLocationExplicitlySelected - this is just default initialization
+        setSelectedCity(defaultCity);
       }
     }
-  }, [cities, selectedLocation, selectedCityId, isLocationExplicitlySelected]);
+  }, [cities, selectedCity, setSelectedCity]);
 
   useEffect(() => {
     const params = route?.params;
@@ -139,28 +163,33 @@ const SearchLocation: React.FC = () => {
         setDraftSelectedLocationId(selectedLocationId);
         setIsCitiesDropdownOpen(false);
       }
-      
+
       if (params.openFilters === true) {
         setIsFilterSectionVisible(true);
         refetchBoardFilters();
       }
     }
-  }, [route?.params, selectedArea, selectedLocationId, refetchCities, refetchBoardFilters]);
+  }, [
+    route?.params,
+    selectedArea,
+    selectedLocationId,
+    refetchCities,
+    refetchBoardFilters,
+  ]);
 
-  // Select a city
   const selectCity = (city: City) => {
-    setSelectedLocation(city.name);
-    setSelectedCityId(city.id);
+    setSelectedCity(city);
+
     setDraftSelectedArea('');
-    setDraftSelectedLocationId(undefined); // Clear location ID when city changes
-    setSelectedLocationId(undefined); // Clear selected location ID when city changes
-    setIsLocationExplicitlySelected(true); // Mark as explicitly selected by user
-    setIsCitiesDropdownOpen(false); // Close cities dropdown when city is selected
-    // Add to area history if not already present
+    setDraftSelectedLocationId(undefined);
+    setSelectedLocationId(undefined);
+
+    setIsCitiesDropdownOpen(false);
+
     if (!areaHistory.find(area => area.name === city.name)) {
       setAreaHistory(prev => [
         { id: Date.now().toString(), name: city.name },
-        ...prev.slice(0, 2), // Keep only last 3 items
+        ...prev.slice(0, 2),
       ]);
     }
   };
@@ -217,10 +246,10 @@ const SearchLocation: React.FC = () => {
   // Flat list of all filter options (for backward compatibility)
   const filterOptions: FilterOption[] = useMemo(() => {
     const allOptions: FilterOption[] = [];
-    
+
     // Add special filters
     allOptions.push(...specialFilters);
-    
+
     // Add group and category filters
     filterGroups.forEach(group => {
       // Add group itself
@@ -238,7 +267,7 @@ const SearchLocation: React.FC = () => {
         });
       });
     });
-    
+
     return allOptions;
   }, [specialFilters, filterGroups]);
 
@@ -258,30 +287,34 @@ const SearchLocation: React.FC = () => {
 
   // Auto-select "See All" when opened from + button
   const [shouldAutoFetch, setShouldAutoFetch] = useState(false);
-  
+
   useEffect(() => {
     const params = route?.params;
-    if (params?.autoSelectSeeAll === true && filterGroups.length > 0 && boardFiltersData?.groups) {
+    if (
+      params?.autoSelectSeeAll === true &&
+      filterGroups.length > 0 &&
+      boardFiltersData?.groups
+    ) {
       const newFilters = new Set<string>();
       newFilters.add('see-all');
       newFilters.add('recommended');
-      
+
       const categorySlugs: string[] = [];
-      
+
       filterGroups.forEach(group => {
         group.categories.forEach(cat => {
           newFilters.add(cat.slug);
           categorySlugs.push(cat.slug);
         });
       });
-      
+
       setDraftSelectedFilters(newFilters);
-      
+
       setAppliedFilters(new Set(categorySlugs)); // Only category slugs for API
       setAppliedFilterOrder(categorySlugs);
-      
+
       setShouldAutoFetch(true);
-      
+
       navigation.setParams({ autoSelectSeeAll: undefined });
     }
   }, [route?.params, filterGroups, boardFiltersData, navigation]);
@@ -291,115 +324,125 @@ const SearchLocation: React.FC = () => {
     if (!searchQuery.trim()) return filterOptions;
     const query = searchQuery.toLowerCase();
     return filterOptions.filter(option =>
-      option.name.toLowerCase().includes(query)
+      option.name.toLowerCase().includes(query),
     );
   }, [searchQuery, filterOptions]);
 
   // Get all child category slugs for a group
-  const getGroupChildSlugs = useCallback((groupSlug: string): string[] => {
-    const group = filterGroups.find(g => g.slug === groupSlug);
-    if (!group) return [];
-    return group.categories.map(cat => cat.slug);
-  }, [filterGroups]);
+  const getGroupChildSlugs = useCallback(
+    (groupSlug: string): string[] => {
+      const group = filterGroups.find(g => g.slug === groupSlug);
+      if (!group) return [];
+      return group.categories.map(cat => cat.slug);
+    },
+    [filterGroups],
+  );
 
   // Check if all children of a group are selected
-  const areAllChildrenSelected = useCallback((groupSlug: string): boolean => {
-    const childSlugs = getGroupChildSlugs(groupSlug);
-    if (childSlugs.length === 0) return false;
-    return childSlugs.every(slug => draftSelectedFilters.has(slug));
-  }, [draftSelectedFilters, getGroupChildSlugs]);
+  const areAllChildrenSelected = useCallback(
+    (groupSlug: string): boolean => {
+      const childSlugs = getGroupChildSlugs(groupSlug);
+      if (childSlugs.length === 0) return false;
+      return childSlugs.every(slug => draftSelectedFilters.has(slug));
+    },
+    [draftSelectedFilters, getGroupChildSlugs],
+  );
 
   // Toggle filter selection (with parent-child logic)
-  const toggleFilter = useCallback((filterId: string, isGroup: boolean = false) => {
-    setDraftSelectedFilters(prev => {
-      const newSet = new Set(prev);
-      
-      // Handle "See All" special case
-      if (filterId === 'see-all') {
-        const isSeeAllSelected = prev.has('see-all');
-        
-        if (isSeeAllSelected) {
-          // Deselect "See All", "Recommended" and all category filters
-          newSet.delete('see-all');
-          newSet.delete('recommended');
-          // Remove all category filters (keep only special filters if any)
-          filterGroups.forEach(group => {
-            group.categories.forEach(cat => {
-              newSet.delete(cat.slug);
+  const toggleFilter = useCallback(
+    (filterId: string, isGroup: boolean = false) => {
+      setDraftSelectedFilters(prev => {
+        const newSet = new Set(prev);
+
+        // Handle "See All" special case
+        if (filterId === 'see-all') {
+          const isSeeAllSelected = prev.has('see-all');
+
+          if (isSeeAllSelected) {
+            // Deselect "See All", "Recommended" and all category filters
+            newSet.delete('see-all');
+            newSet.delete('recommended');
+            // Remove all category filters (keep only special filters if any)
+            filterGroups.forEach(group => {
+              group.categories.forEach(cat => {
+                newSet.delete(cat.slug);
+              });
             });
-          });
-        } else {
-          // Select "See All", "Recommended" and all category filters
-          newSet.add('see-all');
-          newSet.add('recommended');
-          // Add all category filters from all groups
-          filterGroups.forEach(group => {
-            group.categories.forEach(cat => {
-              newSet.add(cat.slug);
+          } else {
+            // Select "See All", "Recommended" and all category filters
+            newSet.add('see-all');
+            newSet.add('recommended');
+            // Add all category filters from all groups
+            filterGroups.forEach(group => {
+              group.categories.forEach(cat => {
+                newSet.add(cat.slug);
+              });
             });
-          });
+          }
+          return newSet;
         }
+
+        if (isGroup) {
+          // If it's a group, toggle all its children
+          const childSlugs = getGroupChildSlugs(filterId);
+          const allSelected =
+            childSlugs.length > 0 && childSlugs.every(slug => prev.has(slug));
+
+          if (allSelected) {
+            // Deselect all children
+            childSlugs.forEach(slug => newSet.delete(slug));
+            // Also deselect "See All" and "Recommended" if they were selected
+            newSet.delete('see-all');
+            newSet.delete('recommended');
+          } else {
+            // Select all children
+            childSlugs.forEach(slug => newSet.add(slug));
+            // Check if all categories are now selected, if so, also select "See All" and "Recommended"
+            const allCategoriesSelected = filterGroups.every(group =>
+              group.categories.every(cat => {
+                if (group.slug === filterId) {
+                  // For the current group, check if all are selected after adding
+                  return newSet.has(cat.slug);
+                }
+                return prev.has(cat.slug);
+              }),
+            );
+            if (allCategoriesSelected) {
+              newSet.add('see-all');
+              newSet.add('recommended');
+            }
+          }
+        } else {
+          // Regular toggle for individual filters
+          if (newSet.has(filterId)) {
+            newSet.delete(filterId);
+            // If deselecting a category, also deselect "See All" and "Recommended"
+            newSet.delete('see-all');
+            newSet.delete('recommended');
+          } else {
+            newSet.add(filterId);
+            // Check if all categories are now selected, if so, also select "See All" and "Recommended"
+            const allCategoriesSelected = filterGroups.every(group =>
+              group.categories.every(cat => {
+                if (cat.slug === filterId) {
+                  // For the current category, check if it's selected after adding
+                  return newSet.has(cat.slug);
+                }
+                return prev.has(cat.slug);
+              }),
+            );
+            if (allCategoriesSelected) {
+              newSet.add('see-all');
+              newSet.add('recommended');
+            }
+          }
+        }
+
         return newSet;
-      }
-      
-      if (isGroup) {
-        // If it's a group, toggle all its children
-        const childSlugs = getGroupChildSlugs(filterId);
-        const allSelected = childSlugs.length > 0 && childSlugs.every(slug => prev.has(slug));
-        
-        if (allSelected) {
-          // Deselect all children
-          childSlugs.forEach(slug => newSet.delete(slug));
-          // Also deselect "See All" and "Recommended" if they were selected
-          newSet.delete('see-all');
-          newSet.delete('recommended');
-        } else {
-          // Select all children
-          childSlugs.forEach(slug => newSet.add(slug));
-          // Check if all categories are now selected, if so, also select "See All" and "Recommended"
-          const allCategoriesSelected = filterGroups.every(group => 
-            group.categories.every(cat => {
-              if (group.slug === filterId) {
-                // For the current group, check if all are selected after adding
-                return newSet.has(cat.slug);
-              }
-              return prev.has(cat.slug);
-            })
-          );
-          if (allCategoriesSelected) {
-            newSet.add('see-all');
-            newSet.add('recommended');
-          }
-        }
-      } else {
-        // Regular toggle for individual filters
-        if (newSet.has(filterId)) {
-          newSet.delete(filterId);
-          // If deselecting a category, also deselect "See All" and "Recommended"
-          newSet.delete('see-all');
-          newSet.delete('recommended');
-        } else {
-          newSet.add(filterId);
-          // Check if all categories are now selected, if so, also select "See All" and "Recommended"
-          const allCategoriesSelected = filterGroups.every(group => 
-            group.categories.every(cat => {
-              if (cat.slug === filterId) {
-                // For the current category, check if it's selected after adding
-                return newSet.has(cat.slug);
-              }
-              return prev.has(cat.slug);
-            })
-          );
-          if (allCategoriesSelected) {
-            newSet.add('see-all');
-            newSet.add('recommended');
-          }
-        }
-      }
-      
-      return newSet;
-    });
-  }, [getGroupChildSlugs, filterGroups]);
+      });
+    },
+    [getGroupChildSlugs, filterGroups],
+  );
 
   // Reset all filters
   const resetAllFilters = () => {
@@ -445,48 +488,43 @@ const SearchLocation: React.FC = () => {
       }));
   }, [appliedFilterOrder, filterOptionsMap]);
 
-  const convertBoardToBoardItem = useCallback(
-    (board: any): BoardItem => {
-      const primaryMediaUrl =
-        Array.isArray(board.media) && board.media.length > 0
-          ? board.media[0]?.url
-          : null;
-      const imageUrl = board.image_url || board.image || primaryMediaUrl;
+  const convertBoardToBoardItem = useCallback((board: any): BoardItem => {
+    const primaryMediaUrl =
+      Array.isArray(board.media) && board.media.length > 0
+        ? board.media[0]?.url
+        : null;
+    const imageUrl = board.image_url || board.image || primaryMediaUrl;
 
-      const priceValue =
-        typeof board.price === 'number'
-          ? board.price
-          : board.price
-          ? parseFloat(board.price)
-          : 0;
+    const priceValue =
+      typeof board.price === 'number'
+        ? board.price
+        : board.price
+        ? parseFloat(board.price)
+        : 0;
 
-      const locationString =
-        typeof board.location === 'string'
-          ? board.location
-          : board.location?.name || board.category?.name || 'Unknown Location';
+    const locationString =
+      typeof board.location === 'string'
+        ? board.location
+        : board.location?.name || board.category?.name || 'Unknown Location';
 
-      return {
-        id: board.id?.toString() || 'unknown',
-        title: board.title || 'Untitled Board',
-        description: board.description || '',
-        location: locationString,
-        distance: '1.6 km',
-        size:
-          board.width && board.height
-            ? `${board.width}x${board.height}`
-            : '12x8',
-        price: priceValue || 0,
-        currency: board.currency || 'PKR',
-        image_url: imageUrl || null,
-        image: imageUrl || undefined,
-        rating: board.avg_rating ?? board.rating ?? 0,
-        reviewCount: board.total_ratings ?? board.reviewCount ?? 0,
-        category: board.category?.name || 'Static',
-        media: Array.isArray(board.media) ? board.media : [],
-      };
-    },
-    [],
-  );
+    return {
+      id: board.id?.toString() || 'unknown',
+      title: board.title || 'Untitled Board',
+      description: board.description || '',
+      location: locationString,
+      distance: '1.6 km',
+      size:
+        board.width && board.height ? `${board.width}x${board.height}` : '12x8',
+      price: priceValue || 0,
+      currency: board.currency || 'PKR',
+      image_url: imageUrl || null,
+      image: imageUrl || undefined,
+      rating: board.avg_rating ?? board.rating ?? 0,
+      reviewCount: board.total_ratings ?? board.reviewCount ?? 0,
+      category: board.category?.name || 'Static',
+      media: Array.isArray(board.media) ? board.media : [],
+    };
+  }, []);
 
   const handleDetailPress = useCallback(
     (item: BoardItem) => {
@@ -532,39 +570,94 @@ const SearchLocation: React.FC = () => {
   const handleApplyLocation = useCallback(async () => {
     setSelectedArea(draftSelectedArea);
     setSelectedLocationId(draftSelectedLocationId);
-    // Clear city_id if area is selected (we use location_id instead)
-    if (draftSelectedLocationId) {
-      setSelectedCityId(undefined);
-      setIsLocationExplicitlySelected(true); // Mark as explicitly selected
-    }
+
+    // If area is selected, city stays in store but we use location_id
     setIsLocationDropdownVisible(false);
-    // Add to area history if not already present
-    if (draftSelectedArea && !areaHistory.find(area => area.name === draftSelectedArea)) {
+
+    // Add to area history
+    if (
+      draftSelectedArea &&
+      !areaHistory.find(area => area.name === draftSelectedArea)
+    ) {
       setAreaHistory(prev => [
         { id: Date.now().toString(), name: draftSelectedArea },
-        ...prev.slice(0, 2), // Keep only last 3 items
+        ...prev.slice(0, 2),
       ]);
     }
-    // Automatically trigger filter API call with the new location
-    // Use draft values directly since state updates are async
+
     const locationIdToUse = draftSelectedLocationId;
     const cityIdToUse = draftSelectedLocationId ? undefined : selectedCityId;
-    
-    if (locationIdToUse || cityIdToUse) {
+
+    if (!locationIdToUse && !cityIdToUse) return;
+
+    const trimmedSearch = searchQuery.trim();
+    const sortedIds = sortedDraftFilterIds;
+
+    const payload: FilterBoardsParams = {
+      page: DEFAULT_PAGE,
+      limit: DEFAULT_LIMIT,
+      search: trimmedSearch || undefined,
+      min_price: DEFAULT_MIN_PRICE,
+      max_price: DEFAULT_MAX_PRICE,
+    };
+
+    const validCategorySlugs = sortedIds.filter(id => {
+      if (id === 'see-all' || id === 'recommended') return false;
+      return !filterGroups.some(g => g.slug === id);
+    });
+
+    if (validCategorySlugs.length > 0) {
+      payload.slug = validCategorySlugs;
+      payload.slugs = validCategorySlugs;
+    }
+
+    // Location wins over city
+    if (locationIdToUse) {
+      payload.location_id = locationIdToUse;
+    } else if (cityIdToUse) {
+      payload.city_id = cityIdToUse;
+    }
+
+    setApiError(null);
+
+    try {
+      const response = await runFilterRequest(payload);
+      const mapped = mapFilteredBoards(response);
+
+      const total = response.pagination?.total ?? mapped.boards.length;
+      const limit = response.pagination?.limit ?? DEFAULT_LIMIT;
+
+      setFilteredBoards(mapped.boards.map(convertBoardToBoardItem));
+      setFilterPagination({
+        page: mapped.page,
+        totalPages: mapped.totalPages,
+        total,
+        limit,
+      });
+
+      setAppliedFilters(new Set(validCategorySlugs));
+      setAppliedFilterOrder(validCategorySlugs);
+      setAppliedSearchQuery(trimmedSearch);
+    } catch (error) {
+      console.error('[SearchLocation] Failed to apply filters:', error);
+      setApiError('Unable to fetch boards. Please try again.');
+    }
+  }, [
+    draftSelectedArea,
+    draftSelectedLocationId,
+    selectedCityId,
+    areaHistory,
+    searchQuery,
+    sortedDraftFilterIds,
+    filterGroups,
+    runFilterRequest,
+    convertBoardToBoardItem,
+  ]);
+
+  const buildFilterPayload = useCallback(
+    (page: number = DEFAULT_PAGE): FilterBoardsParams => {
       const trimmedSearch = searchQuery.trim();
       const sortedIds = sortedDraftFilterIds;
-      
-      // Build payload based on what filters are selected
-      const payload: FilterBoardsParams = {
-        // Pagination
-        page: DEFAULT_PAGE,
-        limit: DEFAULT_LIMIT,
-        // Search
-        search: trimmedSearch || undefined,
-        // Price filters
-        min_price: DEFAULT_MIN_PRICE,
-        max_price: DEFAULT_MAX_PRICE,
-      };
 
       // Filter out special filter IDs and group slugs - only send category slugs
       const validCategorySlugs = sortedIds.filter(id => {
@@ -577,6 +670,18 @@ const SearchLocation: React.FC = () => {
         return !isGroupSlug;
       });
 
+      // Build payload based on what filters are selected
+      const payload: FilterBoardsParams = {
+        // Pagination
+        page,
+        limit: DEFAULT_LIMIT,
+        // Search
+        search: trimmedSearch || undefined,
+        // Price filters
+        min_price: DEFAULT_MIN_PRICE,
+        max_price: DEFAULT_MAX_PRICE,
+      };
+
       // Scenario 1: Filter by slug (board type filters) - only category slugs
       if (validCategorySlugs.length > 0) {
         payload.slug = validCategorySlugs;
@@ -584,133 +689,52 @@ const SearchLocation: React.FC = () => {
       }
 
       // Scenario 2: Filter by location/city
-      // Only send if explicitly selected (locationIdToUse means area was selected)
-      if (locationIdToUse) {
-        payload.location_id = locationIdToUse;
-      } else if (cityIdToUse && isLocationExplicitlySelected) {
-        // Only send city_id if user explicitly selected a city
-        payload.city_id = cityIdToUse;
+      // Only send location/city filters if explicitly selected by user
+      // If area/location is selected, use location_id; otherwise use city_id
+      if (selectedLocationId) {
+        payload.location_id = selectedLocationId;
+      } else if (selectedCityId && isLocationExplicitlySelected) {
+        // Only send city_id if user explicitly selected a city (not just default)
+        payload.city_id = selectedCityId;
       }
 
-      console.log('[SearchLocation] Auto-applying filters after location selection:', JSON.stringify(payload, null, 2));
-      setApiError(null);
-      try {
-        const response = await runFilterRequest(payload);
-        console.log('[SearchLocation] Filtered boards API response:', response);
-        const mapped = mapFilteredBoards(response);
-        const total = response.pagination?.total ?? mapped.boards.length;
-        const limit = response.pagination?.limit ?? DEFAULT_LIMIT;
-
-        setFilteredBoards(mapped.boards.map(convertBoardToBoardItem));
-        setFilterPagination({
-          page: mapped.page,
-          totalPages: mapped.totalPages,
-          total,
-          limit,
-        });
-        // Store only valid category slugs in applied filters
-        setAppliedFilters(new Set(validCategorySlugs));
-        setAppliedFilterOrder(validCategorySlugs);
-        setAppliedSearchQuery(trimmedSearch);
-      } catch (error) {
-        console.error('[SearchLocation] Failed to apply filters:', error);
-        setApiError('Unable to fetch boards. Please try again.');
-      }
-    }
-  }, [
-    draftSelectedArea,
-    draftSelectedLocationId,
-    selectedCityId,
-    areaHistory,
-    searchQuery,
-    sortedDraftFilterIds,
-    runFilterRequest,
-    convertBoardToBoardItem,
-    isLocationExplicitlySelected,
-    filterGroups,
-  ]);
-
-  const buildFilterPayload = useCallback((page: number = DEFAULT_PAGE): FilterBoardsParams => {
-    const trimmedSearch = searchQuery.trim();
-    const sortedIds = sortedDraftFilterIds;
-    
-    // Filter out special filter IDs and group slugs - only send category slugs
-    const validCategorySlugs = sortedIds.filter(id => {
-      // Exclude special filters (they don't have real slugs)
-      if (id === 'see-all' || id === 'recommended') {
-        return false;
-      }
-      // Exclude group slugs - only include category slugs
-      const isGroupSlug = filterGroups.some(g => g.slug === id);
-      return !isGroupSlug;
-    });
-    
-    // Build payload based on what filters are selected
-    const payload: FilterBoardsParams = {
-      // Pagination
-      page,
-      limit: DEFAULT_LIMIT,
-      // Search
-      search: trimmedSearch || undefined,
-      // Price filters
-      min_price: DEFAULT_MIN_PRICE,
-      max_price: DEFAULT_MAX_PRICE,
-    };
-
-    // Scenario 1: Filter by slug (board type filters) - only category slugs
-    if (validCategorySlugs.length > 0) {
-      payload.slug = validCategorySlugs;
-      payload.slugs = validCategorySlugs; // Some backends expect both
-    }
-
-    // Scenario 2: Filter by location/city
-    // Only send location/city filters if explicitly selected by user
-    // If area/location is selected, use location_id; otherwise use city_id
-    if (selectedLocationId) {
-      payload.location_id = selectedLocationId;
-    } else if (selectedCityId && isLocationExplicitlySelected) {
-      // Only send city_id if user explicitly selected a city (not just default)
-      payload.city_id = selectedCityId;
-    }
-
-    return payload;
-  }, [
-    searchQuery,
-    sortedDraftFilterIds,
-    selectedLocationId,
-    selectedCityId,
-    isLocationExplicitlySelected,
-    filterGroups,
-  ]);
+      return payload;
+    },
+    [
+      searchQuery,
+      sortedDraftFilterIds,
+      selectedLocationId,
+      selectedCityId,
+      isLocationExplicitlySelected,
+      filterGroups,
+    ],
+  );
 
   const handleApplyFilters = useCallback(async () => {
-    if (isApplyingFilters) {
-      return;
-    }
+    if (isApplyingFilters) return;
 
     const trimmedSearch = searchQuery.trim();
     const sortedIds = sortedDraftFilterIds;
-    
-    // Filter out special filter IDs and group slugs - only send category slugs
+
+    // Only keep real category slugs
     const validCategorySlugs = sortedIds.filter(id => {
-      // Exclude special filters (they don't have real slugs)
-      if (id === 'see-all' || id === 'recommended') {
-        return false;
-      }
-      // Exclude group slugs - only include category slugs
-      const isGroupSlug = filterGroups.some(g => g.slug === id);
-      return !isGroupSlug;
+      if (id === 'see-all' || id === 'recommended') return false;
+      return !filterGroups.some(g => g.slug === id);
     });
 
     const payload = buildFilterPayload(DEFAULT_PAGE);
 
-    console.log('[SearchLocation] Applying filters payload:', JSON.stringify(payload, null, 2));
+    console.log(
+      '[SearchLocation] Applying filters payload:',
+      JSON.stringify(payload, null, 2),
+    );
 
     setApiError(null);
+
     try {
       const response = await runFilterRequest(payload);
-      console.log('[SearchLocation] Filtered boards API response:', response);
       const mapped = mapFilteredBoards(response);
+
       const total = response.pagination?.total ?? mapped.boards.length;
       const limit = response.pagination?.limit ?? DEFAULT_LIMIT;
 
@@ -721,7 +745,7 @@ const SearchLocation: React.FC = () => {
         total,
         limit,
       });
-      // Store only valid category slugs in applied filters
+
       setAppliedFilters(new Set(validCategorySlugs));
       setAppliedFilterOrder(validCategorySlugs);
       setAppliedSearchQuery(trimmedSearch);
@@ -730,31 +754,34 @@ const SearchLocation: React.FC = () => {
       setApiError('Unable to fetch boards. Please try again.');
     }
   }, [
-    convertBoardToBoardItem,
     isApplyingFilters,
-    runFilterRequest,
     searchQuery,
     sortedDraftFilterIds,
-    selectedLocationId,
-    selectedCityId,
-    isLocationExplicitlySelected,
     filterGroups,
     buildFilterPayload,
+    runFilterRequest,
+    convertBoardToBoardItem,
   ]);
 
   useEffect(() => {
     if (shouldAutoFetch && appliedFilters.size > 0) {
-      console.log('[SearchLocation] Auto-fetching boards with filters:', Array.from(appliedFilters));
-      
+      console.log(
+        '[SearchLocation] Auto-fetching boards with filters:',
+        Array.from(appliedFilters),
+      );
+
       const fetchBoards = async () => {
         setApiError(null);
         try {
           const payload = buildFilterPayload(DEFAULT_PAGE);
-          console.log('[SearchLocation] Auto-fetch payload:', JSON.stringify(payload, null, 2));
-          
+          console.log(
+            '[SearchLocation] Auto-fetch payload:',
+            JSON.stringify(payload, null, 2),
+          );
+
           const response = await runFilterRequest(payload);
           console.log('[SearchLocation] Auto-fetch response:', response);
-          
+
           const mapped = mapFilteredBoards(response);
           const total = response.pagination?.total ?? mapped.boards.length;
           const limit = response.pagination?.limit ?? DEFAULT_LIMIT;
@@ -773,10 +800,16 @@ const SearchLocation: React.FC = () => {
           setShouldAutoFetch(false);
         }
       };
-      
+
       fetchBoards();
     }
-  }, [shouldAutoFetch, appliedFilters, buildFilterPayload, runFilterRequest, convertBoardToBoardItem]);
+  }, [
+    shouldAutoFetch,
+    appliedFilters,
+    buildFilterPayload,
+    runFilterRequest,
+    convertBoardToBoardItem,
+  ]);
 
   const handleLoadMore = useCallback(async () => {
     if (isLoadingMore || isApplyingFilters) {
@@ -827,7 +860,7 @@ const SearchLocation: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      
+
       {/* Top Navigation Bar */}
       <View style={styles.topBar}>
         <TouchableOpacity
@@ -972,18 +1005,26 @@ const SearchLocation: React.FC = () => {
                 ) : (
                   <>
                     {/* Special Filters Section */}
-                    {specialFilters.filter(option => 
-                      !searchQuery.trim() || 
-                      option.name.toLowerCase().includes(searchQuery.toLowerCase())
+                    {specialFilters.filter(
+                      option =>
+                        !searchQuery.trim() ||
+                        option.name
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()),
                     ).length > 0 && (
                       <View style={styles.filterSectionCard}>
                         {specialFilters
-                          .filter(option => 
-                            !searchQuery.trim() || 
-                            option.name.toLowerCase().includes(searchQuery.toLowerCase())
+                          .filter(
+                            option =>
+                              !searchQuery.trim() ||
+                              option.name
+                                .toLowerCase()
+                                .includes(searchQuery.toLowerCase()),
                           )
                           .map((option, index, array) => {
-                            const isSelected = draftSelectedFilters.has(option.id);
+                            const isSelected = draftSelectedFilters.has(
+                              option.id,
+                            );
                             const isFirst = index === 0;
                             const isLast = index === array.length - 1;
                             return (
@@ -1002,12 +1043,12 @@ const SearchLocation: React.FC = () => {
                                     styles.checkbox,
                                     isSelected && styles.checkboxSelected,
                                   ]}
-                                >
-                                </View>
+                                ></View>
                                 <Text
                                   style={[
                                     styles.filterOptionText,
-                                    isSelected && styles.filterOptionTextSelected,
+                                    isSelected &&
+                                      styles.filterOptionTextSelected,
                                   ]}
                                 >
                                   {option.name}
@@ -1020,47 +1061,66 @@ const SearchLocation: React.FC = () => {
 
                     {/* Group Filters Section */}
                     {filterGroups
-                      .filter(group => 
-                        !searchQuery.trim() || 
-                        group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                        group.categories.some(cat => 
-                          cat.name.toLowerCase().includes(searchQuery.toLowerCase())
-                        )
+                      .filter(
+                        group =>
+                          !searchQuery.trim() ||
+                          group.name
+                            .toLowerCase()
+                            .includes(searchQuery.toLowerCase()) ||
+                          group.categories.some(cat =>
+                            cat.name
+                              .toLowerCase()
+                              .includes(searchQuery.toLowerCase()),
+                          ),
                       )
                       .map(group => {
-                        const allChildrenSelected = areAllChildrenSelected(group.slug);
-                        const hasSomeChildrenSelected = group.categories.some(cat => 
-                          draftSelectedFilters.has(cat.slug)
+                        const allChildrenSelected = areAllChildrenSelected(
+                          group.slug,
                         );
-                        const isGroupIndeterminate = hasSomeChildrenSelected && !allChildrenSelected;
-                        const filteredCategories = group.categories.filter(cat => 
-                          !searchQuery.trim() || 
-                          cat.name.toLowerCase().includes(searchQuery.toLowerCase())
+                        const hasSomeChildrenSelected = group.categories.some(
+                          cat => draftSelectedFilters.has(cat.slug),
                         );
-                        
+                        const isGroupIndeterminate =
+                          hasSomeChildrenSelected && !allChildrenSelected;
+                        const filteredCategories = group.categories.filter(
+                          cat =>
+                            !searchQuery.trim() ||
+                            cat.name
+                              .toLowerCase()
+                              .includes(searchQuery.toLowerCase()),
+                        );
+
                         return (
-                          <View key={group.slug} style={styles.filterSectionCard}>
+                          <View
+                            key={group.slug}
+                            style={styles.filterSectionCard}
+                          >
                             {/* Group Header */}
                             <TouchableOpacity
                               style={[
                                 styles.filterOption,
                                 styles.filterGroupHeader,
-                                filteredCategories.length === 0 && styles.filterOptionLast,
-                                (allChildrenSelected || isGroupIndeterminate) && styles.filterOptionSelected,
+                                filteredCategories.length === 0 &&
+                                  styles.filterOptionLast,
+                                (allChildrenSelected || isGroupIndeterminate) &&
+                                  styles.filterOptionSelected,
                               ]}
                               onPress={() => toggleFilter(group.slug, true)}
                             >
                               <View
                                 style={[
                                   styles.checkbox,
-                                  (allChildrenSelected || isGroupIndeterminate) && styles.checkboxSelected,
+                                  (allChildrenSelected ||
+                                    isGroupIndeterminate) &&
+                                    styles.checkboxSelected,
                                 ]}
-                              >
-                              </View>
+                              ></View>
                               <Text
                                 style={[
                                   styles.filterOptionText,
-                                  (allChildrenSelected || isGroupIndeterminate) && styles.filterOptionTextSelected,
+                                  (allChildrenSelected ||
+                                    isGroupIndeterminate) &&
+                                    styles.filterOptionTextSelected,
                                 ]}
                               >
                                 {group.name}
@@ -1069,8 +1129,11 @@ const SearchLocation: React.FC = () => {
 
                             {/* Group Categories (Children) */}
                             {filteredCategories.map((category, index) => {
-                              const isSelected = draftSelectedFilters.has(category.slug);
-                              const isLast = index === filteredCategories.length - 1;
+                              const isSelected = draftSelectedFilters.has(
+                                category.slug,
+                              );
+                              const isLast =
+                                index === filteredCategories.length - 1;
                               return (
                                 <TouchableOpacity
                                   key={category.slug}
@@ -1080,20 +1143,22 @@ const SearchLocation: React.FC = () => {
                                     isLast && styles.filterOptionLast,
                                     isSelected && styles.filterOptionSelected,
                                   ]}
-                                  onPress={() => toggleFilter(category.slug, false)}
+                                  onPress={() =>
+                                    toggleFilter(category.slug, false)
+                                  }
                                 >
                                   <View
                                     style={[
                                       styles.checkbox,
                                       isSelected && styles.checkboxSelected,
                                     ]}
-                                  >
-                                  </View>
-                                  <View/>
+                                  ></View>
+                                  <View />
                                   <Text
                                     style={[
                                       styles.filterOptionText,
-                                      isSelected && styles.filterOptionTextSelected,
+                                      isSelected &&
+                                        styles.filterOptionTextSelected,
                                     ]}
                                   >
                                     {category.name}
@@ -1106,16 +1171,28 @@ const SearchLocation: React.FC = () => {
                       })}
 
                     {/* Show message if no filters match search */}
-                    {searchQuery.trim() && 
-                     specialFilters.every(opt => !opt.name.toLowerCase().includes(searchQuery.toLowerCase())) &&
-                     filterGroups.every(group => 
-                       !group.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-                       !group.categories.some(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                     ) && (
-                      <Text style={styles.noOptionsText}>
-                        No filters match your search.
-                      </Text>
-                    )}
+                    {searchQuery.trim() &&
+                      specialFilters.every(
+                        opt =>
+                          !opt.name
+                            .toLowerCase()
+                            .includes(searchQuery.toLowerCase()),
+                      ) &&
+                      filterGroups.every(
+                        group =>
+                          !group.name
+                            .toLowerCase()
+                            .includes(searchQuery.toLowerCase()) &&
+                          !group.categories.some(cat =>
+                            cat.name
+                              .toLowerCase()
+                              .includes(searchQuery.toLowerCase()),
+                          ),
+                      ) && (
+                        <Text style={styles.noOptionsText}>
+                          No filters match your search.
+                        </Text>
+                      )}
                   </>
                 )}
               </View>
@@ -1240,16 +1317,20 @@ const SearchLocation: React.FC = () => {
                       }
                     }}
                   >
-                    <Text style={styles.locationInputText}>{selectedLocation}</Text>
+                    <Text style={styles.locationInputText}>
+                      {selectedLocation}
+                    </Text>
                     <Ionicons
-                      name={isCitiesDropdownOpen ? 'chevron-down' : 'chevron-up'}
+                      name={
+                        isCitiesDropdownOpen ? 'chevron-down' : 'chevron-up'
+                      }
                       size={20}
                       color="#666"
                     />
                   </TouchableOpacity>
 
                   {/* Cities Dropdown - Fixed Height Container */}
-                  <View 
+                  <View
                     style={[
                       styles.citiesDropdownWrapper,
                       isCitiesDropdownOpen && styles.citiesDropdownWrapperOpen,
@@ -1258,14 +1339,17 @@ const SearchLocation: React.FC = () => {
                     {isCitiesDropdownOpen && (
                       <View style={styles.citiesList}>
                         {isCitiesLoading && (
-                          <View style={{ padding: hp(2), alignItems: 'center' }}>
+                          <View
+                            style={{ padding: hp(2), alignItems: 'center' }}
+                          >
                             <ActivityIndicator size="small" color="#C538A5" />
                           </View>
                         )}
                         {citiesError && !isCitiesLoading && (
                           <View style={{ padding: hp(2) }}>
                             <Text style={styles.errorText}>
-                              Unable to load cities. Tap the location again to retry.
+                              Unable to load cities. Tap the location again to
+                              retry.
                             </Text>
                           </View>
                         )}
@@ -1288,7 +1372,9 @@ const SearchLocation: React.FC = () => {
                                 >
                                   <View style={styles.radioButton}>
                                     {isSelected && (
-                                      <View style={styles.radioButtonSelected} />
+                                      <View
+                                        style={styles.radioButtonSelected}
+                                      />
                                     )}
                                   </View>
                                   <Text
@@ -1304,7 +1390,9 @@ const SearchLocation: React.FC = () => {
                             })}
                             {filteredCities.length === 0 && (
                               <View style={{ padding: hp(2) }}>
-                                <Text style={styles.noResultsText}>No cities found.</Text>
+                                <Text style={styles.noResultsText}>
+                                  No cities found.
+                                </Text>
                               </View>
                             )}
                           </ScrollView>
@@ -1315,70 +1403,71 @@ const SearchLocation: React.FC = () => {
                 </View>
 
                 {/* Area History Section */}
-              
 
                 {/* Select Area Section */}
                 {selectedCityId && (
                   <View style={styles.selectAreaSection}>
-                  <Text style={styles.selectAreaTitle}>Select Area</Text>
-                  {isAreasLoading && (
-                    <ActivityIndicator size="small" color="#C538A5" />
-                  )}
-                  {areasError && !isAreasLoading && (
-                    <Text style={styles.errorText}>
-                      Unable to load areas. Please try again.
-                    </Text>
-                  )}
-                  {!isAreasLoading && !areasError && (
-                    <View style={styles.areasListContainer}>
-                      <ScrollView
-                        style={styles.areasList}
-                        showsVerticalScrollIndicator={false}
-                        nestedScrollEnabled={true}
-                      >
-                        {areasData.map((area: Location, index: number) => {
-                          const isSelected = area.id === draftSelectedLocationId;
-                          const isFirst = index === 0;
-                          const isLast = index === areasData.length - 1;
-                          return (
-                            <TouchableOpacity
-                              key={area.id}
-                              style={[
-                                styles.areaItem,
-                                isFirst && styles.areaItemFirst,
-                                isLast && styles.areaItemLast,
-                                isSelected && styles.areaItemSelected,
-                              ]}
-                              onPress={() => selectArea(area)}
-                            >
-                              <View
+                    <Text style={styles.selectAreaTitle}>Select Area</Text>
+                    {isAreasLoading && (
+                      <ActivityIndicator size="small" color="#C538A5" />
+                    )}
+                    {areasError && !isAreasLoading && (
+                      <Text style={styles.errorText}>
+                        Unable to load areas. Please try again.
+                      </Text>
+                    )}
+                    {!isAreasLoading && !areasError && (
+                      <View style={styles.areasListContainer}>
+                        <ScrollView
+                          style={styles.areasList}
+                          showsVerticalScrollIndicator={false}
+                          nestedScrollEnabled={true}
+                        >
+                          {areasData.map((area: Location, index: number) => {
+                            const isSelected =
+                              area.id === draftSelectedLocationId;
+                            const isFirst = index === 0;
+                            const isLast = index === areasData.length - 1;
+                            return (
+                              <TouchableOpacity
+                                key={area.id}
                                 style={[
-                                  styles.checkbox,
-                                  isSelected && styles.checkboxSelected,
+                                  styles.areaItem,
+                                  isFirst && styles.areaItemFirst,
+                                  isLast && styles.areaItemLast,
+                                  isSelected && styles.areaItemSelected,
                                 ]}
+                                onPress={() => selectArea(area)}
                               >
-                              </View>
-                              <Text
-                                style={[
-                                  styles.areaItemText,
-                                  isSelected && styles.areaItemTextSelected,
-                                ]}
-                              >
-                                {area.name}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                        {areasData.length === 0 && (
-                          <Text style={styles.noResultsText}>No areas found.</Text>
-                        )}
-                      </ScrollView>
-                    </View>
-                  )}
+                                <View
+                                  style={[
+                                    styles.checkbox,
+                                    isSelected && styles.checkboxSelected,
+                                  ]}
+                                ></View>
+                                <Text
+                                  style={[
+                                    styles.areaItemText,
+                                    isSelected && styles.areaItemTextSelected,
+                                  ]}
+                                >
+                                  {area.name}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                          {areasData.length === 0 && (
+                            <Text style={styles.noResultsText}>
+                              No areas found.
+                            </Text>
+                          )}
+                        </ScrollView>
+                      </View>
+                    )}
                   </View>
                 )}
               </ScrollView>
-              
+
               {/* Footer Actions - Fixed at Bottom */}
               <View style={styles.modalFooterActions}>
                 <TouchableOpacity
@@ -1451,8 +1540,8 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    borderColor:"#E5E7EB",
-    borderWidth:0.7,
+    borderColor: '#E5E7EB',
+    borderWidth: 0.7,
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
@@ -1489,7 +1578,7 @@ const styles = StyleSheet.create({
     marginLeft: wp(2),
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth:0.7,
+    borderWidth: 0.7,
   },
   locationTagText: {
     fontSize: 13,
@@ -1509,8 +1598,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth:0.7,
-    borderColor:"#E5E7EB",
+    borderWidth: 0.7,
+    borderColor: '#E5E7EB',
   },
   filterIconImage: {
     width: 40,
@@ -2032,7 +2121,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   filterCategoryItem: {
-    paddingLeft: 12, 
+    paddingLeft: 12,
     backgroundColor: '#FFFFFF',
     marginTop: 0,
   },
@@ -2046,7 +2135,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     borderWidth: 1.5,
     borderColor: '#D1D5DB',
-    marginRight:6,
+    marginRight: 6,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -2154,4 +2243,3 @@ const styles = StyleSheet.create({
 });
 
 export default SearchLocation;
-

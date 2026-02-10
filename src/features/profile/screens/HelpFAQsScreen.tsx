@@ -1,29 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useFocusEffect, useRoute, CommonActions } from '@react-navigation/native';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  Dimensions,
-  TextInput,
-  Animated,
-} from 'react-native';
-import BackButton from '../../../components/BackButton';
-import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import FAQsScreen from "../screens/FAQsScreen"
-import HelpMainScreen from "../screens/HelpMainScreen"
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
+import BackButton from '../../../components/BackButton';
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
-
-
 
 const { width, height } = Dimensions.get('window');
 
@@ -41,7 +36,7 @@ const HelpFAQsScreen: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const scrollViewRef = useRef<ScrollView>(null);
   const faqAnimations = useRef<{ [key: string]: Animated.Value }>({});
-    const navigation = useNavigation<NavigationProp>();
+  const navigation = useNavigation<NavigationProp>();
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -50,7 +45,6 @@ const HelpFAQsScreen: React.FC = () => {
   const handleBackPress = () => {
     navigation.goBack();
   };
-
 
   useEffect(() => {
     Animated.parallel([
@@ -72,61 +66,71 @@ const HelpFAQsScreen: React.FC = () => {
       id: '1',
       category: 'account',
       question: 'How do I create an account?',
-      answer: 'To create an account, click on the "Register" button on the login screen. You will need to provide your phone number, username, company name, and password. After registration, you will receive an OTP code to verify your account.',
+      answer:
+        'To create an account, click on the "Register" button on the login screen. You will need to provide your phone number, username, company name, and password. After registration, you will receive an OTP code to verify your account.',
     },
     {
       id: '2',
       category: 'account',
       question: 'How do I reset my password?',
-      answer: 'If you forgot your password, click on "Forgot Password" on the login screen. Enter your phone number and you will receive an OTP code to reset your password.',
+      answer:
+        'If you forgot your password, click on "Forgot Password" on the login screen. Enter your phone number and you will receive an OTP code to reset your password.',
     },
     {
       id: '3',
       category: 'boards',
       question: 'How do I create an advertisement board?',
-      answer: 'To create an advertisement board, navigate to the "Add" tab in the bottom navigation. Select your company, fill in the board details including title, description, location, size, and price. Upload images and submit your advertisement.',
+      answer:
+        'To create an advertisement board, navigate to the "Add" tab in the bottom navigation. Select your company, fill in the board details including title, description, location, size, and price. Upload images and submit your advertisement.',
     },
     {
       id: '4',
       category: 'boards',
       question: 'How do I edit or delete my board?',
-      answer: 'Go to your board details page and tap the edit icon. You can modify any information or delete the board if needed. Changes will be reflected immediately.',
+      answer:
+        'Go to your board details page and tap the edit icon. You can modify any information or delete the board if needed. Changes will be reflected immediately.',
     },
     {
       id: '5',
       category: 'payment',
       question: 'What payment methods do you accept?',
-      answer: 'We accept various payment methods including credit cards, debit cards, and bank transfers. All transactions are secure and encrypted.',
+      answer:
+        'We accept various payment methods including credit cards, debit cards, and bank transfers. All transactions are secure and encrypted.',
     },
     {
       id: '6',
       category: 'payment',
       question: 'Are there any fees for using the platform?',
-      answer: 'ADRYD offers competitive fee structures. For detailed information about our fees, please check the "Fees & Charges" section in your account settings or contact our support team.',
+      answer:
+        'ADRYD offers competitive fee structures. For detailed information about our fees, please check the "Fees & Charges" section in your account settings or contact our support team.',
     },
     {
       id: '7',
       category: 'general',
       question: 'How do I contact customer support?',
-      answer: 'You can contact our support team through the "Contact Support" option in the drawer menu, or by sending us a message directly from the app. We respond to all inquiries within 24 hours.',
+      answer:
+        'You can contact our support team through the "Contact Support" option in the drawer menu, or by sending us a message directly from the app. We respond to all inquiries within 24 hours.',
     },
     {
       id: '8',
       category: 'general',
       question: 'How do I report a problem or complaint?',
-      answer: 'You can lodge a complaint by contacting our support team through the "Contact Support" option, or by calling our customer service hotline. We take all complaints seriously and will respond within 24 hours.',
+      answer:
+        'You can lodge a complaint by contacting our support team through the "Contact Support" option, or by calling our customer service hotline. We take all complaints seriously and will respond within 24 hours.',
     },
     {
       id: '9',
       category: 'general',
       question: 'Is my data secure?',
-      answer: 'Yes, we take data security seriously. All your personal information and data are encrypted and stored securely. We comply with all applicable data protection regulations.',
+      answer:
+        'Yes, we take data security seriously. All your personal information and data are encrypted and stored securely. We comply with all applicable data protection regulations.',
     },
     {
       id: '10',
       category: 'account',
       question: 'How do I update my profile information?',
-      answer: 'Go to your profile section, tap on the edit icon, and update your information. You can change your name, phone number, and profile picture. Changes are saved automatically.',
+      answer:
+        'Go to your profile section, tap on the edit icon, and update your information. You can change your name, phone number, and profile picture. Changes are saved automatically.',
     },
   ];
 
@@ -193,14 +197,14 @@ const HelpFAQsScreen: React.FC = () => {
 
       iconColor: '#00000033',
     },
-
   ];
 
   const filteredFAQ = faqData.filter(item => {
     const matchesSearch =
       item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.answer.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+    const matchesCategory =
+      selectedCategory === 'all' || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -229,8 +233,6 @@ const HelpFAQsScreen: React.FC = () => {
 
       {/* Back Button */}
 
-
-
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
@@ -238,7 +240,6 @@ const HelpFAQsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-
         <LinearGradient
           colors={['#FDF4FB', '#FDF1F7', '#FFF3F9']}
           start={{ x: 0, y: 0 }}
@@ -246,7 +247,7 @@ const HelpFAQsScreen: React.FC = () => {
           style={styles.heroSection}
         >
           <BackButton />
-          <Text style={styles.greetingTitle}>Hi Umair</Text>
+          <Text style={styles.greetingTitle}>Hi</Text>
           <Text style={styles.heroSubtitle}>How can we help you?</Text>
           <ScrollView
             horizontal
@@ -260,45 +261,48 @@ const HelpFAQsScreen: React.FC = () => {
                 key={card.id}
                 style={[
                   styles.highlightCard,
-                  { backgroundColor: card.backgroundColor, borderColor: card.borderColor },
-                  selectedCategory === card.category && styles.highlightCardActive,
+                  {
+                    backgroundColor: card.backgroundColor,
+                    borderColor: card.borderColor,
+                  },
+                  selectedCategory === card.category &&
+                    styles.highlightCardActive,
                 ]}
-                onPress={() => navigation.navigate('FAQsScreen', { card})}
+                onPress={() => navigation.navigate('FAQsScreen', { card })}
                 activeOpacity={0.85}
               >
                 <View style={styles.highlightIconBackground}>
-                  <Ionicons name={card.icon as any} size={18} color={card.iconColor} />
+                  <Ionicons
+                    name={card.icon as any}
+                    size={18}
+                    color={card.iconColor}
+                  />
                 </View>
                 <View>
                   <Text style={styles.highlightLabel}>{card.leadingLabel}</Text>
                   <Text style={styles.highlightTitle}>{card.title}</Text>
                 </View>
               </TouchableOpacity>
-
             ))}
           </ScrollView>
         </LinearGradient>
         <TouchableOpacity
-          onPress={() => navigation.navigate("HelpMainScreen")}
+          onPress={() => navigation.navigate('ChatScreen' as never)}
           activeOpacity={0.8}
         >
-
           <View style={styles.messageBubble}>
             <Text style={styles.messageLabel}>Message</Text>
             <View
               style={{
-                width: "auto",
+                width: 'auto',
                 height: 0,
                 borderWidth: 0.4,
-                borderColor: "#E5E7EB",
+                borderColor: '#E5E7EB',
               }}
             />
             <Text style={styles.messageText}>Help</Text>
           </View>
         </TouchableOpacity>
-
-
-
 
         <Text style={styles.sectionHeading}>Top Questions</Text>
         <Animated.View
@@ -311,7 +315,12 @@ const HelpFAQsScreen: React.FC = () => {
           ]}
         >
           <View style={styles.searchWrapper}>
-            <Ionicons name="search" size={15} color="#AEB0C8" style={styles.searchIcon} />
+            <Ionicons
+              name="search"
+              size={15}
+              color="#AEB0C8"
+              style={styles.searchIcon}
+            />
             <TextInput
               style={styles.searchInput}
               placeholder="Search for help..."
@@ -321,7 +330,10 @@ const HelpFAQsScreen: React.FC = () => {
               returnKeyType="search"
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                style={styles.clearButton}
+              >
                 <Ionicons name="close-circle" size={18} color="#AEB0C8" />
               </TouchableOpacity>
             )}
@@ -354,7 +366,7 @@ const HelpFAQsScreen: React.FC = () => {
                     style={[
                       styles.faqCard,
                       {
-                        backgroundColor: isExpanded ? '#FFFFFF' : '#F5F5F5',   // ← CHANGE
+                        backgroundColor: isExpanded ? '#FFFFFF' : '#F5F5F5', // ← CHANGE
                         opacity: fadeAnim,
                         transform: [
                           {
@@ -367,13 +379,15 @@ const HelpFAQsScreen: React.FC = () => {
                       },
                     ]}
                   >
-
                     <TouchableOpacity
                       style={styles.faqQuestionContainer}
                       onPress={() => handleFAQPress(item.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={styles.faqQuestion} numberOfLines={isExpanded ? 0 : 2}>
+                      <Text
+                        style={styles.faqQuestion}
+                        numberOfLines={isExpanded ? 0 : 2}
+                      >
                         {item.question}
                       </Text>
                       <View
@@ -418,8 +432,6 @@ const HelpFAQsScreen: React.FC = () => {
             </View>
           )}
         </Animated.View>
-
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -468,7 +480,7 @@ const styles = StyleSheet.create({
   highlightScrollView: {
     marginLeft: -32,
     paddingLeft: 32,
-    marginRight: 0,
+    marginRight: -32,
     overflow: 'visible',
   },
   highlightRow: {
@@ -503,7 +515,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '400',
     color: '#000000',
-
   },
   highlightTitle: {
     fontSize: 12,
@@ -517,8 +528,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
     borderWidth: 0.3,
     borderColor: '#E5E7EB',
-    width: width * 0.880,
-    alignSelf: "center",
+    width: width * 0.88,
+    alignSelf: 'center',
     marginBottom: 20,
   },
   messageLabel: {
@@ -559,8 +570,8 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     borderWidth: 0.5,
     borderColor: '#E5E7EB',
-    paddingHorizontal: width * 0.030,
-    gap: width * 0.020,
+    paddingHorizontal: width * 0.03,
+    gap: width * 0.02,
     marginBottom: height * 0.019,
     marginTop: height * 0.01,
   },
@@ -572,14 +583,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '300',
     height: '100%',
-
   },
   clearButton: {
     padding: 2,
   },
   faqSection: {
-    width: width * 0.880,
-    height: "auto",
+    width: width * 0.88,
+    height: 'auto',
     paddingHorizontal: width * 0.06,
     marginTop: 12,
     paddingTop: 12,
@@ -587,8 +597,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: 'white',
     borderRadius: 15,
-    borderColor: "#E5E7EB",
-    alignSelf: "center",
+    borderColor: '#E5E7EB',
+    alignSelf: 'center',
   },
   faqList: {
     marginTop: 0,
@@ -599,8 +609,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.7,
     marginBottom: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
-    borderColor: "#E5E7EB",
+    borderColor: '#E5E7EB',
   },
   faqQuestionContainer: {
     flexDirection: 'row',
@@ -629,19 +638,15 @@ const styles = StyleSheet.create({
   },
   faqIconContainerExpanded: {
     backgroundColor: 'transparent',
-
-
   },
   faqAnswerContainer: {
     paddingHorizontal: 16,
     paddingBottom: 10,
     paddingTop: 0,
-
   },
   faqAnswerDivider: {
     height: 0,
     backgroundColor: 'transparent',
-
   },
   faqAnswer: {
     fontSize: 12,
@@ -680,9 +685,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-
-
 });
 
 export default HelpFAQsScreen;
-

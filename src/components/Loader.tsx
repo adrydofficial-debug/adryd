@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from "react";
-import { View, Animated, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from 'react';
+import { Animated, StatusBar, StyleSheet, View } from 'react-native';
 
 interface LoaderProps {
   size?: number;
@@ -9,9 +9,8 @@ interface LoaderProps {
 }
 
 const Loader: React.FC<LoaderProps> = ({
-  size = 40,
   circleSize = 20,
-  color = "#C539A5",
+  color = '#C539A5',
   duration = 1000,
 }) => {
   const anim = useRef(new Animated.Value(0)).current;
@@ -29,13 +28,13 @@ const Loader: React.FC<LoaderProps> = ({
           duration,
           useNativeDriver: false,
         }),
-      ])
+      ]),
     ).start();
   }, [anim, circleSize, duration]);
 
   return (
     <View style={styles.overlay}>
-      <View style={[styles.loaderContainer, { width: size, height: size }]}>
+      <View>
         <Animated.View
           style={[
             styles.circleOutlined,
@@ -44,7 +43,14 @@ const Loader: React.FC<LoaderProps> = ({
               height: circleSize,
               borderRadius: circleSize / 2,
               borderColor: color,
-              left: anim,
+              transform: [
+                {
+                  translateX: anim.interpolate({
+                    inputRange: [0, circleSize],
+                    outputRange: [-circleSize / 2, circleSize / 2], // move around center
+                  }),
+                },
+              ],
             },
           ]}
         />
@@ -56,7 +62,14 @@ const Loader: React.FC<LoaderProps> = ({
               height: circleSize,
               borderRadius: circleSize / 2,
               backgroundColor: color,
-              left: Animated.subtract(circleSize, anim),
+              transform: [
+                {
+                  translateX: anim.interpolate({
+                    inputRange: [0, circleSize],
+                    outputRange: [circleSize / 2, -circleSize / 2], // mirrored
+                  }),
+                },
+              ],
             },
           ]}
         />
@@ -69,29 +82,29 @@ export default Loader;
 
 const styles = StyleSheet.create({
   overlay: {
-    position: "absolute",
-    top: 0,
+    position: 'absolute',
+    top: -StatusBar.currentHeight,
     left: 0,
     right: 0,
     bottom: 0,
     zIndex: 9999,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   loaderContainer: {
-    position: "relative",
-    justifyContent: "center",
-    alignItems: "center",
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
     opacity: 1,
   },
   circleOutlined: {
-    position: "absolute",
+    position: 'absolute',
     borderWidth: 2,
     top: 0,
   },
   circleFilled: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
   },
 });

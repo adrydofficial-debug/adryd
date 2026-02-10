@@ -46,8 +46,10 @@ const CampaignTabs: React.FC<CampaignTabsProps> = ({
         horizontal
         bounces={false}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={contentStyles}
+        contentContainerStyle={[contentStyles, { paddingRight: 20 }]}
         style={styles.scrollView}
+        nestedScrollEnabled={true}
+        scrollEnabled={true}
       >
         {tabs.map(tab => {
           const isActive = activeTab === tab.id;
@@ -88,16 +90,17 @@ const CampaignTabs: React.FC<CampaignTabsProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
+    paddingTop: 0,
+    paddingBottom: 4,
     borderBottomWidth: 0,
   },
   scrollView: {
     flexGrow: 0,
   },
   scrollContent: {
-    paddingLeft: 12,
-    paddingRight: 12,
-    alignItems: 'center',
+    paddingLeft: 8,
+    paddingRight: 20,
+    alignItems: 'flex-start',
     justifyContent: 'flex-start',
   },
   scrollContentLTR: {

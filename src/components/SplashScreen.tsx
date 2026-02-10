@@ -5,10 +5,13 @@ import {
   Dimensions,
   Image,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { Images } from '../assets/images';
 
 const { width, height } = Dimensions.get('window');
+const screenData = Dimensions.get('screen');
+const screenHeight = screenData.height;
 
 interface SplashScreenProps {
   onComplete?: () => void;
@@ -32,15 +35,13 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, shouldWaitForLo
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="light-content" translucent={true} />
       <View style={styles.container}>
-        <View style={styles.logoContainer}>
-          <Image
-            source={Images.logo}
-            style={styles.logoImage}
-            resizeMode="cover"
-          />
-        </View>
+        <Image
+          source={Images.logo}
+          style={styles.logoImage}
+          resizeMode="cover"
+        />
       </View>
     </>
   );
@@ -48,19 +49,19 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, shouldWaitForLo
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: width,
+    height: screenHeight,
     backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...StyleSheet.absoluteFillObject,
   },
   logoImage: {
     width: width,
-    height: height,
+    height: screenHeight,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });
 

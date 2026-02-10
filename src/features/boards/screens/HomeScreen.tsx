@@ -1,6 +1,6 @@
 // src/features/boards/HomeScreen.tsx
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -23,9 +23,9 @@ import Loader from '../../../components/Loader';
 import NoInternet from '../../../components/NoInternet';
 import { useAuthStore } from '../../../store/authStore';
 import { useDrawerStore } from '../../../store/drawerStore';
-import { useProfile } from '../../profile/hooks/useProfile';
 import { useNotifications } from '../../notifications/hooks/useNotifications';
 import { useNotificationsStore } from '../../notifications/store/notifications';
+import { useProfile } from '../../profile/hooks/useProfile';
 import type { Tab } from '../components/BoardTabs';
 import ProfileRow from '../components/ProfileRow';
 import { useBoardFilters } from '../hooks/useBoardFilters';
@@ -41,10 +41,10 @@ const RIGHT_ACTIONS_WIDTH = width * 0.38;
 const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
   const { t } = useTranslation('boards');
   const { user } = useAuthStore();
-  
+
   // Fetch notifications when user is logged in - this populates the store early
   useNotifications();
-  
+
   const { unreadCount } = useNotificationsStore();
   const hasUnreadNotifications = unreadCount > 0;
   const [, setSelectedTab] = useState<Tab | null>(null);
@@ -121,6 +121,7 @@ const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
   );
   const navigatedFromDrawer = useDrawerStore(s => s.navigatedFromDrawer);
   const setNavigatedFromDrawer = useDrawerStore(s => s.setNavigatedFromDrawer);
+  const isFocused = useIsFocused();
 
   const handleProfilePress = async () => {
     setDrawerVisible(true);
@@ -140,13 +141,25 @@ const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
     };
   }, [setReopenDrawerCallback]);
 
+  // Only reopen drawer when coming back to HomeScreen, not during navigation transitions
   useFocusEffect(
     React.useCallback(() => {
+      // Only reopen drawer if we have the navigatedFromDrawer flag set
+      // Add delay to avoid triggering during navigation transitions
       if (navigatedFromDrawer) {
-        setNavigatedFromDrawer(false);
-        setDrawerVisible(true);
+        const timer = setTimeout(() => {
+          // Only reopen if we're still focused (not during transition)
+          if (isFocused) {
+            setNavigatedFromDrawer(false);
+            setDrawerVisible(true);
+          }
+        }, 300); // Delay to ensure we're fully on HomeScreen, not during transition
+
+        return () => {
+          clearTimeout(timer);
+        };
       }
-    }, [navigatedFromDrawer, setNavigatedFromDrawer]),
+    }, [navigatedFromDrawer, setNavigatedFromDrawer, isFocused]),
   );
 
   const {
@@ -154,7 +167,7 @@ const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
     isLoading: isBoardFiltersLoading,
     error: boardFiltersError,
     refetch: refetchBoardFilters,
-  } = useBoardFilters();
+  } = useBoardFilters(4);
 
   const handleDetailPress = (item: any) => {
     navigation.navigate('SingleBoardDetail', { item });
@@ -345,81 +358,81 @@ const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
           </View>
         ) : (
           !isLoading && (
-          <>
-            {boardFiltersData?.recommended &&
-              boardFiltersData.recommended.length > 0 && (
-                <BoardList
-                  data={boardFiltersData.recommended.map(board =>
-                    convertBoardToBoardItem(board, true),
-                  )}
-                  onPressDetail={handleDetailPress}
-                  heading={t('recommended')}
-                  navigation={navigation}
-                />
-              )}
+            <>
+              {boardFiltersData?.recommended &&
+                boardFiltersData.recommended.length > 0 && (
+                  <BoardList
+                    data={boardFiltersData.recommended.map(board =>
+                      convertBoardToBoardItem(board, true),
+                    )}
+                    onPressDetail={handleDetailPress}
+                    heading={t('recommended')}
+                    navigation={navigation}
+                  />
+                )}
 
-            {boardFiltersData?.nearest &&
-              boardFiltersData.nearest.length > 0 && (
+              {boardFiltersData?.nearest &&
+                boardFiltersData.nearest.length > 0 && (
+                  <BoardList
+                    data={boardFiltersData.nearest.map(board =>
+                      convertBoardToBoardItem(board),
+                    )}
+                    onPressDetail={handleDetailPress}
+                    heading={t('nearestBoards')}
+                    navigation={navigation}
+                  />
+                )}
+
+              {specialBoards.length > 0 && (
                 <BoardList
-                  data={boardFiltersData.nearest.map(board =>
+                  data={specialBoards.map((board: any) =>
                     convertBoardToBoardItem(board),
                   )}
                   onPressDetail={handleDetailPress}
-                  heading={t('nearestBoards')}
+                  heading="Special"
                   navigation={navigation}
                 />
               )}
 
-            {specialBoards.length > 0 && (
-              <BoardList
-                data={specialBoards.map((board: any) =>
-                  convertBoardToBoardItem(board),
-                )}
-                onPressDetail={handleDetailPress}
-                heading="Special"
-                navigation={navigation}
-              />
-            )}
+              {(() => {
+                const categoryMap = new Map();
 
-            {(() => {
-              const categoryMap = new Map();
-
-              boardFiltersData?.groups?.forEach((group: any) => {
-                group.categories?.forEach((category: any) => {
-                  if (category.boards && category.boards.length > 0) {
-                    if (!categoryMap.has(category.id)) {
-                      categoryMap.set(category.id, {
-                        ...category,
-                        groups: [],
+                boardFiltersData?.groups?.forEach((group: any) => {
+                  group.categories?.forEach((category: any) => {
+                    if (category.boards && category.boards.length > 0) {
+                      if (!categoryMap.has(category.id)) {
+                        categoryMap.set(category.id, {
+                          ...category,
+                          groups: [],
+                        });
+                      }
+                      categoryMap.get(category.id).groups.push({
+                        id: group.id,
+                        name: group.name,
+                        description: group.description,
+                        boards: category.boards,
                       });
                     }
-                    categoryMap.get(category.id).groups.push({
-                      id: group.id,
-                      name: group.name,
-                      description: group.description,
-                      boards: category.boards,
-                    });
-                  }
+                  });
                 });
-              });
 
-              return Array.from(categoryMap.values()).map((category: any) => (
-                <View key={category.id}>
-                  {category.groups.map((group: any) => (
-                    <BoardList
-                      key={`category-${category.id}-group-${group.id}`}
-                      data={group.boards.map((board: any) =>
-                        convertBoardToBoardItem(board),
-                      )}
-                      onPressDetail={handleDetailPress}
-                      heading={category.name}
-                      navigation={navigation}
-                    />
-                  ))}
-                </View>
-              ));
-            })()}
-          </>
+                return Array.from(categoryMap.values()).map((category: any) => (
+                  <View key={category.id}>
+                    {category.groups.map((group: any) => (
+                      <BoardList
+                        key={`category-${category.id}-group-${group.id}`}
+                        data={group.boards.map((board: any) =>
+                          convertBoardToBoardItem(board),
+                        )}
+                        onPressDetail={handleDetailPress}
+                        heading={category.name}
+                        navigation={navigation}
+                      />
+                    ))}
+                  </View>
+                ));
+              })()}
+            </>
           )
         )}
       </ScrollView>

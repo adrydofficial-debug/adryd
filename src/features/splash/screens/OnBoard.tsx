@@ -6,9 +6,12 @@ import {
   Animated,
   Dimensions,
   TouchableOpacity,
-  Image
+  Image,
+  Platform,
 } from "react-native";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import LinearGradient from "react-native-linear-gradient";
+import { GestureDetector, Gesture, GestureHandlerRootView } from "react-native-gesture-handler";
 
 const { width, height } = Dimensions.get("window");
 
@@ -37,6 +40,7 @@ interface OnboardProps {
 
 const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
   const [screen, setScreen] = useState<number>(0);
+  const insets = useSafeAreaInsets();
 
   //  Fade Animation
   const opacity = useRef(new Animated.Value(1)).current;
@@ -48,10 +52,8 @@ const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
       duration: 150,
       useNativeDriver: true,
     }).start(() => {
-      // Switch screen AFTER fade out
       setScreen(next);
 
-      // Fade in new screen
       Animated.timing(opacity, {
         toValue: 1,
         duration: 700,
@@ -60,10 +62,32 @@ const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
     });
   };
 
+  const swipeGesture = Gesture.Pan()
+    .onEnd((event) => {
+      const { translationX, velocityX } = event;
+      const swipeThreshold = 50; 
+      const velocityThreshold = 500; 
+
+      if (
+        (translationX < -swipeThreshold || velocityX < -velocityThreshold) &&
+        screen < 2
+      ) {
+        animateAndGo(screen + 1);
+      }
+      else if (
+        (translationX > swipeThreshold || velocityX > velocityThreshold) &&
+        screen > 0
+      ) {
+        animateAndGo(screen - 1);
+      }
+    });
+
 
   return (
-    <View style={styles.container}>
-      <View style={{ flex: 2 }}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureDetector gesture={swipeGesture}>
+        <View style={styles.container}>
+        <View style={{ flex: 2 }}>
 
         {/* Image Section with Fade */}
         <Animated.View style={{ opacity }}>
@@ -72,6 +96,13 @@ const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
             style={styles.image}
           />
         </Animated.View>
+
+        <LinearGradient
+          colors={['transparent', 'rgba(248, 248, 248, 0)', 'rgba(248, 248, 248, 0.5)', '#F8F8F8']}
+          locations={[0, 0.2, 0.4, 1]}
+          style={styles.gradientOverlay}
+          pointerEvents="none"
+        />
       </View>
 
       {/*  Text Content */}
@@ -81,6 +112,8 @@ const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
           justifyContent: "center",
           paddingHorizontal: width * 0.05,
           backgroundColor: "#F8F8F8",
+          paddingTop: 20,
+          paddingBottom: 20,
         }}
       >
         {/* Pagination Dots */}
@@ -92,7 +125,7 @@ const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
             justifyContent: "space-between",
             alignSelf: "center",
             position: "absolute",
-            top:10,
+            top: 5,
           }}
         >
           {[0, 1, 2].map((i) => (
@@ -109,7 +142,7 @@ const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
         </View>
 
         {/* Title + Text with Fade */}
-        <Animated.View style={{ position: "absolute", top: 35, alignSelf: "center", opacity }}>
+        <Animated.View style={[styles.contentContainer, { opacity }]}>
           <Text style={styles.title}>
             {SCREENS[screen].title}
           </Text>
@@ -121,30 +154,14 @@ const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
 
         {/*  Fixed Bottom Controls */}
         <View
-          style={{
-            position: "absolute",
-            bottom: height * 0.08,
-            left: 0,
-            right: 0,
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingHorizontal: width * 0.06,
-          }}
+          style={[
+            styles.bottomControlsContainer,
+            {
+              bottom: height * 0.12 + (Platform.OS === 'ios' ? insets.bottom : 0),
+            }
+          ]}
         >
-          {/* Back button */}
-          {screen > 0 ? (
-            <TouchableOpacity
-              style={[styles.arrow, { width: 38, height: 38 }]}
-              onPress={() => animateAndGo(screen - 1)}
-            >
-              <Ionicons name="chevron-back-outline" size={15} color="#000" />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 38 }} />
-          )}
-
-          {/* Center Button */}
+          {/* Get Started Button */}
           <TouchableOpacity
             disabled={screen !== 2}
             style={[
@@ -163,21 +180,25 @@ const Onboard: React.FC<OnboardProps> = ({ onComplete }) => {
               Get Started
             </Text>
           </TouchableOpacity>
+        </View>
 
-          {/* Forward button */}
-          {screen < 2 ? (
-            <TouchableOpacity
-              style={[styles.arrow, { width: 38, height: 38 }]}
-              onPress={() => animateAndGo(screen + 1)}
-            >
-              <Ionicons name="chevron-forward-outline" size={15} color="#000" />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 38 }} />
-          )}
+        {/* Terms and Conditions Text */}
+        <View
+          style={[
+            styles.termsContainer,
+            {
+              bottom: Platform.OS === 'ios' ? Math.max(insets.bottom + 10, 20) : 20,
+            }
+          ]}
+        >
+          <Text style={styles.termsText}>
+            By continuing, you agree to our Terms of Service and Privacy Policy.
+          </Text>
         </View>
       </View>
-    </View>
+      </View>
+      </GestureDetector>
+    </GestureHandlerRootView>
   );
 };
 
@@ -192,7 +213,22 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
   },
+  gradientOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: height * 0.25, 
+  },
+  contentContainer: {
+    position: "absolute",
+    top: 35,
+    alignSelf: "center",
+    width: width * 0.8, 
+    paddingHorizontal: width * 0.05,
+  },
   title: {
+    fontFamily: 'Inter',
     fontWeight: "600",
     textAlign: "center",
     fontSize: 18,
@@ -201,18 +237,11 @@ const styles = StyleSheet.create({
   text: {
     marginTop: height * 0.02,
     textAlign: "center",
+    fontFamily: 'Inter',
     fontWeight: "300",
     fontSize: 13,
     color: "#18181B",
-     lineHeight: height * 0.02,
-  },
-  arrow: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 65,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    lineHeight: height * 0.02,
   },
   mainBtn: {
     width: width * 0.5,
@@ -220,5 +249,33 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
+  },
+  bottomControlsContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: width * 0.06,
+  },
+  termsContainer: {
+    position: "absolute",
+    left: 100,
+    right: 0,
+    width: width * 0.5, 
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    // paddingHorizontal: width * 0.05, 
+  },
+  termsText: {
+    fontFamily: 'Inter',
+    fontSize: 10, 
+    color: "#18181B", 
+    textAlign: "center",
+    fontWeight: "300", 
+    lineHeight: 15, 
+    letterSpacing: 0,
   }
 });

@@ -21,29 +21,46 @@ export const useFilteredBoards = (params: FilterBoardsParams) => {
       : undefined,
   };
 
-  console.log('[useFilteredBoards] normalizedParams:', normalizedParams);
+  console.log(
+    '[useFilteredBoards] normalizedParams:',
+    JSON.stringify(normalizedParams, null, 2),
+  );
 
   return useQuery<PaginatedBoards>({
     queryKey: ['filteredBoards', normalizedParams],
     queryFn: async () => {
       console.log(
-        '[useFilteredBoards] fetching boards with params:',
-        normalizedParams,
+        '[useFilteredBoards] queryFn started, params:',
+        JSON.stringify(normalizedParams, null, 2),
       );
+
       try {
         const res = await fetchFilteredBoards(normalizedParams);
-        console.log('[useFilteredBoards] raw response:', res);
+
+        console.log('[useFilteredBoards] API response raw:', res);
 
         const mapped = mapFilteredBoards(res);
+
         console.log('[useFilteredBoards] mapped result:', mapped);
 
         return mapped;
       } catch (error) {
-        console.error('[useFilteredBoards] fetch or mapping failed:', error);
+        console.error(
+          '[useFilteredBoards] fetch or mapping failed:',
+          error,
+          'params:',
+          JSON.stringify(normalizedParams, null, 2),
+        );
         throw error;
       }
     },
     placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 2, // 2 minutes
+    // onError: error => {
+    //   console.error('[useFilteredBoards] query error:', error);
+    // },
+    // onSuccess: data => {
+    //   console.log('[useFilteredBoards] query success, data:', data);
+    // },
   });
 };

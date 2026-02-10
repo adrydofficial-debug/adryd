@@ -1,23 +1,22 @@
-import React, {useMemo, useState} from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   Dimensions,
-  TouchableOpacity,
   StatusBar,
-  ScrollView,
-  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import Loader from '../../../components/Loader';
-import {useFavoritesBoards} from '../../boards/hooks/useFavorites';
-import type {BoardItem} from '../../../components/BoardList';
-import BoardList from '../../../components/BoardList';
+import BackButton from '../../../components/BackButton';
+import type { BoardItem } from '../../../components/BoardGrid';
+import BoardGrid from '../../../components/BoardGrid';
 import Header from '../../../components/Header';
+import Loader from '../../../components/Loader';
+import { useFavoritesBoards } from '../../boards/hooks/useFavorites';
 import FavouritesEmptyState from '../components/FavouritesEmptyState';
 
-const {width, height} = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
 
@@ -25,7 +24,7 @@ interface FavouritesScreenProps {
   navigation: any;
 }
 
-const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
+const FavouritesScreen: React.FC<FavouritesScreenProps> = ({ navigation }) => {
   const page = 1;
   const limit = 10;
   const [refreshing, setRefreshing] = useState(false);
@@ -72,7 +71,7 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
   };
 
   const handleFavouritePress = (item: BoardItem) => {
-    navigation.navigate('SingleBoardDetail', {item});
+    navigation.navigate('SingleBoardDetail', { item });
   };
 
   const handleFindFavorites = () => {
@@ -80,19 +79,21 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
     navigation.navigate('BottomTab' as never, { tab: 'Home' } as never);
   };
 
-  return(
+  return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFFFFF" barStyle="dark-content" />
+      <View style={styles.backButtonWrapper}>
+        <BackButton />
+      </View>
       <View style={styles.content}>
-
         {/* Only show Header when there are favourites or loading/error */}
         {!isLoading && !error && favourites.length > 0 && (
-        <Header
-           title="Favourites"
-           onBackPress={() => navigation.goBack()}
-           showBackButton={false}
-           showRightIcon={false}
-         />
+          <Header
+            title="Favourites"
+            onBackPress={() => navigation.goBack()}
+            showBackButton={false}
+            showRightIcon={false}
+          />
         )}
 
         {isLoading ? (
@@ -113,30 +114,19 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({navigation}) => {
             </TouchableOpacity>
           </View>
         ) : favourites.length > 0 ? (
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="#C538A5"
-              />
-            }>
-            <View style={styles.resultsSection}>
-              <BoardList
-                data={favourites}
-                heading=""
-                showSeeAll={false}
-                numColumns={2}
-                navigation={navigation}
-                onPressDetail={handleFavouritePress}
-                useWiderCards={true}
-                showFavoriteBadge={false}
-              />
-            </View>
-          </ScrollView>
+          <BoardGrid
+            data={favourites}
+            heading=""
+            showSeeAll={false}
+            numColumns={2}
+            navigation={navigation}
+            onPressDetail={handleFavouritePress}
+            useWiderCards={true}
+            showFavoriteBadge={false}
+            scrollEnabled={true}
+            // onRefresh={onRefresh}
+            // refreshing={refreshing}
+          />
         ) : (
           <FavouritesEmptyState onFindFavorites={handleFindFavorites} />
         )}
@@ -149,6 +139,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F8F8',
+  },
+  backButtonWrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 9999,
+    elevation: 9999, // For Android - very high to ensure it's on top
   },
   content: {
     flex: 1,

@@ -22,8 +22,8 @@
       }
     },
     "forgot": {
-      "title": "Enter Register Number",
-      "subtitle": "Type your registration number to move forward.",
+      "title": "Forgot Password",
+      "subtitle": "Enter your registered phone number.",
       "newPassword": "New Password",
       "confirmPassword": "Confirm Password",
       "createPassword": {

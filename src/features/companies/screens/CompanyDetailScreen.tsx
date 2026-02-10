@@ -429,31 +429,33 @@
 // });
 
 // export default CompanyDetailScreen;
-import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
+  ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
   ImageBackground,
   Modal,
-  Alert,
-  TextInput,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation, useRoute } from '@react-navigation/native';
 import MapView from 'react-native-maps';
-import { useRateBoard } from '../hooks/useRateBoard';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import {
+  EditSquareIcon,
+  Images,
+  LocationPinkIcon,
+} from '../../../assets/images';
+import BackButton from '../../../components/BackButton';
 import { useAuthStore } from '../../../store/authStore';
-import { useQueryClient } from '@tanstack/react-query';
-import { Images, EditSquareIcon, LocationPinkIcon } from '../../../assets/images';
+import { useRateBoard } from '../hooks/useRateBoard';
 // Image assets (placeholder)
 const placeholder = Images.bannerBg;
-import BackButton from '../../../components/BackButton';
 // Removed typed RootStack import to avoid cross-module typing dependency
 
 // Using untyped navigation to avoid cross-module type coupling issues
@@ -489,13 +491,24 @@ const renderStars = (rating: string) => {
   const halfStar = parseFloat(rating) % 1 >= 0.5 ? 1 : 0;
   const emptyStars = 5 - fullStars - halfStar;
   for (let i = 0; i < fullStars; i++) {
-    stars.push(<Ionicons key={`full-${i}`} name="star" size={11} color="#FBBC05" />);
+    stars.push(
+      <Ionicons key={`full-${i}`} name="star" size={11} color="#FBBC05" />,
+    );
   }
   if (halfStar) {
-    stars.push(<Ionicons key="half" name="star-half" size={11} color="#FBBC05" />);
+    stars.push(
+      <Ionicons key="half" name="star-half" size={11} color="#FBBC05" />,
+    );
   }
   for (let i = 0; i < emptyStars; i++) {
-    stars.push(<Ionicons key={`empty-${i}`} name="star-outline" size={11} color="#FBBC05" />);
+    stars.push(
+      <Ionicons
+        key={`empty-${i}`}
+        name="star-outline"
+        size={11}
+        color="#FBBC05"
+      />,
+    );
   }
 
   return stars;
@@ -507,11 +520,11 @@ const SingleBoardDetail: React.FC = () => {
   const { item } = (route.params as { item: any }) || { item: null };
   const user = useAuthStore(s => s.user);
   const queryClient = useQueryClient();
-  
+
   // Debug log to help troubleshoot
   console.log('SingleBoardDetail - route.params:', route.params);
   console.log('SingleBoardDetail - item:', item);
-  
+
   // Initialize billboard data with item from navigation or fallback to default
   const [billboard, setBillboard] = useState<BillboardData>(() => {
     if (item && typeof item === 'object') {
@@ -520,28 +533,42 @@ const SingleBoardDetail: React.FC = () => {
         location: item.location || 'Lahore Gulberg',
         subLocation: item.distance || 'Near 16 Km',
         size: item.size || '2ft x 4ft',
-        about: item.description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+        about:
+          item.description ||
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
         rating: item.rating?.toString() || '4.5', // Use actual rating from item data
-        imagesList: item.image_url ? [{ uri: `https://adryd-backend-production.up.railway.app${item.image_url}` }] : [placeholder],
+        imagesList: item.image_url
+          ? [
+              {
+                uri: `https://adryd-backend-production.up.railway.app${item.image_url}`,
+              },
+            ]
+          : [placeholder],
       };
     }
     return billboardData;
   });
-  
+
   // Main image index (0..4)
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  
+
   // Rating modal state
-  const [isRatingModalVisible, setIsRatingModalVisible] = useState<boolean>(false);
+  const [isRatingModalVisible, setIsRatingModalVisible] =
+    useState<boolean>(false);
   const [userRating, setUserRating] = useState<number>(0);
   const [ratingComment, setRatingComment] = useState<string>('');
-  
+
   // Rating mutation hook
   const rateBoardMutation = useRateBoard(parseInt(item?.id) || 0);
-  
+
   // Debug log for board ID
-  console.log('SingleBoardDetail - Board ID:', item?.id, 'Parsed:', parseInt(item?.id) || 0);
-  
+  console.log(
+    'SingleBoardDetail - Board ID:',
+    item?.id,
+    'Parsed:',
+    parseInt(item?.id) || 0,
+  );
+
   // Update rating when item changes (only from API data)
   useEffect(() => {
     if (item?.rating) {
@@ -557,14 +584,18 @@ const SingleBoardDetail: React.FC = () => {
   const images = useMemo(() => {
     // If we have images from the API data, use those
     if (item?.image_url) {
-      const apiImage = { uri: `https://adryd-backend-production.up.railway.app${item.image_url}` };
+      const apiImage = {
+        uri: `https://adryd-backend-production.up.railway.app${item.image_url}`,
+      };
       const list = [apiImage];
       while (list.length < 5) list.push(placeholder);
       return list;
     }
-    
+
     // Fallback to billboard imagesList
-    const base = Array.isArray(billboard.imagesList) ? billboard.imagesList.slice(0, 5) : [];
+    const base = Array.isArray(billboard.imagesList)
+      ? billboard.imagesList.slice(0, 5)
+      : [];
     const list = [...base];
     while (list.length < 5) list.push(placeholder);
     return list;
@@ -623,7 +654,10 @@ const SingleBoardDetail: React.FC = () => {
           ...prev,
           rating: userRating.toString(),
         };
-        console.log('SingleBoardDetail - Updated local rating:', updated.rating);
+        console.log(
+          'SingleBoardDetail - Updated local rating:',
+          updated.rating,
+        );
         return updated;
       });
 
@@ -637,7 +671,12 @@ const SingleBoardDetail: React.FC = () => {
         userId: user.id,
         rating: userRating,
       });
-      Alert.alert('Error', `Failed to submit rating: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      Alert.alert(
+        'Error',
+        `Failed to submit rating: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
     }
   };
 
@@ -661,10 +700,17 @@ const SingleBoardDetail: React.FC = () => {
                     <TouchableOpacity
                       key={`thumb-${idx}`}
                       onPress={() => selectImageIndex(idx)}
-                      style={[styles.subBoard, isSelected && styles.selectedSubBoard]}
+                      style={[
+                        styles.subBoard,
+                        isSelected && styles.selectedSubBoard,
+                      ]}
                       activeOpacity={0.8}
                     >
-                      <Image source={src} style={styles.thumbImage} resizeMode="cover" />
+                      <Image
+                        source={src}
+                        style={styles.thumbImage}
+                        resizeMode="cover"
+                      />
                     </TouchableOpacity>
                   );
                 })}
@@ -695,20 +741,30 @@ const SingleBoardDetail: React.FC = () => {
               <View>
                 <Text style={styles.title}>{billboard.title}</Text>
                 <View style={styles.icon}>
-                  <LocationPinkIcon width={9} height={8} style={styles.locationIcon} />
+                  <LocationPinkIcon
+                    width={9}
+                    height={8}
+                    style={styles.locationIcon}
+                  />
                   <Text style={styles.location}>{billboard.location}</Text>
                 </View>
                 <View style={styles.icon2}>
                   {/* <Line /> */}
-                  <Text style={styles.subLocation}>{billboard.subLocation}</Text>
+                  <Text style={styles.subLocation}>
+                    {billboard.subLocation}
+                  </Text>
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.ratingContainer} onPress={openRatingModal}>
+              <TouchableOpacity
+                style={styles.ratingContainer}
+                onPress={openRatingModal}
+              >
                 <Text style={styles.rating}>{billboard.rating}</Text>
-                <View style={styles.starRow}>{renderStars(billboard.rating)}</View>
+                <View style={styles.starRow}>
+                  {renderStars(billboard.rating)}
+                </View>
                 {/* Debug: Show current rating value */}
-              
               </TouchableOpacity>
             </View>
 
@@ -773,25 +829,26 @@ const SingleBoardDetail: React.FC = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Rate this Board</Text>
-            <Text style={styles.modalSubtitle}>How would you rate this billboard?</Text>
-            
+            <Text style={styles.modalSubtitle}>
+              How would you rate this billboard?
+            </Text>
+
             <View style={styles.starRatingContainer}>
-              {[1, 2, 3, 4, 5].map((star) => (
+              {[1, 2, 3, 4, 5].map(star => (
                 <TouchableOpacity
                   key={star}
                   onPress={() => handleStarPress(star)}
                   style={styles.starButton}
                 >
                   <Ionicons
-                    name={star <= userRating ? "star" : "star-outline"}
+                    name={star <= userRating ? 'star' : 'star-outline'}
                     size={40}
-                    color={star <= userRating ? "#FFD700" : "#E0E0E0"}
+                    color={star <= userRating ? '#FFD700' : '#E0E0E0'}
                   />
                 </TouchableOpacity>
               ))}
             </View>
-            
-           
+
             <View style={styles.modalButtonContainer}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
@@ -799,12 +856,13 @@ const SingleBoardDetail: React.FC = () => {
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[
                   styles.modalButton,
                   styles.submitButton,
-                  (userRating === 0 || rateBoardMutation.isPending) && styles.disabledButton
+                  (userRating === 0 || rateBoardMutation.isPending) &&
+                    styles.disabledButton,
                 ]}
                 onPress={handleSubmitRating}
                 disabled={userRating === 0 || rateBoardMutation.isPending}
@@ -812,10 +870,13 @@ const SingleBoardDetail: React.FC = () => {
                 {rateBoardMutation.isPending ? (
                   <ActivityIndicator color="white" size="small" />
                 ) : (
-                  <Text style={[
-                    styles.submitButtonText,
-                    (userRating === 0 || rateBoardMutation.isPending) && styles.disabledButtonText
-                  ]}>
+                  <Text
+                    style={[
+                      styles.submitButtonText,
+                      (userRating === 0 || rateBoardMutation.isPending) &&
+                        styles.disabledButtonText,
+                    ]}
+                  >
                     Submit
                   </Text>
                 )}
@@ -1053,7 +1114,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
-    
   },
   starButton: {
     padding: 8,

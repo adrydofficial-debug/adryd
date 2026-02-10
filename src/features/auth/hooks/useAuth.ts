@@ -27,13 +27,27 @@ export const useRegister = () => {
       });
 
       // 1️⃣ Check if user already exists
-      const { exists } = await checkUserExistsRequest(phone);
-      await logAppEvent({
-        level: 'INFO',
-        tag: 'Register',
-        message: 'Checked if user exists',
-        data: { phone, exists },
-      });
+      let exists = false;
+      try {
+        const result = await checkUserExistsRequest(phone);
+        exists = result.exists;
+        await logAppEvent({
+          level: 'INFO',
+          tag: 'Register',
+          message: 'Checked if user exists',
+          data: { phone, exists },
+        });
+      } catch (checkError: any) {
+        await logAppEvent({
+          level: 'ERROR',
+          tag: 'Register',
+          message: 'Failed to check if user exists, proceeding with OTP',
+          data: { phone, error: checkError?.message },
+        });
+        console.warn('⚠️ [Register] Failed to check user existence, proceeding with OTP:', checkError);
+        // Continue with OTP flow even if check fails
+        exists = false;
+      }
 
       if (exists) {
         await logAppEvent({

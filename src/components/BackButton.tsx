@@ -1,17 +1,17 @@
-import React from 'react';
+import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
 import {
-  TouchableOpacity,
-  StyleSheet,
   Dimensions,
   StyleProp,
+  StyleSheet,
+  TouchableOpacity,
   ViewStyle,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import i18n from '../i18n';
 import { useDrawerStore } from '../store/drawerStore';
 
-// Screen width & height
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface BackButtonProps {
   style?: StyleProp<ViewStyle>;
@@ -19,11 +19,27 @@ interface BackButtonProps {
   onPress?: () => void;
 }
 
-const BackButton: React.FC<BackButtonProps> = ({ style, iconColor = '#70737D', onPress }) => {
+const BackButton: React.FC<BackButtonProps> = ({
+  style,
+  iconColor = '#70737D',
+  onPress,
+}) => {
   const navigation = useNavigation<any>();
   const navigatedFromDrawer = useDrawerStore(s => s.navigatedFromDrawer);
   const setNavigatedFromDrawer = useDrawerStore(s => s.setNavigatedFromDrawer);
   const reopenDrawerCallback = useDrawerStore(s => s.reopenDrawerCallback);
+
+  const getLang = (lang: string) => (lang.startsWith('ur') ? 'ur' : 'en');
+  const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ur'>(
+    getLang(i18n.language),
+  );
+
+  useEffect(() => {
+    const handleLangChange = (lang: string) =>
+      setCurrentLanguage(getLang(lang));
+    i18n.on('languageChanged', handleLangChange);
+    return () => i18n.off('languageChanged', handleLangChange);
+  }, []);
 
   const handleBackPress = () => {
     if (onPress) {
@@ -46,15 +62,16 @@ const BackButton: React.FC<BackButtonProps> = ({ style, iconColor = '#70737D', o
         navigation.goBack();
         return;
       }
+
       const parentNav: any = (navigation as any).getParent?.();
       if (parentNav && parentNav.canGoBack?.()) {
         parentNav.goBack();
         return;
       }
+
       navigation.navigate('BottomTab' as never, { tab: 'Home' } as never);
     } catch (error) {
       console.error('Navigation error:', error);
-      // Fallback: Try to navigate to the main screen
       try {
         navigation.navigate('BottomTab' as never, { tab: 'Home' } as never);
       } catch (fallbackError) {
@@ -69,7 +86,11 @@ const BackButton: React.FC<BackButtonProps> = ({ style, iconColor = '#70737D', o
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       onPress={handleBackPress}
     >
-      <Ionicons name="arrow-back" size={width * 0.06} color={iconColor} />
+      <Ionicons
+        name={currentLanguage === 'ur' ? 'arrow-forward' : 'arrow-back'}
+        size={width * 0.06}
+        color={iconColor}
+      />
     </TouchableOpacity>
   );
 };
@@ -77,16 +98,15 @@ const BackButton: React.FC<BackButtonProps> = ({ style, iconColor = '#70737D', o
 const styles = StyleSheet.create({
   backButton: {
     backgroundColor: '#fff',
-    width: width * 0.10,     // 10% of screen width
-    height: width * 0.10,    // keep square shape
+    width: width * 0.1,
+    height: width * 0.1,
     borderRadius: width * 0.07,
     justifyContent: 'center',
     alignItems: 'center',
-    // marginTop: height * 0.04, // 5% of screen height
-    borderWidth:0.7,
-    borderColor:"#E5E7EB",
-    position:"absolute",
-    left:26,
+    borderWidth: 0.7,
+    borderColor: '#E5E7EB',
+    position: 'absolute',
+    left: 26,
     top: 26,
   },
 });

@@ -12,6 +12,8 @@ import {
   PinkLocationIcon,
   PinkNotifyIcon,
 } from '../../../assets/images';
+import { useCities } from '../../locations/hooks/hooks';
+import { useCityStore } from '../../locations/store/cityStore';
 import { useNotificationsStore } from '../../notifications/store/notifications';
 
 const { width } = Dimensions.get('window');
@@ -22,7 +24,6 @@ interface ProfileRowProps {
   user?: any;
   avatarUrl?: string;
   isValidAvatarUrl?: boolean;
-  selectedCity: string;
   hasUnreadNotifications: boolean;
   t: (key: string) => string;
   onProfileClick?: () => void;
@@ -36,8 +37,6 @@ const ProfileRow: React.FC<ProfileRowProps> = ({
   user,
   avatarUrl,
   isValidAvatarUrl = false,
-  selectedCity,
-  hasUnreadNotifications,
   t,
   onProfileClick,
   onLocationClick,
@@ -47,6 +46,19 @@ const ProfileRow: React.FC<ProfileRowProps> = ({
   const [avatarError, setAvatarError] = useState(false);
   const { unreadCount } = useNotificationsStore();
   const hasUnread = unreadCount > 0;
+  const { selectedCity, setSelectedCity } = useCityStore();
+  const { data: cities = [] } = useCities();
+
+  // initialize default city if not set
+  React.useEffect(() => {
+    if (!selectedCity && cities.length > 7) {
+      // pick the first city as default (or apply your own logic)
+      setSelectedCity(cities[7]);
+    } else if (!selectedCity && cities.length > 0) {
+      // pick the first city as default (or apply your own logic)
+      setSelectedCity(cities[0]);
+    }
+  }, [cities, selectedCity, setSelectedCity]);
 
   const getFirstName = () => {
     const fullName =
@@ -113,7 +125,7 @@ const ProfileRow: React.FC<ProfileRowProps> = ({
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {selectedCity}
+            {selectedCity?.name ?? t('selectCity')}
           </Text>
         </TouchableOpacity>
 
@@ -122,10 +134,7 @@ const ProfileRow: React.FC<ProfileRowProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[
-            styles.bellBtn,
-            hasUnread && styles.bellBtnActive,
-          ]}
+          style={[styles.bellBtn, hasUnread && styles.bellBtnActive]}
           onPress={onNotificationsClick}
         >
           {hasUnread ? (
@@ -171,11 +180,8 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: width * -0.001,
-    writingDirection: 'ltr',
     justifyContent: 'flex-end',
     flexShrink: 0,
-    width: RIGHT_ACTIONS_WIDTH,
   },
   locationBtnCustom: {
     flexDirection: 'row',
@@ -188,14 +194,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     minHeight: 32,
-    width: 104,
+    alignSelf: 'flex-start', // optional
   },
+
   locationBtnText: {
     color: '#595959',
     fontWeight: '400',
     fontSize: 12,
     marginRight: width * 0.01,
-    flex: 1,
+    // flex: 1,
   },
   bellBtn: {
     backgroundColor: '#fff',

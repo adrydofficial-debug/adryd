@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Animated,
+  BackHandler,
   Dimensions,
   Easing,
   I18nManager,
@@ -12,36 +13,35 @@ import {
   Modal,
   Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   CompanySvg,
   ContactIcon,
-  EditSquareIcon,
   FavoriteIcon,
   HelpIcon,
+  Images,
   InviteIcon,
   LogoutIcon,
   SecurityIcon,
   TermsIcon,
-  Images,
 } from '../assets/images';
 import { deleteFcmToken } from '../features/fcmtoken/api/api';
 import { useProfile } from '../features/profile/hooks/useProfile';
 import i18n from '../i18n';
 import { saveLanguage } from '../services/languageStorage';
 import { useAuthStore } from '../store/authStore';
-import { useDrawerStore } from '../store/drawerStore';
 import { useCampaignFlowStore } from '../store/campaignFlowStore';
+import { useDrawerStore } from '../store/drawerStore';
+
 type DrawerItem = {
   id: number;
   title: string;
@@ -81,17 +81,88 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
   const logout = useAuthStore(s => s.logout);
   const setIsVisible = useDrawerStore(s => s.setIsVisible);
   const setNavigatedFromDrawer = useDrawerStore(s => s.setNavigatedFromDrawer);
-  const reopenDrawerCallback = useDrawerStore(s => s.reopenDrawerCallback);
   const resetCampaignFlow = useCampaignFlowStore(s => s.resetCampaignFlow);
   const translateX = useRef(new Animated.Value(-OFFSCREEN_X)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const [isContactModalVisible, setIsContactModalVisible] = useState(false);
+  const contactSheetTranslateY = useRef(new Animated.Value(height)).current;
+  const contactOverlayOpacity = useRef(new Animated.Value(0)).current;
   const contactEntries = [
-    { id: 'primaryPhone', display: '(+92) 307 4074031', link: 'tel:+923074074031' },
-    { id: 'secondaryPhone', display: '4256945486466', link: 'tel:4256945486466' },
-    { id: 'email', display: 'adryd@app', link: 'mailto:adryd@app?subject=Support%20Request&body=Hi%20Adryd%20Team,' },
+    {
+      id: 'primaryPhone',
+      display: '(+92) 307 4074031',
+      link: 'tel:+923074074031',
+    },
+    {
+      id: 'secondaryPhone',
+      display: '4256945486466',
+      link: 'tel:4256945486466',
+    },
+    {
+      id: 'email',
+      display: 'adryd@app',
+      link: 'mailto:adryd@app?subject=Support%20Request&body=Hi%20Adryd%20Team,',
+    },
   ];
-  const closeContactModal = () => setIsContactModalVisible(false);
+  const closeContactModal = () => {
+    Animated.parallel([
+      Animated.timing(contactSheetTranslateY, {
+        toValue: height,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(contactOverlayOpacity, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setIsContactModalVisible(false);
+    });
+  };
+
+  useEffect(() => {
+    if (isContactModalVisible) {
+      // Reset animation values
+      contactSheetTranslateY.setValue(height);
+      contactOverlayOpacity.setValue(0);
+
+      // Animate in
+      Animated.parallel([
+        Animated.timing(contactSheetTranslateY, {
+          toValue: 0,
+          duration: 300,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(contactOverlayOpacity, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isContactModalVisible, contactSheetTranslateY, contactOverlayOpacity]);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const onBackPress = () => {
+      onClose();
+      return true; // stop default navigation back
+    };
+
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onBackPress,
+    );
+
+    return () => subscription.remove();
+  }, [visible, onClose]);
+
   const handleContactPress = async (link?: string) => {
     if (!link) {
       return;
@@ -102,42 +173,50 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       console.error('Contact link error:', error);
     }
   };
+
+  const getLang = (lang: string) => (lang.startsWith('ur') ? 'ur' : 'en');
+
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ur'>(
-    (i18n.language as 'en' | 'ur') || 'en',
+    getLang(i18n.language),
   );
 
   useEffect(() => {
-    if (visible) {
-      const lang = (i18n.language as 'en' | 'ur') || 'en';
-      setCurrentLanguage(lang);
-    }
-  }, [visible]);
+    console.log('Current language:', currentLanguage);
+  }, [currentLanguage]);
+
+  // useEffect(() => {
+  //   if (visible) {
+  //     const lang = (i18n.language as 'en' | 'ur') || 'en';
+  //     setCurrentLanguage(lang);
+  //   }
+  // }, [visible]);
 
   useEffect(() => {
     const handleLangChange = (lang: string) => {
-      setCurrentLanguage((lang as 'en' | 'ur') || 'en');
+      setCurrentLanguage(getLang(lang));
     };
     i18n.on('languageChanged', handleLangChange);
-    return () => {
-      i18n.off('languageChanged', handleLangChange);
-    };
+    return () => i18n.off('languageChanged', handleLangChange);
   }, []);
 
   const handleLanguageToggle = async (lang: 'en' | 'ur') => {
     try {
-      await saveLanguage(lang);
+      // Step 1: close drawer immediately
+
+      // Give animation time to finish
+      await new Promise(res => setTimeout(res, 300));
+
       const isRTL = lang === 'ur';
 
-      // Update I18nManager BEFORE changing language to ensure proper layout direction
-      I18nManager.forceRTL(isRTL);
       I18nManager.allowRTL(isRTL);
+      I18nManager.forceRTL(isRTL);
 
-      // Change language - this will trigger languageChanged event
+      await saveLanguage(lang);
       await i18n.changeLanguage(lang);
+
       setCurrentLanguage(lang);
 
-      // On Android, RN Native may require a reload for RTL changes, but we try without first
-      // The languageChanged listener in i18n/index.ts will also apply layout direction
+      onClose();
     } catch (error) {
       console.error('Error changing language:', error);
     }
@@ -192,8 +271,12 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
         try {
           setNavigatedFromDrawer(true);
           navigation.navigate('ChangePassword' as never);
+          // Delay closing drawer to allow navigation transition to complete
+          // This prevents the home screen from showing briefly
+          setTimeout(() => {
+            onClose();
+          }, 400);
           console.log('✅ Navigation to ChangePassword successful');
-          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation error:', error);
           onClose();
@@ -209,12 +292,16 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       onPress: () => {
         try {
           setNavigatedFromDrawer(true);
-          resetCampaignFlow();          
-          (navigation as any).navigate('PreviousCompanyScreen', {
+          resetCampaignFlow();
+          (navigation as any).navigate('CompanyListScreen', {
             isSelectable: true,
           });
+          // Delay closing drawer to allow navigation transition to complete
+          // This prevents the home screen from showing briefly
+          setTimeout(() => {
+            onClose();
+          }, 400);
           console.log('✅ Navigation to CompanyListScreen successful');
-          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation error:', error);
           onClose();
@@ -232,8 +319,12 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
         try {
           setNavigatedFromDrawer(true);
           navigation.navigate('FavouritesScreen' as never);
+          // Delay closing drawer to allow navigation transition to complete
+          // This prevents the home screen from showing briefly
+          setTimeout(() => {
+            onClose();
+          }, 400);
           console.log('✅ Navigation to FavouritesScreen successful');
-          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation error:', error);
           onClose();
@@ -249,8 +340,12 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
         try {
           setNavigatedFromDrawer(true);
           navigation.navigate('InviteLink' as never);
+          // Delay closing drawer to allow navigation transition to complete
+          // This prevents the home screen from showing briefly
+          setTimeout(() => {
+            onClose();
+          }, 400);
           console.log('✅ Navigation to InviteLink successful');
-          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation to InviteLink failed:', error);
           onClose();
@@ -269,8 +364,16 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
         try {
           setNavigatedFromDrawer(true);
           navigation.navigate('HelpFAQsScreen' as never);
+          // Use requestAnimationFrame to ensure navigation is queued before closing drawer
+          // This prevents the home screen from showing briefly
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              setTimeout(() => {
+                onClose();
+              }, 400);
+            });
+          });
           console.log('✅ Navigation to HelpFAQsScreen successful');
-          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation error:', error);
           onClose();
@@ -286,8 +389,12 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
         try {
           setNavigatedFromDrawer(true);
           navigation.navigate('TermsPrivacyOptions' as never);
+          // Delay closing drawer to allow navigation transition to complete
+          // This prevents the home screen from showing briefly
+          setTimeout(() => {
+            onClose();
+          }, 400);
           console.log('✅ Navigation to TermsPrivacyOptions successful');
-          setTimeout(() => onClose(), 100);
         } catch (error) {
           console.error('❌ Navigation error:', error);
           onClose();
@@ -342,7 +449,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       <View style={styles.menuItemRight}>
         <Svg width={18} height={18} viewBox="0 0 24 24">
           <Path
-            d="M8 4l8 8-8 8"
+            d={currentLanguage === 'ur' ? 'M16 4l-8 8 8 8' : 'M8 4l8 8-8 8'}
             stroke="#BDBDBD"
             strokeWidth={2}
             fill="none"
@@ -359,11 +466,17 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       {visible && (
         <View
           pointerEvents={visible ? 'auto' : 'none'}
-          style={[StyleSheet.absoluteFill, { direction: 'ltr', zIndex: 9999 } as any]}
+          style={[
+            StyleSheet.absoluteFill,
+            // { direction: 'ltr', zIndex: 9999 } as any,
+          ]}
         >
           <TouchableWithoutFeedback onPress={onClose}>
             <Animated.View
-              style={[styles.backdrop, { opacity: backdropOpacity, zIndex: 9998 }]}
+              style={[
+                styles.backdrop,
+                { opacity: backdropOpacity, zIndex: 9998 },
+              ]}
             />
           </TouchableWithoutFeedback>
 
@@ -383,7 +496,11 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
               {/* Android Shadow - Right Side Only */}
               {Platform.OS === 'android' && (
                 <LinearGradient
-                  colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.1)']}
+                  colors={[
+                    'rgba(0,0,0,0)',
+                    'rgba(0,0,0,0.15)',
+                    'rgba(0,0,0,0.1)',
+                  ]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.androidShadow}
@@ -391,210 +508,253 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
                 />
               )}
               <SafeAreaView style={styles.safeArea} edges={['top']}>
-              {/* Header with Back Arrow and Help Icon */}
-              <View style={styles.headerContainer}>
-                <TouchableOpacity
-                  style={styles.headerButton}
-                  onPress={onClose}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.scrollContent}
                 >
-                  <Ionicons name="arrow-back" size={width * 0.06} color="#70737D" />
-                </TouchableOpacity>
-                <View style={styles.headerSpacer} />
-                <TouchableOpacity
-                  style={styles.headerButton}
-                  onPress={() => {
-                    try {
-                      setNavigatedFromDrawer(true);
-                      navigation.navigate('HelpFAQsScreen' as never);
-                      console.log('✅ Navigation to HelpFAQsScreen successful');
-                      setTimeout(() => onClose(), 100);
-                    } catch (error) {
-                      console.error('❌ Navigation error:', error);
-                      onClose();
-                    }
-                  }}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="help-circle-outline" size={24} color="#3D3D3D" />
-                </TouchableOpacity>
-              </View>
+                  {/* Header with Back Arrow and Help Icon */}
+                  <View style={[styles.headerContainer]}>
+                    <TouchableOpacity
+                      style={[styles.headerButton, styles.backButton]}
+                      onPress={onClose}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Ionicons
+                        name={
+                          currentLanguage === 'ur'
+                            ? 'arrow-forward'
+                            : 'arrow-back'
+                        }
+                        size={width * 0.06}
+                        color="#70737D"
+                      />
+                    </TouchableOpacity>
+                    <View style={styles.headerSpacer} />
+                    <TouchableOpacity
+                      style={styles.headerButton}
+                      onPress={() => {
+                        try {
+                          setNavigatedFromDrawer(true);
+                          navigation.navigate('HelpFAQsScreen' as never);
+                          // Use requestAnimationFrame to ensure navigation is queued before closing drawer
+                          // This prevents the home screen from showing briefly
+                          requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                              setTimeout(() => {
+                                onClose();
+                              }, 400);
+                            });
+                          });
+                          console.log(
+                            '✅ Navigation to HelpFAQsScreen successful',
+                          );
+                        } catch (error) {
+                          console.error('❌ Navigation error:', error);
+                          onClose();
+                        }
+                      }}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Ionicons
+                        name="help-circle-outline"
+                        size={24}
+                        color="#3D3D3D"
+                      />
+                    </TouchableOpacity>
+                  </View>
 
-              <ScrollView 
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
-              >
-                <View style={styles.profileCard}>
-            <View style={styles.profileImageContainer}>
-              <View style={styles.profileImage}>
-                {profile?.avatar_url || user?.user_metadata?.avatar_url ? (
-                  <Image
-                    source={{
-                      uri:
-                        profile?.avatar_url || user?.user_metadata?.avatar_url,
-                    }}
-                    style={styles.profileImageAvatar}
-                  />
-                ) : (
-                  <Image
-                    source={Images.frame}
-                    style={styles.profileImageAvatar}
-                    resizeMode="cover"
-                  />
-                )}
-              </View>
-            </View>
-            <View style={styles.profileCenter}>
-              <Text style={styles.profileName} numberOfLines={1} ellipsizeMode="tail">
-                {profile?.full_name ||
-                  user?.user_metadata?.full_name ||
-                  user?.user_metadata?.name ||
-                  user?.user_metadata?.username ||
-                  user?.email?.split('@')[0] ||
-                  'User'}
-              </Text>
-              <Text style={styles.profileID} numberOfLines={1} ellipsizeMode="middle">
-                ID {user?.id || profile?.id || 'N/A'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.editButton}
-              activeOpacity={0.7}
-              onPress={() => {
-                try {
-                  setNavigatedFromDrawer(true);
-                  navigation.navigate('UpdateProfile' as never);
-                  console.log('✅ Navigation to UpdateProfile successful');
-                  setTimeout(() => onClose(), 100);
-                } catch (error) {
-                  console.error('❌ Navigation error:', error);
-                  onClose();
-                }
-              }}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Image 
-                source={Images.editSquare} 
-                style={styles.editIconImage}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
-            {/* <TouchableOpacity style={styles.editButton} activeOpacity={0.7}>
+                  <View style={styles.profileCard}>
+                    <View style={styles.profileImageContainer}>
+                      <View style={styles.profileImage}>
+                        {profile?.avatar_url ||
+                        user?.user_metadata?.avatar_url ? (
+                          <Image
+                            source={{
+                              uri:
+                                profile?.avatar_url ||
+                                user?.user_metadata?.avatar_url,
+                            }}
+                            style={styles.profileImageAvatar}
+                          />
+                        ) : (
+                          <Image
+                            source={Images.frame}
+                            style={styles.profileImageAvatar}
+                            resizeMode="cover"
+                          />
+                        )}
+                      </View>
+                    </View>
+                    <View style={styles.profileCenter}>
+                      <Text
+                        style={styles.profileName}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {profile?.full_name ||
+                          user?.user_metadata?.full_name ||
+                          user?.user_metadata?.name ||
+                          user?.user_metadata?.username ||
+                          user?.email?.split('@')[0] ||
+                          'User'}
+                      </Text>
+                      <Text
+                        style={styles.profileID}
+                        numberOfLines={1}
+                        ellipsizeMode="middle"
+                      >
+                        ID {user?.id || profile?.id || 'N/A'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        try {
+                          setNavigatedFromDrawer(true);
+                          navigation.navigate('UpdateProfile' as never);
+                          // Delay closing drawer to allow navigation transition to complete
+                          // This prevents the home screen from showing briefly
+                          setTimeout(() => {
+                            onClose();
+                          }, 400);
+                          console.log(
+                            '✅ Navigation to UpdateProfile successful',
+                          );
+                        } catch (error) {
+                          console.error('❌ Navigation error:', error);
+                          onClose();
+                        }
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Image
+                        source={Images.editSquare}
+                        style={styles.editIconImage}
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                    {/* <TouchableOpacity style={styles.editButton} activeOpacity={0.7}>
               <Text style={styles.editIcon}>✏️</Text>
             </TouchableOpacity> */}
-          </View>
+                  </View>
 
-          {/* Referral Banner */}
-          <TouchableOpacity
-            style={styles.referralBanner}
-            onPress={() => {
-              const inviteItem = menuItems.find(item => item.icon === 'invite');
-              inviteItem?.onPress?.();
-            }}
-            activeOpacity={0.8}
-          >
-            <Image 
-              source={Images.bannerSetting} 
-              style={styles.referralBannerImage}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-
-          <View style={styles.menuCard}>
-            {menuItems.map(i => renderMenuItem(i, true))}
-          </View>
-
-          <View style={styles.menuCard}>
-            {supportItems.map(i => renderMenuItem(i, false))}
-          </View>
-
-          {/* Language Toggle */}
-          <View style={styles.menuCard}>
-            <View style={styles.languageToggleContainer}>
-              <Text style={styles.languageToggleLabel}>Language</Text>
-              <View style={styles.languageToggle}>
-                <TouchableOpacity
-                  style={[
-                    styles.languageOption,
-                    currentLanguage === 'en' && styles.languageOptionActive,
-                  ]}
-                  onPress={() => handleLanguageToggle('en')}
-                  activeOpacity={0.7}
-                  disabled={currentLanguage === 'en'}
-                >
-                  <Text
-                    style={[
-                      styles.languageOptionText,
-                      currentLanguage === 'en' &&
-                        styles.languageOptionTextActive,
-                    ]}
+                  {/* Referral Banner */}
+                  <TouchableOpacity
+                    style={styles.referralBanner}
+                    onPress={() => {
+                      const inviteItem = menuItems.find(
+                        item => item.icon === 'invite',
+                      );
+                      inviteItem?.onPress?.();
+                    }}
+                    activeOpacity={0.8}
                   >
-                    ENG
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.languageOption,
-                    currentLanguage === 'ur' && styles.languageOptionActive,
-                  ]}
-                  onPress={() => handleLanguageToggle('ur')}
-                  disabled={currentLanguage === 'ur'}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={[
-                      styles.languageOptionText,
-                      currentLanguage === 'ur' &&
-                        styles.languageOptionTextActive,
-                    ]}
-                  >
-                    URDU
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
+                    <Image
+                      source={Images.bannerSetting}
+                      style={styles.referralBannerImage}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
 
-          <View style={styles.menuCard}>
-            <TouchableOpacity
-              style={[styles.menuItem, styles.logoutItem]}
-              onPress={async () => {
-                try {
-                  onClose();
-                  // Best-effort delete FCM token before logout
-                  try {
-                    const token = await messaging().getToken();
-                    if (token) {
-                      await deleteFcmToken(token);
-                    }
-                  } catch (e) {
-                    console.warn('[FCM] delete on logout failed:', e);
-                  }
-                  await logout();
-                  // AuthGate will switch to AuthNavigator; for safety, attempt nav
-                  navigation.navigate('LoginScreen' as never);
-                } catch (e) {
-                  console.error('Logout error:', e);
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuItemLeft}>
-                <View style={styles.iconContainer}>
-                  <LogoutIcon width={22} height={22} />
-                </View>
-              </View>
-              <View style={styles.menuItemCenter}>
-                <Text style={styles.menuItemTitle}>{t('drawer.logout')}</Text>
-              </View>
-              <View style={styles.menuItemRight} />
-            </TouchableOpacity>
-          </View>
+                  <View style={styles.menuCard}>
+                    {menuItems.map(i => renderMenuItem(i, true))}
+                  </View>
 
-                <View style={{ height: Platform.OS === 'ios' ? 40 : 50 }} />
-              </ScrollView>
+                  <View style={styles.menuCard}>
+                    {supportItems.map(i => renderMenuItem(i, false))}
+                  </View>
+
+                  {/* Language Toggle */}
+                  <View style={styles.menuCard}>
+                    <View style={styles.languageToggleContainer}>
+                      <Text style={styles.languageToggleLabel}>Language</Text>
+                      <View style={styles.languageToggle}>
+                        <TouchableOpacity
+                          style={[
+                            styles.languageOption,
+                            currentLanguage === 'en' &&
+                              styles.languageOptionActive,
+                          ]}
+                          onPress={() => handleLanguageToggle('en')}
+                          activeOpacity={0.7}
+                          disabled={currentLanguage === 'en'}
+                        >
+                          <Text
+                            style={[
+                              styles.languageOptionText,
+                              currentLanguage === 'en' &&
+                                styles.languageOptionTextActive,
+                            ]}
+                          >
+                            ENG
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.languageOption,
+                            currentLanguage === 'ur' &&
+                              styles.languageOptionActive,
+                          ]}
+                          onPress={() => handleLanguageToggle('ur')}
+                          disabled={currentLanguage === 'ur'}
+                          activeOpacity={0.7}
+                        >
+                          <Text
+                            style={[
+                              styles.languageOptionText,
+                              currentLanguage === 'ur' &&
+                                styles.languageOptionTextActive,
+                            ]}
+                          >
+                            URDU
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.menuCard}>
+                    <TouchableOpacity
+                      style={[styles.menuItem, styles.logoutItem]}
+                      onPress={async () => {
+                        try {
+                          onClose();
+                          try {
+                            const token = await messaging().getToken();
+                            if (token) await deleteFcmToken(token);
+                          } catch (e) {
+                            console.warn('[FCM] delete on logout failed:', e);
+                          }
+                          await logout();
+                          navigation.navigate('LoginScreen' as never);
+                        } catch (e) {
+                          console.error('Logout error:', e);
+                        }
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.menuItemLeft}>
+                        <View style={styles.iconContainer}>
+                          <LogoutIcon width={22} height={22} />
+                        </View>
+                      </View>
+                      <View style={styles.menuItemCenter}>
+                        <Text style={styles.menuItemTitle}>
+                          {t('drawer.logout')}
+                        </Text>
+                      </View>
+
+                      {/* <View style={styles.iconContainer}></View>
+                      <View style={styles.menuItemCenter}></View> */}
+                      <View style={styles.menuItemRight} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* <View style={{ height: Platform.OS === 'ios' ? 0 : 10 }} /> */}
+                </ScrollView>
               </SafeAreaView>
             </View>
           </Animated.View>
@@ -603,14 +763,23 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
       <Modal
         visible={isContactModalVisible}
         transparent
-        animationType="fade"
+        animationType="none"
         onRequestClose={closeContactModal}
       >
         <View style={styles.modalContainer}>
           <TouchableWithoutFeedback onPress={closeContactModal}>
-            <View style={styles.modalOverlay} />
+            <Animated.View
+              style={[styles.modalOverlay, { opacity: contactOverlayOpacity }]}
+            />
           </TouchableWithoutFeedback>
-          <View style={styles.contactSheet}>
+          <Animated.View
+            style={[
+              styles.contactSheet,
+              {
+                transform: [{ translateY: contactSheetTranslateY }],
+              },
+            ]}
+          >
             <View style={styles.sheetHandle} />
             {contactEntries.map(entry => (
               <View key={entry.id}>
@@ -624,8 +793,7 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
                 <View style={styles.contactDivider} />
               </View>
             ))}
-           
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </>
@@ -665,7 +833,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 0,
     borderRightWidth: 0,
     // Force drawer to always open from left, ignore RTL
-    ...({ writingDirection: 'ltr' } as any),
+    // ...({ writingDirection: 'ltr' } as any),
   },
   androidShadow: {
     position: 'absolute',
@@ -682,23 +850,27 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   headerContainer: {
+    flexDirection: 'row',
     paddingHorizontal: width * 0.04,
     paddingTop: Platform.OS === 'ios' ? 8 : 16,
     paddingBottom: 8,
-    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     zIndex: 10,
   },
   headerButton: {
-    width: width * 0.10,
-    height: width * 0.10,
+    width: width * 0.1,
+    height: width * 0.1,
     borderRadius: width * 0.07,
     backgroundColor: '#fff',
     borderWidth: 0.7,
     borderColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  backButton: {
+    marginTop: 10, // Move down a little
+    marginStart: 10, // Move right a little
   },
   headerSpacer: {
     flex: 1,
@@ -723,7 +895,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 0,
-    marginRight: 12,
+    marginEnd: 12,
   },
   profileImage: {
     width: width * 0.15,
@@ -741,7 +913,7 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: width * 0.06,
   },
-  profileCenter: { 
+  profileCenter: {
     flex: 1,
     marginRight: 12,
     minWidth: 0, // Allow flex to shrink properly
@@ -867,7 +1039,7 @@ const styles = StyleSheet.create({
   referralBannerImage: {
     width: width * 1,
     height: undefined,
-    aspectRatio: 3.2, 
+    aspectRatio: 3.2,
     borderRadius: 16,
     overflow: 'hidden',
     alignSelf: 'center',

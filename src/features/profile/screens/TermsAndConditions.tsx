@@ -20,6 +20,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import RNFS from 'react-native-fs';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../../i18n';
 import BackButton from '../../../components/BackButton';
 import PrimaryButton from '../../../components/PrimaryButton';
 import { getTermsAgreed, setTermsAgreed } from '../../../services/storage';
@@ -49,10 +51,12 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
   const navigateTo = params.navigateTo;
   const pendingUser = params.user; // User from registration OTP verification
   const setUser = useAuthStore(s => s.setUser);
+  const { i18n: i18nInstance } = useTranslation();
 
   const [hasAgreed, setHasAgreed] = useState<boolean>(false);
   const [showHelloBanner, setShowHelloBanner] = useState<boolean>(false);
   const [isChecked, setIsChecked] = useState<boolean>(false);
+  const [currentLanguage, setCurrentLanguage] = useState<string>(i18nInstance.language || 'en');
   
   // Legal documents hooks
   const { content, version, loading: contentLoading, error: contentError, isCached } = useTermsAndConditions();
@@ -70,6 +74,14 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
 
   useEffect(() => {
     checkTermsAgreement();
+    // Listen for language changes
+    const handleLanguageChange = (lang: string) => {
+      setCurrentLanguage(lang);
+    };
+    i18n.on('languageChanged', handleLanguageChange);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -394,19 +406,65 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
     }
   };
 
+  const handleLanguageToggle = (lang: 'en' | 'ur') => {
+    i18n.changeLanguage(lang);
+    setCurrentLanguage(lang);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
-      
-      {/* Header with Back Button */}
-      {!fromAuth && (
-        <View style={styles.header}>
-          <BackButton iconColor="#000" />
-        </View>
-      )}
 
-      {/* Hello Banner - Only shown if user hasn't agreed */}
-      {showHelloBanner && (
+      {/* Fixed Header with Back Button, Title and Language Selector */}
+      <View style={styles.fixedHeader}>
+        {/* First Row: Back Button and Language Selector */}
+        <View style={styles.headerTopRow}>
+          <BackButton iconColor="#18181B" style={styles.backButtonContainer} />
+          <View style={styles.languageSelector}>
+            <TouchableOpacity
+              style={[
+                styles.languageButton,
+                currentLanguage === 'en' && styles.languageButtonActive,
+              ]}
+              onPress={() => handleLanguageToggle('en')}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.languageButtonText,
+                  currentLanguage === 'en' && styles.languageButtonTextActive,
+                ]}
+              >
+                English
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.languageButton,
+                currentLanguage === 'ur' && styles.languageButtonActive,
+              ]}
+              onPress={() => handleLanguageToggle('ur')}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.languageButtonText,
+                  currentLanguage === 'ur' && styles.languageButtonTextActive,
+                ]}
+              >
+                Urdu
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        {/* Second Row: Title */}
+        <View style={styles.titleContainer}>
+          <Text style={styles.title} numberOfLines={1}>Terms and Conditions</Text>
+        </View>
+      </View>
+
+      {/* Hello Banner - Only shown if user hasn't agreed and from auth flow */}
+      {showHelloBanner && fromAuth && (
         <View style={styles.helloBanner}>
           <Text style={styles.helloTitle}>Hello</Text>
           <Text style={styles.helloSubtitle}>
@@ -415,15 +473,20 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
         </View>
       )}
 
-      {/* Terms Content */}
+      {/* Terms Content - Scrolls behind the fixed header */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { 
+            paddingTop: (Platform.OS === 'ios' ? hp(10) : hp(12)) + (showHelloBanner && fromAuth ? 79 + hp(2) : 0)
+          }
+        ]}
         showsVerticalScrollIndicator={true}
       >
-        <View style={styles.contentContainer}>
-          <Text style={styles.title}>Terms and Conditions</Text>
+        <View style={styles.contentCard}>
+          {/* Version Info - Scrolls with content */}
           <View style={styles.lastUpdateContainer}>
             <Text style={styles.lastUpdate}>
               {version ? `Version: ${version}` : 'Last update: Yesterday'}
@@ -540,14 +603,78 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  header: {
-    paddingHorizontal: wp(4),
-    paddingTop: Platform.OS === 'ios' ? 0 : hp(2),
+  fixedHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     zIndex: 10,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
+    paddingTop: Platform.OS === 'ios' ? hp(1) : hp(2),
+    paddingHorizontal: 17,
+    paddingBottom: hp(1.5),
+    borderBottomWidth: 0,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: hp(1),
+  },
+  backButtonContainer: {
+    position: 'relative',
+    left: 0,
+    top: 0,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#18181B',
+    textAlign: 'center',
+  },
+  languageSelector: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  languageButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: 'transparent',
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  languageButtonActive: {
+    backgroundColor: '#C539A5',
+  },
+  languageButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#70737D',
+  },
+  languageButtonTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  lastUpdateContainer: {
+    marginBottom: hp(2),
+    marginTop: hp(1),
+  },
+  lastUpdate: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: '#999999',
   },
   helloBanner: {
-    marginLeft: 17, 
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? hp(10) : hp(12),
+    left: 17,
+    zIndex: 5,
     marginTop: hp(1.5),
     marginBottom: hp(2),
     padding: 15, 
@@ -557,18 +684,6 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB', 
     width: Math.min(356, width - 34), 
     minHeight: 79,
-    alignSelf: 'flex-start',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 17.1,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
   },
   helloTitle: {
     fontSize: 26,
@@ -587,26 +702,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   scrollContent: {
-    paddingBottom: hp(15),
+    paddingBottom: hp(20),
+    paddingHorizontal: 0,
   },
-  contentContainer: {
-    paddingHorizontal: wp(4),
-    paddingTop: hp(8),
-    backgroundColor: '#F5F5F5',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#18181B',
-    marginBottom: hp(1),
-  },
-  lastUpdateContainer: {
-    marginBottom: hp(2),
-  },
-  lastUpdate: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: '#999999',
+  contentCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingTop: 0,
+    paddingRight: 15,
+    paddingBottom: 20,
+    paddingLeft: 15,
+    width: width,
+    alignSelf: 'stretch',
   },
   termsContent: {
     marginBottom: hp(2),
@@ -629,7 +736,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '400',
     color: '#18181B',
-    lineHeight: 22,
+    lineHeight: 20,
     marginBottom: hp(1.5),
   },
   bulletPoint: {
@@ -653,12 +760,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: wp(4),
-    paddingBottom: Platform.OS === 'ios' ? hp(3) : hp(4),
-    paddingTop: hp(2),
+    paddingBottom: Platform.OS === 'ios' ? hp(2) : hp(3),
+    paddingTop: hp(2.5),
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -692,22 +801,26 @@ const styles = StyleSheet.create({
   },
   agreeButton: {
     alignSelf: 'center',
-    width: '50%',
+    width: 161.5,
   },
   downloadButtonContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    width: width,
+    height: 123,
     paddingHorizontal: wp(4),
-    paddingBottom: Platform.OS === 'ios' ? hp(3) : hp(4),
-    paddingTop: hp(2),
-    backgroundColor: '#F5F5F5',
+    paddingBottom: Platform.OS === 'ios' ? hp(2) : hp(3),
+    paddingTop: hp(2.5),
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 0,
     zIndex: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   downloadButton: {
-    width: '60%',
+    width: 161.5,
     alignSelf: 'center',
   },
   loadingContainer: {

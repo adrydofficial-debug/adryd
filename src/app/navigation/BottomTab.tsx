@@ -1,35 +1,31 @@
-import React, { useState, useMemo } from 'react';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useMemo, useState } from 'react';
 import {
-  View,
-  TouchableOpacity,
-  StyleSheet,
   Dimensions,
   Image,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
 import Svg, { Path } from 'react-native-svg';
 import {
-  PinkHomeIcon,
-  GrayHomeIcon,
-  GrayActiveIcon,
-  PinkActiveIcon,
   AddIcon,
-  PinkMsgIcon,
-  GrayMsgIcon,
-  PinkProfileIcon,
+  GrayActiveIcon,
+  GrayHomeIcon,
   GrayProfileIcon,
   Images,
+  PinkActiveIcon,
+  PinkHomeIcon,
+  PinkProfileIcon,
 } from '../../assets/images';
-import HomeScreen from '../../features/boards/screens/HomeScreen';
 import CompaignStatus from '../../features/advertisments/screens/CompaignStatus';
+import HomeScreen from '../../features/boards/screens/HomeScreen';
 import InboxScreen from '../../features/chat/screens/InboxScreen';
-import UpdateProfile from '../../features/profile/screens/UpdateProfile';
-import { useDrawerStore } from '../../store/drawerStore';
 import { useNotificationsStore } from '../../features/notifications/store/notifications';
+import { useDrawerStore } from '../../store/drawerStore';
 const { width, height } = Dimensions.get('window');
 type TabName = 'Home' | 'Boards' | 'Add' | 'Chat' | 'Profile';
-interface BottomTabProps {
-}
+interface BottomTabProps {}
 const BottomTab: React.FC<BottomTabProps> = () => {
   const navigation = useNavigation<any>();
   const route = useRoute() as any;
@@ -46,7 +42,8 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       // Check if notification is unread and related to a campaign
       if (n.read) return false;
       // Check if notification has advertisement_id in data
-      const hasAdvertisementId = n.data?.advertisement_id || n.data?.advertisementId;
+      const hasAdvertisementId =
+        n.data?.advertisement_id || n.data?.advertisementId;
       // Include status_update type notifications or any notification with advertisement_id
       return n.type === 'status_update' || hasAdvertisementId;
     }).length;
@@ -66,7 +63,10 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       case 'Boards':
         break;
       case 'Add':
-        navigation.navigate('SearchLocation' as never, { autoSelectSeeAll: true } as never);
+        navigation.navigate(
+          'SearchLocation' as never,
+          { autoSelectSeeAll: true } as never,
+        );
         setActiveTab('Home');
         break;
       case 'Chat':
@@ -92,17 +92,42 @@ const BottomTab: React.FC<BottomTabProps> = () => {
   const renderActiveScreen = () => {
     switch (activeTab) {
       case 'Home':
-        return <HomeScreen navigation={navigation} onLoadingChange={setIsHomeLoading} />;
+        return (
+          <HomeScreen
+            navigation={navigation}
+            onLoadingChange={setIsHomeLoading}
+          />
+        );
       case 'Boards':
-        return <CompaignStatus navigation={navigation} onBackToHome={handleNavigateHome} />; 
+        return (
+          <CompaignStatus
+            navigation={navigation}
+            onBackToHome={handleNavigateHome}
+          />
+        );
       case 'Add':
-        return <HomeScreen navigation={navigation} onLoadingChange={setIsHomeLoading} />; 
+        return (
+          <HomeScreen
+            navigation={navigation}
+            onLoadingChange={setIsHomeLoading}
+          />
+        );
       case 'Chat':
-        return <InboxScreen />; 
+        return <InboxScreen />;
       case 'Profile':
-        return <CompaignStatus navigation={navigation} onBackToHome={handleNavigateHome} />;
+        return (
+          <CompaignStatus
+            navigation={navigation}
+            onBackToHome={handleNavigateHome}
+          />
+        );
       default:
-        return <HomeScreen navigation={navigation} onLoadingChange={setIsHomeLoading} />;
+        return (
+          <HomeScreen
+            navigation={navigation}
+            onLoadingChange={setIsHomeLoading}
+          />
+        );
     }
   };
 
@@ -119,7 +144,11 @@ const BottomTab: React.FC<BottomTabProps> = () => {
     const isFAB = tab.isFAB;
     const IconComponent = isActive ? tab.activeIcon : tab.icon;
     // Check if it's an image source (number) or SVG component (function)
-    const isImageSource = typeof IconComponent === 'number' || (typeof IconComponent !== 'function' && IconComponent !== null && IconComponent !== undefined);
+    const isImageSource =
+      typeof IconComponent === 'number' ||
+      (typeof IconComponent !== 'function' &&
+        IconComponent !== null &&
+        IconComponent !== undefined);
     const isImageTab = tab.isImage || false;
 
     if (isFAB) {
@@ -130,8 +159,8 @@ const BottomTab: React.FC<BottomTabProps> = () => {
           onPress={() => handleTabPress(tab.name)}
           activeOpacity={0.8}
         >
-          <Image 
-            source={Images.addPlaceholder} 
+          <Image
+            source={Images.addPlaceholder}
             style={styles.addIconImage}
             resizeMode="contain"
           />
@@ -152,8 +181,8 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       >
         <View style={styles.tabIconContainer}>
           {isImageSource || isImageTab ? (
-            <Image 
-              source={IconComponent} 
+            <Image
+              source={IconComponent}
               style={[
                 styles.tabIconImage,
                 isImageTab && isActive && styles.chatIconActive,
@@ -164,9 +193,7 @@ const BottomTab: React.FC<BottomTabProps> = () => {
           ) : (
             <IconComponent width={20} height={20} />
           )}
-          {showBadge && (
-            <View style={styles.badgeDot} />
-          )}
+          {showBadge && <View style={styles.badgeDot} />}
         </View>
       </TouchableOpacity>
     );
@@ -174,10 +201,10 @@ const BottomTab: React.FC<BottomTabProps> = () => {
 
   const renderCurvedBar = () => {
     const centerX = width / 2;
-  const fabRadius = 35;
-  const barHeight = 88;
-  const curveDepth = 28;
-  const sideGap = 20;
+    const fabRadius = 35;
+    const barHeight = 88;
+    const curveDepth = 28;
+    const sideGap = 20;
     const r = fabRadius + sideGap;
     const leftStart = centerX - r;
     const rightEnd = centerX + r;
@@ -189,8 +216,12 @@ const BottomTab: React.FC<BottomTabProps> = () => {
       L 0 25
       Q 0 0 25 0
       L ${leftStart} 0
-      C ${leftStart + cpOffset} 0 ${centerX - cpOffset} ${curveDepth} ${centerX} ${curveDepth}
-      C ${centerX + cpOffset} ${curveDepth} ${rightEnd - cpOffset} 0 ${rightEnd} 0
+      C ${leftStart + cpOffset} 0 ${
+      centerX - cpOffset
+    } ${curveDepth} ${centerX} ${curveDepth}
+      C ${centerX + cpOffset} ${curveDepth} ${
+      rightEnd - cpOffset
+    } 0 ${rightEnd} 0
       L ${width - 25} 0
       Q ${width} 0 ${width} 25
       L ${width} ${barHeight}
@@ -204,7 +235,8 @@ const BottomTab: React.FC<BottomTabProps> = () => {
     );
   };
 
-  const shouldShowBottomTab = activeTab !== 'Boards' && !(activeTab === 'Home' && isHomeLoading);
+  const shouldShowBottomTab =
+    activeTab !== 'Boards' && !(activeTab === 'Home' && isHomeLoading);
 
   React.useEffect(() => {
     if (activeTab !== 'Home') {
@@ -215,32 +247,30 @@ const BottomTab: React.FC<BottomTabProps> = () => {
   return (
     <View style={styles.mainContainer}>
       {/* Main Content */}
-      <View style={styles.content}>
-        {renderActiveScreen()}
-      </View>
-      
+      <View style={styles.content}>{renderActiveScreen()}</View>
+
       {/* Bottom Tab Navigation */}
       {!isDrawerVisible && shouldShowBottomTab && (
         <View style={styles.bottomTabContainer}>
           {/* Curved Navigation Bar Background */}
           {renderCurvedBar()}
-        
-        {/* Navigation Content */}
-        <View style={styles.navigationContent}>
-          {/* Left side tabs */}
-          <View style={styles.leftTabs}>
-            {tabs.slice(0, 2).map((tab, index) => renderTab(tab, index))}
-          </View>
 
-          {/* Center FAB space */}
-          <View style={styles.centerSpace} />
+          {/* Navigation Content */}
+          <View style={styles.navigationContent}>
+            {/* Left side tabs */}
+            <View style={styles.leftTabs}>
+              {tabs.slice(0, 2).map((tab, index) => renderTab(tab, index))}
+            </View>
 
-          {/* Right side tabs */}
-          <View style={styles.rightTabs}>
-            {tabs.slice(3).map((tab, index) => renderTab(tab, index + 3))}
+            {/* Center FAB space */}
+            <View style={styles.centerSpace} />
+
+            {/* Right side tabs */}
+            <View style={styles.rightTabs}>
+              {tabs.slice(3).map((tab, index) => renderTab(tab, index + 3))}
+            </View>
           </View>
-        </View>
-        {renderTab(tabs[2], 2)}
+          {renderTab(tabs[2], 2)}
         </View>
       )}
     </View>
@@ -254,7 +284,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingBottom: 20, 
   },
   bottomTabContainer: {
     position: 'absolute',
@@ -371,7 +400,7 @@ const styles = StyleSheet.create({
     tintColor: '#C539A5',
   },
   chatIconInactive: {
-    tintColor: '#9CA3AF',
+    tintColor: '#CCCCCC',
   },
   tabIconContainer: {
     position: 'relative',
