@@ -22,6 +22,7 @@ import { useAuthStore } from '../store/authStore';
 interface ProfileUserProps {
   username?: string;
   avatarUri?: string;
+  isEditMode?: boolean; // NEW
   onImageSelected?: (image: { uri: string; name: string; type: string }) => void;
   onImageUploaded?: (uploadedImage: {
     url: string;
@@ -37,6 +38,7 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
   avatarUri,
   onImageSelected,
   onAvatarPress,
+  isEditMode, 
   containerStyle,
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(
@@ -135,37 +137,31 @@ const ProfileUser: React.FC<ProfileUserProps> = ({
   return (
     <View style={[styles.headerCard, containerStyle]}>
       <View>
-        <TouchableOpacity
-          style={styles.avatarOuter}
-          activeOpacity={0.85}
-          onPress={pickImage}
-        >
-          <View style={styles.avatarInner}>
-            {selectedImage ? (
-              <Image
-                source={{ uri: selectedImage }}
-                style={styles.avatarImage}
-              />
-            ) : (
-              <Image
-                source={Images.frame}
-                style={styles.avatarImage}
-                resizeMode="cover"
-              />
-            )}
-          </View>
-        </TouchableOpacity>
+        <View style={styles.avatarOuter}>
+  <View style={styles.avatarInner}>
+    {selectedImage ? (
+      <Image source={{ uri: selectedImage }} style={styles.avatarImage} />
+    ) : (
+      <Image source={Images.frame} style={styles.avatarImage} resizeMode="cover" />
+    )}
+  </View>
 
-        <TouchableOpacity
-          onPress={pickImage}
-          activeOpacity={0.8}
-          style={styles.cameraBadge}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <View style={styles.cameraCircle}>
-            <Ionicons name="camera" size={18} color="#fff" />
-          </View>
-        </TouchableOpacity>
+  {/* Pencil circle - only visible in edit mode */}
+  {isEditMode && (
+    <TouchableOpacity
+      onPress={pickImage}  // only the pencil opens gallery
+      activeOpacity={0.8}
+      style={styles.cameraBadge}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <View style={styles.cameraCircle}>
+        <Ionicons name="camera" size={20} color="#fff" />
+      </View>
+    </TouchableOpacity>
+  )}
+</View>
+
+
       </View>
 
       <Text style={styles.nameText}>{displayName}</Text>

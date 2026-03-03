@@ -48,7 +48,7 @@ const UpdateProfile: React.FC = () => {
   >(undefined);
   const [avatarUri, setAvatarUri] = useState<string | undefined>(undefined);
   const [originalAvatarUri, setOriginalAvatarUri] = useState<string | undefined>(undefined);
-  const [isEditMode, setIsEditMode] = useState(true);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const nameInputRef = useRef<TextInput>(null);
 
@@ -64,10 +64,7 @@ const UpdateProfile: React.FC = () => {
     };
   }, []);
 
-  // Ensure edit mode is enabled on mount
-  useEffect(() => {
-    setIsEditMode(true);
-  }, []);
+  
   const handleBackPress = () => {
     navigation.goBack();
   };
@@ -91,14 +88,14 @@ const UpdateProfile: React.FC = () => {
       refetch();
       setLanguageKey(prev => prev + 1);
       // Ensure edit mode is enabled when screen is focused
-      setIsEditMode(true);
+      setIsEditMode(false);
     }, [refetch]),
   );
 
   const handleSave = async () => {
     try {
       await updateProfile.mutateAsync({
-        full_name: fullName.trim(),
+        full_name: fullName.trim(), 
         avatarFile, // if user picked a new image
       });
 
@@ -172,6 +169,8 @@ const UpdateProfile: React.FC = () => {
             key={refreshKey}
             username={fullName}
             avatarUri={avatarUri}
+            isEditMode={isEditMode} // NEW PROP
+
             onAvatarPress={handleAvatarPress}
             onImageSelected={async image => {
               // image = { uri, name, type }
@@ -190,6 +189,7 @@ const UpdateProfile: React.FC = () => {
               <CustomInput
                 ref={nameInputRef}
                 value={fullName}
+                disabled={!isEditMode}
                 onChangeText={text => {
                   setFullName(text);
                   setIsEditMode(true);
@@ -242,6 +242,7 @@ const UpdateProfile: React.FC = () => {
                         backgroundColor: '#F5F6F7',
                         borderWidth: 0.5,
                         borderColor: '#E5E7EB',
+                        height: hp(6.5),
                       }}
                       textStyle={{
                         color: '#3D3D3D',
@@ -318,3 +319,4 @@ const styles = StyleSheet.create({
 });
 
 export default UpdateProfile;
+
