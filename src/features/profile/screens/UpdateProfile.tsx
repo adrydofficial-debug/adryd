@@ -64,7 +64,7 @@ const UpdateProfile: React.FC = () => {
     };
   }, []);
 
-  
+
   const handleBackPress = () => {
     navigation.goBack();
   };
@@ -95,8 +95,8 @@ const UpdateProfile: React.FC = () => {
   const handleSave = async () => {
     try {
       await updateProfile.mutateAsync({
-        full_name: fullName.trim(), 
-        avatarFile, // if user picked a new image
+        full_name: fullName.trim(),
+        avatarFile,
       });
 
       setRefreshKey(prev => prev + 1);
@@ -157,6 +157,7 @@ const UpdateProfile: React.FC = () => {
           title={t('updateProfile.screenTitle')}
           onBackPress={handleBackPress}
           showRightIcon={false}
+          currentLanguage={i18n.language}  
         />
         <ScrollView
           contentContainerStyle={styles.content}
@@ -228,28 +229,29 @@ const UpdateProfile: React.FC = () => {
               </View>
             )}
 
-            {/* Cancel and Save Buttons - Only show when in edit mode */}
+            {/* Cancel and Save Buttons */}
             {isEditMode && (
               <View style={styles.buttonWrap}>
                 <View style={styles.buttonRow}>
                   <View style={styles.cancelButton}>
                     <CustomButton
                       title={t('updateProfile.cancel')}
-                      onPress={handleCancel}
+                      onPress={updateProfile.isPending ? undefined : handleCancel}
                       variant="outline"
                       buttonStyle={{
                         width: '100%',
-                        backgroundColor: '#F5F6F7',
+                        backgroundColor: updateProfile.isPending ? '#E5E7EB' : '#F5F6F7',  
                         borderWidth: 0.5,
                         borderColor: '#E5E7EB',
                         height: hp(6.5),
+                        opacity: updateProfile.isPending ? 0.5 : 1,  
                       }}
                       textStyle={{
-                        color: '#3D3D3D',
+                        color: updateProfile.isPending ? '#9CA3AF' : '#3D3D3D',  
                         fontSize: 14,
                         fontWeight: '500',
                       }}
-                      disabled={updateProfile.isPending}
+                      disabled={updateProfile.isPending}  
                     />
                   </View>
                   <View style={styles.saveButton}>
@@ -296,7 +298,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(2.5),
   },
   form: { marginTop: hp(1) },
-  smallLabel: { fontSize: 12, color:'#E5E7EB',marginBottom: 4, marginTop: 10 },
+  smallLabel: { fontSize: 12, color: '#E5E7EB', marginBottom: 4, marginTop: 10 },
   inputContainerFix: { marginBottom: hp(0.6) },
   noteText: { fontSize: 12, color: '#999', marginTop: -8 },
   buttonWrap: { marginTop: hp(4) },
