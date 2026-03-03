@@ -1,366 +1,147 @@
-import { useNavigation, useRoute } from '@react-navigation/native';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
-  SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import BoardList from '../../../components/BoardList';
-import Loader from '../../../components/Loader';
 import { useAppStore } from '../../../store/appStore';
-import { useBoardFilters } from '../../boards/hooks/useBoardFilters';
-import FilterButton from '../components/FilterButton';
-import LocationButton from '../components/LocationButton';
+import { City, Location } from '../domain/entities';
+
+interface AreaHistory {
+  id: string;
+  name: string;
+}
+
+interface LocationSelectorProps {
+  onApply: (location: Location | City) => void;
+}
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
-
-interface FilterOption {
-  id: string;
-  name: string;
-  category?: string;
-}
-
-const SearchLocation: React.FC = () => {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
-
+const LocationSelector: React.FC<LocationSelectorProps> = ({ onApply }) => {
   const {
-    searchQuery,
-    setSearchQuery,
-    applyFilters,
-    loadMoreBoards,
-    filteredBoards,
-    filterPagination,
-    isFiltering,
-    setAppliedFilters,
-    setAppliedFilterOrder,
-    appliedFilters,
-    appliedFilterOrder,
+    selectedCity,
+    setSelectedCity,
+    getCurrentLocations,
+    cities,
+    fetchCities,
   } = useAppStore();
 
-  const boards = filteredBoards;
-
-  const [draftSelectedFilters, setDraftSelectedFilters] = useState<Set<string>>(
-    new Set(),
-  );
-
-  const [appliedSearchQuery, setAppliedSearchQuery] = useState('');
-  const [isFilterSectionVisible, setIsFilterSectionVisible] = useState(false);
-
-  const tagsScrollViewRef = useRef<ScrollView>(null);
-
-  const {
-    data: boardFiltersData,
-    isLoading: isBoardFiltersLoading,
-    error: boardFiltersError,
-    refetch: refetchBoardFilters,
-  } = useBoardFilters();
-
-  /* ---------------- Filters Setup ---------------- */
-
-  const specialFilters: FilterOption[] = useMemo(
-    () => [
-      { id: 'see-all', name: 'See All', category: 'special' },
-      { id: 'recommended', name: 'Recommended', category: 'special' },
-    ],
-    [],
-  );
-
-  const filterGroups = useMemo(() => {
-    if (!boardFiltersData?.groups) return [];
-    return boardFiltersData.groups.map(group => ({
-      id: group.slug,
-      name: group.name,
-      slug: group.slug,
-      categories: (group.categories || []).map(cat => ({
-        id: cat.slug,
-        name: cat.name,
-        slug: cat.slug,
-        groupSlug: group.slug,
-      })),
-    }));
-  }, [boardFiltersData]);
-
-  const filterOptions: FilterOption[] = useMemo(() => {
-    const all: FilterOption[] = [...specialFilters];
-
-    filterGroups.forEach(group => {
-      all.push({ id: group.slug, name: group.name, category: 'group' });
-      group.categories.forEach(cat =>
-        all.push({ id: cat.slug, name: cat.name, category: 'category' }),
-      );
-    });
-
-    return all;
-  }, [specialFilters, filterGroups]);
-
-  const filterOptionsMap = useMemo(() => {
-    const map = new Map<string, FilterOption>();
-    filterOptions.forEach(o => map.set(o.id, o));
-    return map;
-  }, [filterOptions]);
-
-  const convertBoardToBoardItem = (
-    board: any,
-    isRecommended: boolean = false,
-  ) => {
-    const labels: string[] = [];
-
-    if (board.is_special || board.special || board.isSpecial) {
-      labels.push('Special');
-    }
-
-    if (typeof board.discount_percentage === 'number') {
-      labels.push(`${board.discount_percentage}% Less`);
-    } else if (board.discount != null) {
-      const discountValue = board.discount.toString().trim();
-      if (discountValue.length > 0) {
-        labels.push(
-          discountValue.includes('%')
-            ? discountValue
-            : `${discountValue}% Less`,
-        );
-      }
-    }
-
-    let locationString = 'Unknown Location';
-    if (board.location) {
-      if (typeof board.location === 'string') {
-        locationString = board.location;
-      } else if (
-        typeof board.location === 'object' &&
-        board.location !== null
-      ) {
-        const loc = board.location;
-        locationString =
-          loc.name ||
-          (typeof loc.city === 'string' ? loc.city : loc.city?.name || '') ||
-          (typeof loc.province === 'string'
-            ? loc.province
-            : loc.province?.name || '') ||
-          (loc.city && loc.province
-            ? `${
-                typeof loc.city === 'string' ? loc.city : loc.city?.name || ''
-              }, ${
-                typeof loc.province === 'string'
-                  ? loc.province
-                  : loc.province?.name || ''
-              }`.trim()
-            : 'Unknown Location') ||
-          'Unknown Location';
-      }
-    }
-
-    const priceNumber =
-      typeof board.price === 'number'
-        ? board.price
-        : board.price
-        ? Number(board.price) || 0
-        : 0;
-    const primaryMediaUrl =
-      Array.isArray(board.media) && board.media.length > 0
-        ? board.media[0]?.url
-        : null;
-    const imageUrl = board.image_url || board.image || primaryMediaUrl;
-
-    return {
-      id: board.id?.toString() || 'unknown',
-      title: board.title || board.name || 'Untitled Board',
-      description: board.description || '',
-      location: locationString,
-      distance: '1.6 km',
-      size:
-        board.width && board.height ? `${board.width}x${board.height}` : '12x8',
-      price: priceNumber || 0,
-      currency: board.currency || 'USD',
-      image_url: imageUrl,
-      image: imageUrl,
-      rating: board.rating ?? board.avg_rating ?? 0,
-      reviewCount:
-        board.review_count || board.totalRatings || board.reviewCount || 112,
-      category: board.category?.name || board.category_name || 'Static',
-      isRecommended,
-      labels: labels.length > 0 ? labels : undefined,
-      discount:
-        typeof board.discount_percentage === 'number'
-          ? `${board.discount_percentage}% Less`
-          : board.discount,
-      width: board.width,
-      height: board.height,
-      media: Array.isArray(board.media) ? board.media : [],
-    };
-  };
-  
-  const boardItems = useMemo(() => {
-    return boards.map((board: any) =>
-      convertBoardToBoardItem(board, draftSelectedFilters.has('recommended')),
-    );
-  }, [boards, draftSelectedFilters]);
-
-  /* ---------------- Filter Logic ---------------- */
-
-  const toggleFilter = useCallback((filterId: string) => {
-    setDraftSelectedFilters(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(filterId)) newSet.delete(filterId);
-      else newSet.add(filterId);
-      return newSet;
-    });
-  }, []);
-
-  const handleApplyFilters = useCallback(async () => {
-    const validCategorySlugs = Array.from(draftSelectedFilters).filter(id => {
-      if (id === 'see-all' || id === 'recommended') return false;
-      return !filterGroups.some(g => g.slug === id);
-    });
-
-    setAppliedFilters(new Set(validCategorySlugs));
-    setAppliedFilterOrder(validCategorySlugs);
-
-    await applyFilters({ page: 1 });
-
-    setAppliedSearchQuery(searchQuery.trim());
-  }, [
-    draftSelectedFilters,
-    filterGroups,
-    applyFilters,
-    searchQuery,
-    setAppliedFilters,
-    setAppliedFilterOrder,
+  const [draftCity, setDraftCity] = useState<City | null>(selectedCity || null);
+  const [draftLocation, setDraftLocation] = useState<Location | null>(null);
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [areaHistory, setAreaHistory] = useState<AreaHistory[]>([
+    { id: '1', name: 'Mall Road' },
+    { id: '2', name: 'Gulberg' },
+    { id: '3', name: 'Model Town' },
   ]);
+  const locations = getCurrentLocations() ?? [];
 
-  const handleLoadMore = useCallback(() => {
-    loadMoreBoards();
-  }, [loadMoreBoards]);
+  // Reset draft when opening dropdown
+  const handleOpenDropdown = () => {
+    setDraftCity(selectedCity || null);
+    setDraftLocation(null);
+    setIsDropdownVisible(true);
+    fetchCities();
+  };
 
-  const selectedFilterNames = useMemo(() => {
-    return Array.from(draftSelectedFilters)
-      .map(id => filterOptionsMap.get(id))
-      .filter(Boolean)
-      .map(o => o!.name);
-  }, [draftSelectedFilters, filterOptionsMap]);
+  const handleCancel = () => {
+    setDraftCity(selectedCity || null);
+    setDraftLocation(null);
+    setIsDropdownVisible(false);
+  };
 
-  useEffect(() => {
-    if (selectedFilterNames.length && tagsScrollViewRef.current) {
-      setTimeout(() => {
-        tagsScrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+  const handleApply = () => {
+    const selected = draftLocation || draftCity;
+    if (!selected) return;
+
+    // Update history only for areas
+    if (
+      draftLocation &&
+      !areaHistory.find(a => a.name === draftLocation.name)
+    ) {
+      setAreaHistory(prev => [
+        { id: Date.now().toString(), name: draftLocation.name },
+        ...prev.slice(0, 2),
+      ]);
     }
-  }, [selectedFilterNames.length]);
 
-  const handleDetailPress = useCallback(
-    (item: any) => {
-      navigation.navigate('SingleBoardDetail', { item });
-    },
-    [navigation],
-  );
-
-  /* ---------------- UI ---------------- */
+    onApply(selected);
+    setIsDropdownVisible(false);
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <View>
+      <TouchableOpacity onPress={handleOpenDropdown} style={styles.locationTag}>
+        <Text style={styles.locationTagText}>
+          {draftLocation?.name || draftCity?.name || 'Select City'}
+        </Text>
+      </TouchableOpacity>
 
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#70737D" />
-        </TouchableOpacity>
-
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search your board"
-            placeholderTextColor="#999"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          <LocationButton />
-        </View>
-
-        <FilterButton />
-      </View>
-
-      <View style={{ flex: 1 }}>
-        {!isFilterSectionVisible ? (
-          <ScrollView>
-            {boards.length > 0 && (
-              <>
-                <BoardList
-                  data={boardItems}
-                  heading=""
-                  showSeeAll={false}
-                  numColumns={2}
-                  navigation={navigation}
-                  onPressDetail={handleDetailPress}
-                  useWiderCards
-                  scrollEnabled={false}
-                />
-
-                <Text style={{ textAlign: 'center', marginVertical: 12 }}>
-                  Showing {boards.length} of {filterPagination.total} results
-                </Text>
-
-                {boards.length < filterPagination.total && (
-                  <TouchableOpacity
-                    style={styles.loadMoreButton}
-                    onPress={handleLoadMore}
-                    disabled={isFiltering}
+      <View
+        style={[styles.citiesDropdownWrapper, styles.citiesDropdownWrapperOpen]}
+      >
+        <View style={styles.citiesList}>
+          {/* {isCitiesLoading && (
+            <View style={{ padding: hp(2), alignItems: 'center' }}>
+              <ActivityIndicator size="small" color="#C538A5" />
+            </View>
+          )} */}
+          {/* {citiesError && !isCitiesLoading && (
+                          <View style={{ padding: hp(2) }}>
+                            <Text style={styles.errorText}>
+                              Unable to load cities. Tap the location again to
+                              retry.
+                            </Text>
+                          </View>
+                        )} */}
+          <ScrollView
+            style={styles.citiesListScrollView}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+          >
+            {cities.map(city => {
+              const isSelected = city.id === selectedCity?.id;
+              return (
+                <TouchableOpacity
+                  key={city.id}
+                  style={[
+                    styles.cityItem,
+                    isSelected && styles.cityItemSelected,
+                  ]}
+                  onPress={() => {
+                    setSelectedCity(city);
+                    setSelectedLocationId(undefined);
+                    setIsCitiesDropdownOpen(false);
+                  }}
+                >
+                  <View style={styles.radioButton}>
+                    {isSelected && <View style={styles.radioButtonSelected} />}
+                  </View>
+                  <Text
+                    style={[
+                      styles.cityItemText,
+                      isSelected && styles.cityItemTextSelected,
+                    ]}
                   >
-                    {isFiltering ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={{ color: '#fff' }}>Load More</Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-
-            {boards.length === 0 && !isFiltering && (
-              <Text style={{ textAlign: 'center', marginTop: 40 }}>
-                No boards match your filters.
-              </Text>
+                    {city.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            {cities.length === 0 && (
+              <View style={{ padding: hp(2) }}>
+                <Text style={styles.noResultsText}>No cities found.</Text>
+              </View>
             )}
           </ScrollView>
-        ) : (
-          <ScrollView>
-            {selectedFilterNames.map(name => (
-              <Text key={name}>{name}</Text>
-            ))}
-          </ScrollView>
-        )}
-      </View>
-
-      {isFilterSectionVisible && (
-        <View style={styles.footerActions}>
-          <TouchableOpacity onPress={() => setIsFilterSectionVisible(false)}>
-            <Text>Cancel</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={handleApplyFilters} disabled={isFiltering}>
-            <Text>{isFiltering ? 'Applying...' : 'Apply'}</Text>
-          </TouchableOpacity>
         </View>
-      )}
-
-      {isFiltering && <Loader />}
-    </SafeAreaView>
+      </View>
+    </View>
   );
 };
 
@@ -1080,5 +861,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-export default SearchLocation;
+export default LocationSelector;

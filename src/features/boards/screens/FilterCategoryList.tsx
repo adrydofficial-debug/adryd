@@ -13,15 +13,15 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { Images } from '../../../assets/images';
 import BachButton from '../../../components/BackButton';
-import Loader from '../../../components/Loader';
 import BoardList, { BoardItem } from '../../../components/BoardList';
+import Loader from '../../../components/Loader';
 import NoInternet from '../../../components/NoInternet';
 import { useAuthStore } from '../../../store/authStore';
 import BoardTabs, { Tab } from '../components/BoardTabs';
 import { useBoardFilters } from '../hooks/useBoardFilters';
 import { useFilteredBoards } from '../hooks/useFilteredBoards';
-import { Images } from '../../../assets/images';
 
 const { width, height } = Dimensions.get('window');
 
@@ -70,12 +70,12 @@ const FilterCategoryList: React.FC<any> = ({ route, navigation }) => {
 
   useEffect(() => {
     if (tabs.length === 0 || selectedTab) return;
-    
+
     if (autoSelectSeeAll) {
       setSelectedTab(tabs[0]);
       return;
     }
-    
+
     const matchingTab = slug ? tabs.find(tab => tab.slug === slug) : null;
     setSelectedTab(matchingTab || tabs[0]);
   }, [tabs, slug, selectedTab, autoSelectSeeAll]);
@@ -209,7 +209,10 @@ const FilterCategoryList: React.FC<any> = ({ route, navigation }) => {
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.filterBtn}>
-            <Image source={Images.filterIllustration} style={styles.filterIcon} />
+            <Image
+              source={Images.filterIllustration}
+              style={styles.filterIcon}
+            />
           </TouchableOpacity>
         </View>
 

@@ -28,7 +28,8 @@ import { useNotificationsStore } from '../../notifications/store/notifications';
 import { useProfile } from '../../profile/hooks/useProfile';
 import type { Tab } from '../components/BoardTabs';
 import ProfileRow from '../components/ProfileRow';
-import { useBoardFilters } from '../hooks/useBoardFilters';
+// import { useBoardFilters } from '../hooks/useBoardFilters';
+import { useAppStore } from '../../../store/appStore';
 
 type Props = {
   navigation: any;
@@ -36,6 +37,7 @@ type Props = {
 };
 
 const { width, height } = Dimensions.get('window');
+
 const RIGHT_ACTIONS_WIDTH = width * 0.38;
 
 const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
@@ -99,7 +101,7 @@ const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] =
     useState<boolean>(false);
   const [drawerVisible, setDrawerVisible] = useState<boolean>(false);
-  const [selectedCity] = useState<string>('Bahawalpur');
+  // const [selectedCity] = useState<string>('Bahawalpur');
 
   const bannerImages = [Images.bannerOne, Images.homeBanner];
 
@@ -162,12 +164,56 @@ const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
     }, [navigatedFromDrawer, setNavigatedFromDrawer, isFocused]),
   );
 
+  // const {
+  //   data: boardFiltersData,
+  //   isLoading: isBoardFiltersLoading,
+  //   error: boardFiltersError,
+  //   refetch: refetchBoardFilters,
+  // } = useBoardFilters(4);
+
   const {
-    data: boardFiltersData,
-    isLoading: isBoardFiltersLoading,
-    error: boardFiltersError,
-    refetch: refetchBoardFilters,
-  } = useBoardFilters(4);
+    selectedCity,
+    boardFiltersByCity,
+    isBoardFiltersLoading,
+    boardFiltersError,
+    fetchBoardFilters,
+  } = useAppStore();
+
+  const cityId = selectedCity?.id;
+
+  const boardFiltersData = cityId != null ? boardFiltersByCity[cityId] : null;
+
+  // console.log('--- APP STORE STATE ---', boardFiltersData);
+  // 🔍 Log state changes
+  // useEffect(() => {
+  //   console.log('--- APP STORE STATE ---');
+  //   console.log('selectedCity:', selectedCity);
+  //   console.log('cityId:', cityId);
+  //   console.log('boardFiltersByCity:', boardFiltersByCity);
+  //   console.log('boardFiltersData:', boardFiltersData);
+  //   console.log('isLoading:', isBoardFiltersLoading);
+  //   console.log('error:', boardFiltersError);
+  // }, [
+  //   selectedCity,
+  //   cityId,
+  //   boardFiltersByCity,
+  //   boardFiltersData,
+  //   isBoardFiltersLoading,
+  //   boardFiltersError,
+  // ]);
+
+  // 🚀 Log fetch trigger
+  useEffect(() => {
+    if (cityId != null && !boardFiltersData) {
+      console.log('🚀 Fetching board filters for cityId:', cityId);
+      fetchBoardFilters(cityId);
+    } else {
+      console.log('⛔ Skipping fetch', {
+        cityId,
+        hasData: !!boardFiltersData,
+      });
+    }
+  }, [cityId, boardFiltersData, fetchBoardFilters]);
 
   const handleDetailPress = (item: any) => {
     navigation.navigate('SingleBoardDetail', { item });
@@ -298,7 +344,7 @@ const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
           user={user}
           avatarUrl={avatarUrl}
           isValidAvatarUrl={isValidAvatarUrl}
-          selectedCity={selectedCity}
+          // selectedCity={selectedCity}
           hasUnreadNotifications={hasUnreadNotifications}
           t={t}
           onProfileClick={handleProfilePress}
@@ -350,7 +396,9 @@ const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
             <TouchableOpacity
               style={styles.retryButton}
               onPress={() => {
-                refetchBoardFilters();
+                if (selectedCity?.id != null) {
+                  fetchBoardFilters(selectedCity.id);
+                }
               }}
             >
               <Text style={styles.retryButtonText}>{t('retry')}</Text>

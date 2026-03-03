@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 import Toast from 'react-native-toast-message';
 import 'react-native-url-polyfill/auto';
+import AppInitializer from './src/app/AppInitializer';
 import AppNavigator from './src/app/navigation/AppNavigator';
 import LanguageSelectionModal from './src/components/LanguageSelectionModal';
 import SplashScreen from './src/components/SplashScreen';
@@ -64,6 +65,7 @@ const AuthGate = () => {
   const navigationRef = useRef<NavigationContainerRef<any>>(null);
   const registerFcmToken = useRegisterFcmToken();
   const fcmTokenRegistered = useRef<string | null>(null);
+  // const hasInitializedCity = useRef(false);
 
   // Initialize notification stream to listen for new notifications
   useNotificationsStream(user?.id || null);
@@ -137,10 +139,50 @@ const AuthGate = () => {
         console.error('Error setting up notifications:', error);
       }
     };
-
     setupNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, splashComplete]); // Removed registerFcmToken from deps to prevent infinite loop
+
+  // useEffect(() => {
+  //   if (!splashComplete || hasInitializedCity.current) return;
+
+  //   const initCity = async () => {
+  //     try {
+  //       console.log('[InitCity] Starting initialization...');
+
+  //       const stored = await AsyncStorage.getItem('selected_city');
+
+  //       if (stored) {
+  //         const city = JSON.parse(stored);
+  //         console.log('[InitCity] Restoring city from storage:', city);
+
+  //         await useAppStore.getState().setSelectedCity(city);
+  //       } else {
+  //         const { cities } = useAppStore.getState();
+
+  //         console.log('[InitCity] No stored city found');
+  //         console.log('[InitCity] Available cities:', cities);
+
+  //         if (cities && cities.length > 0) {
+  //           const firstCity = cities[0];
+
+  //           console.log('[InitCity] Using first city as default:', firstCity);
+
+  //           await useAppStore.getState().setSelectedCity(firstCity);
+  //         } else {
+  //           console.warn('[InitCity] No cities available to set as default');
+  //         }
+  //       }
+
+  //       hasInitializedCity.current = true;
+  //       console.log('[InitCity] Initialization complete');
+  //     } catch (err) {
+  //       console.error('[InitCity] Failed:', err);
+  //     }
+  //   };
+
+  //   initCity();
+  // }, [splashComplete]);
 
   // --------------------
   // Referral Handling
@@ -262,6 +304,7 @@ const AuthGate = () => {
   // Show main app (Home or Login based on user state)
   return (
     <>
+      {/* <AppInitializer splashComplete={splashComplete} />; */}
       <NavigationContainer ref={navigationRef}>
         {user ? <AppNavigator /> : <AuthNavigator />}
       </NavigationContainer>
@@ -277,7 +320,9 @@ const App = () => {
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
+        <AppInitializer />
         <AuthGate />
+        {/* </AppInitializer> */}
       </QueryClientProvider>
     </SafeAreaProvider>
   );

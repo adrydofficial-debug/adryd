@@ -13,11 +13,12 @@ import {
   PinkNotifyIcon,
 } from '../../../assets/images';
 import { useCities } from '../../locations/hooks/hooks';
-import { useCityStore } from '../../locations/store/cityStore';
+// import { useCityStore } from '../../locations/store/cityStore';
+import { useAppStore } from '../../../store/appStore';
 import { useNotificationsStore } from '../../notifications/store/notifications';
 
 const { width } = Dimensions.get('window');
-const RIGHT_ACTIONS_WIDTH = width * 0.38;
+// const RIGHT_ACTIONS_WIDTH = width * 0.38;
 
 interface ProfileRowProps {
   profile?: any;
@@ -46,7 +47,7 @@ const ProfileRow: React.FC<ProfileRowProps> = ({
   const [avatarError, setAvatarError] = useState(false);
   const { unreadCount } = useNotificationsStore();
   const hasUnread = unreadCount > 0;
-  const { selectedCity, setSelectedCity } = useCityStore();
+  const { selectedCity, setSelectedCity } = useAppStore();
   const { data: cities = [] } = useCities();
 
   // initialize default city if not set

@@ -159,6 +159,7 @@ const BoardList: React.FC<BoardListProps> = ({
   );
 
   const handleCardPress = (item: BoardItem) => {
+    console.log('Card pressed - item:', item.image_url);
     if (onPressDetail) {
       onPressDetail(item);
     } else if (navigation) {
@@ -393,7 +394,7 @@ const BoardList: React.FC<BoardListProps> = ({
         {/* Image Container */}
         <View style={styles.imageContainer}>
           <ImageBackground
-            source={imageSource}
+            source={{ uri: item.image_url }}
             style={styles.image}
             imageStyle={styles.imageBg}
           >
