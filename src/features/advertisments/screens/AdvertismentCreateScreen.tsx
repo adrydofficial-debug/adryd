@@ -1,34 +1,32 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Alert,
   Dimensions,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 // import { Calendar } from 'react-native-calendars';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import LinearGradient from 'react-native-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomInput from '../../../components/CustomInput';
 import PrimaryButton from '../../../components/PrimaryButton';
-import { useTranslation } from 'react-i18next';
-import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
+import ProgressBar from '../../../components/ProgressBar';
 import { changeAdvertisementStatus } from '../api/api';
 import { AdvertisementStatus } from '../domain/entities';
-import ProgressBar from '../../../components/ProgressBar';
+import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
 // Removed global selected dates - now using only unavailable-times API
-import { CreateAdvertisementRequest } from '../types';
+import Header from '../../../components/Header';
+import { useCampaignFlowStore } from '../../../store/campaignFlowStore';
 import { useCampaignStore } from '../../../store/campaignStore';
 import { useBoardUnavailableTimes } from '../../boards/hooks/useBoardUnavailableTimes';
-import { useCampaignFlowStore } from '../../../store/campaignFlowStore';
+import { CreateAdvertisementRequest } from '../types';
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
 const hp = (percentage: number) => (height * percentage) / 100;
@@ -45,25 +43,29 @@ interface Props {
 }
 const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useTranslation('advertisments');
-  const setAdvertisementData = useCampaignStore((state) => state.setAdvertisementData);
-  const selectedDaysFromStore = useCampaignStore((state) => state.selectedDays);
-  const setSelectedDaysToStore = useCampaignStore((state) => state.setSelectedDays);
-  const clearSelectedDays = useCampaignStore((state) => state.clearSelectedDays);
-  
+  const setAdvertisementData = useCampaignStore(
+    state => state.setAdvertisementData,
+  );
+  const selectedDaysFromStore = useCampaignStore(state => state.selectedDays);
+  const setSelectedDaysToStore = useCampaignStore(
+    state => state.setSelectedDays,
+  );
+  const clearSelectedDays = useCampaignStore(state => state.clearSelectedDays);
+
   const selectedBoard = useCampaignFlowStore(s => s.selectedBoard);
-  const selectedChoice = useCampaignFlowStore(s => s.selectedChoice);
-  const selectedCompany = useCampaignFlowStore(s => s.selectedCompany);
+  // const selectedChoice = useCampaignFlowStore(s => s.selectedChoice);
+  // const selectedCompany = useCampaignFlowStore(s => s.selectedCompany);
   const resetCampaignFlow = useCampaignFlowStore(s => s.resetCampaignFlow);
-  
+
   const flow = route?.params?.flow ?? 'business';
   const companyIdFromRoute = route?.params?.companyId; // Get company_id from route params (for business flow)
   const boardDataFromRoute = route?.params?.boardData; // Get board data from route params
-  
+
   const boardData = boardDataFromRoute || selectedBoard;
   const COMPANY_ID = companyIdFromRoute || 1; // Use company_id from route, or default to 1
-  
+
   const BOARD_ID = boardData?.id ? parseInt(boardData.id) : 1;
-  
+
   const getBoardSize = () => {
     if (boardData?.size) return boardData.size;
     if (boardData?.width && boardData?.height) {
@@ -71,67 +73,80 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     }
     return '12x8 ft';
   };
-  
+
   const getBoardType = () => {
     if (boardData?.category) {
-      const cat = typeof boardData.category === 'string' 
-        ? boardData.category 
-        : boardData.category?.name || '';
+      const cat =
+        typeof boardData.category === 'string'
+          ? boardData.category
+          : boardData.category?.name || '';
       if (cat.toLowerCase().includes('digital')) return 'Digital';
       if (cat.toLowerCase().includes('static')) return 'Static';
     }
     return 'Digital';
   };
-  
+
   const getBoardCategory = () => {
     if (boardData?.category) {
-      return typeof boardData.category === 'string' 
-        ? boardData.category 
+      return typeof boardData.category === 'string'
+        ? boardData.category
         : boardData.category?.name || 'Banner Board';
     }
     return 'Banner Board';
   };
-  
+
   const getBoardLocation = () => {
     if (boardData?.location) {
-      return typeof boardData.location === 'string' 
-        ? boardData.location 
+      return typeof boardData.location === 'string'
+        ? boardData.location
         : boardData.location?.name || 'Lahore';
     }
     return 'Lahore';
   };
-  
+
   const getBoardArea = () => {
     if (boardData?.area) return boardData.area;
     if (boardData?.location) {
-      const loc = typeof boardData.location === 'string' 
-        ? boardData.location 
-        : boardData.location?.name || '';
+      const loc =
+        typeof boardData.location === 'string'
+          ? boardData.location
+          : boardData.location?.name || '';
       return loc;
     }
     return 'Gulberg Main Boulevard';
   };
-  
+
   const getBoardDescription = () => {
     if (boardData?.description) return boardData.description;
     return 'My great test advertisement.';
   };
-  
+
   const getBoardImage = () => {
     if (boardData?.image_url) return boardData.image_url;
     if (boardData?.image) {
-      const img = typeof boardData.image === 'string' 
-        ? boardData.image 
-        : boardData.image?.uri || '';
-      return img || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80';
+      const img =
+        typeof boardData.image === 'string'
+          ? boardData.image
+          : boardData.image?.uri || '';
+      return (
+        img ||
+        'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80'
+      );
     }
-    if (boardData?.media && Array.isArray(boardData.media) && boardData.media.length > 0) {
-      return boardData.media[0]?.url || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80';
+    if (
+      boardData?.media &&
+      Array.isArray(boardData.media) &&
+      boardData.media.length > 0
+    ) {
+      return (
+        boardData.media[0]?.url ||
+        'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80'
+      );
     }
     return 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=400&q=80';
   };
-  
-  const [campaignName, setCampaignName] = useState<string>(boardData?.title || 'Test Ad');
+
+  const [campaignName, setCampaignName] = useState<string>('');
   const [size, setSize] = useState<string>(getBoardSize());
   const [type, setType] = useState<string>(getBoardType());
   const [category, setCategory] = useState<string>(getBoardCategory());
@@ -146,18 +161,18 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
   // Use store for selectedDays, convert strings back to Dates
   const selectedDays = React.useMemo(() => {
-    return selectedDaysFromStore.map(day => 
-      day instanceof Date ? day : new Date(day)
-    ).filter(day => !isNaN(day.getTime()));
+    return selectedDaysFromStore
+      .map(day => (day instanceof Date ? day : new Date(day)))
+      .filter(day => !isNaN(day.getTime()));
   }, [selectedDaysFromStore]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [description, setDescription] = useState<string>(getBoardDescription());
+  const [description, setDescription] = useState<string>();
   const [locationName] = useState<string>(getBoardLocation());
   const [errorText, setErrorText] = useState<string>('');
 
   // Use the hook for API calls
   const createAdMutation = useCreateAdvertisement();
-  
+
   // Helper functions
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -175,32 +190,45 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const formatDateForCalendar = (date: Date) => {
     return date.toISOString().split('T')[0];
   };
-  
+
   // Fetch unavailable times for the board
-  const { data: unavailableTimesData, refetch: refetchUnavailableTimes } = useBoardUnavailableTimes(BOARD_ID);
-  
+  const { data: unavailableTimesData, refetch: refetchUnavailableTimes } =
+    useBoardUnavailableTimes(BOARD_ID);
+
   // Refetch unavailable times when screen is focused to get latest booked dates
   React.useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      console.log('📅 Screen focused - refetching unavailable times to get latest booked dates');
+      console.log(
+        '📅 Screen focused - refetching unavailable times to get latest booked dates',
+      );
       refetchUnavailableTimes();
     });
     return unsubscribe;
   }, [navigation, refetchUnavailableTimes]);
-  
-  
+
   const bookedDates = useMemo(() => {
     const dates = new Set<string>();
-    
-    if (unavailableTimesData?.unavailable && Array.isArray(unavailableTimesData.unavailable)) {
-      console.log('📅 Processing', unavailableTimesData.unavailable.length, 'unavailable time ranges from API');
+
+    if (
+      unavailableTimesData?.unavailable &&
+      Array.isArray(unavailableTimesData.unavailable)
+    ) {
+      console.log(
+        '📅 Processing',
+        unavailableTimesData.unavailable.length,
+        'unavailable time ranges from API',
+      );
       unavailableTimesData.unavailable.forEach(unavailable => {
         if (unavailable.start_at && unavailable.end_at) {
           const start = new Date(unavailable.start_at);
-          
+
           // Get the date-only value for the start date (ignore time)
-          const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-          
+          const startDateOnly = new Date(
+            start.getFullYear(),
+            start.getMonth(),
+            start.getDate(),
+          );
+
           // Only mark the start date of each booking range
           // This prevents marking all days from 13 to 30 when only specific days are booked
           // For single-day bookings, this correctly marks that one day
@@ -209,9 +237,12 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
           dates.add(dateKey);
         }
       });
-      console.log('✅ Added dates from board unavailable times API:', Array.from(dates).sort());
+      console.log(
+        '✅ Added dates from board unavailable times API:',
+        Array.from(dates).sort(),
+      );
     }
-    
+
     return dates;
   }, [unavailableTimesData]);
 
@@ -239,20 +270,24 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       setErrorText('This date is already booked');
       return;
     }
-    
+
     // Clear error when successfully selecting a date
     setErrorText('');
-    
+
     let updatedDays: Date[];
-    
+
     if (isDateSelected(date)) {
       // Remove date if already selected
-      updatedDays = selectedDays.filter(selectedDate => !isSameDay(selectedDate, date));
+      updatedDays = selectedDays.filter(
+        selectedDate => !isSameDay(selectedDate, date),
+      );
     } else {
       // Add date to selection
-      updatedDays = [...selectedDays, date].sort((a, b) => a.getTime() - b.getTime());
+      updatedDays = [...selectedDays, date].sort(
+        (a, b) => a.getTime() - b.getTime(),
+      );
     }
-    
+
     // Save to local store (for current user's selection only)
     setSelectedDaysToStore(updatedDays);
   };
@@ -260,9 +295,11 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
   const openCalendar = async () => {
     // Always refetch unavailable times to get the latest booked dates from API
     // This ensures that dates booked by other users are visible to all users
-    console.log('📅 Opening calendar - refetching unavailable times to get latest booked dates');
+    console.log(
+      '📅 Opening calendar - refetching unavailable times to get latest booked dates',
+    );
     await refetchUnavailableTimes();
-    
+
     // Preserve current selection from store, or populate from date range if available
     if (selectedDays.length === 0 && startDate && endDate) {
       // If no days are selected but we have a date range, populate selectedDays from the range
@@ -353,14 +390,16 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       setErrorText('Campaign category is required');
       return;
     }
-    
+
     // Validate that dates are selected from calendar
     let selectedDates: Date[];
-    
+
     if (selectedDays.length > 0) {
       // Use selectedDays from calendar - these are the exact dates user selected
-      selectedDates = [...selectedDays].sort((a, b) => a.getTime() - b.getTime());
-      
+      selectedDates = [...selectedDays].sort(
+        (a, b) => a.getTime() - b.getTime(),
+      );
+
       console.log('📅 Using selected days from calendar:', {
         totalSelected: selectedDays.length,
         allSelectedDates: selectedDates.map(d => d.toISOString().split('T')[0]),
@@ -382,62 +421,75 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
 
     // Clear any previous errors
     setErrorText('');
-    
+
     // Sort dates to ensure proper ordering
-    const sortedDates = [...selectedDates].sort((a, b) => a.getTime() - b.getTime());
-    
+    const sortedDates = [...selectedDates].sort(
+      (a, b) => a.getTime() - b.getTime(),
+    );
+
     // Limit the number of days to prevent server overload
     if (sortedDates.length > MAX_DAYS_PER_REQUEST) {
-      setErrorText(`Please select a maximum of ${MAX_DAYS_PER_REQUEST} days at a time. You selected ${sortedDates.length} days.`);
+      setErrorText(
+        `Please select a maximum of ${MAX_DAYS_PER_REQUEST} days at a time. You selected ${sortedDates.length} days.`,
+      );
       Alert.alert(
         'Too Many Days Selected',
         `You can only select up to ${MAX_DAYS_PER_REQUEST} days at a time. Please reduce your selection and try again.`,
-        [{ text: 'OK' }]
+        [{ text: 'OK' }],
       );
       return;
     }
-    
-   
+
     const bookings = sortedDates.map(date => {
       const cleanDate = new Date(date);
-      
-      const dateAt = new Date(Date.UTC(
-        cleanDate.getFullYear(),
-        cleanDate.getMonth(),
-        cleanDate.getDate(),
-        0, 0, 0, 0
-      ));
-      
+
+      const dateAt = new Date(
+        Date.UTC(
+          cleanDate.getFullYear(),
+          cleanDate.getMonth(),
+          cleanDate.getDate(),
+          0,
+          0,
+          0,
+          0,
+        ),
+      );
+
       const dateString = dateAt.toISOString();
-      
+
       return {
         start_at: dateString,
-        end_at: dateString, 
+        end_at: dateString,
       };
     });
-    
+
     // Validate bookings before sending
     if (bookings.length === 0) {
       setErrorText('No valid bookings to create');
       return;
     }
-    
+
     const invalidBookings = bookings.filter(
-      booking => !booking.start_at || !booking.end_at || 
-      booking.start_at > booking.end_at || // Allow equal, but not start > end
-      !booking.start_at.includes('T') || !booking.end_at.includes('T')
+      booking =>
+        !booking.start_at ||
+        !booking.end_at ||
+        booking.start_at > booking.end_at || // Allow equal, but not start > end
+        !booking.start_at.includes('T') ||
+        !booking.end_at.includes('T'),
     );
-    
+
     if (invalidBookings.length > 0) {
-      setErrorText(`Invalid bookings detected: ${invalidBookings.length} booking(s) have invalid dates`);
+      setErrorText(
+        `Invalid bookings detected: ${invalidBookings.length} booking(s) have invalid dates`,
+      );
       console.error('Invalid bookings:', invalidBookings);
       return;
     }
-    
+
     // Check for duplicate bookings (same start_at and end_at) and remove them
     const bookingKeys = new Set<string>();
     const uniqueBookings: Array<{ start_at: string; end_at: string }> = [];
-    
+
     bookings.forEach(booking => {
       const key = `${booking.start_at}_${booking.end_at}`;
       if (!bookingKeys.has(key)) {
@@ -445,14 +497,18 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
         uniqueBookings.push(booking);
       }
     });
-    
+
     if (uniqueBookings.length !== bookings.length) {
-      console.warn(`⚠️ Removed ${bookings.length - uniqueBookings.length} duplicate booking(s)`);
+      console.warn(
+        `⚠️ Removed ${
+          bookings.length - uniqueBookings.length
+        } duplicate booking(s)`,
+      );
       // Replace bookings array with unique bookings
       bookings.splice(0, bookings.length, ...uniqueBookings);
       console.log('✅ Unique bookings count:', bookings.length);
     }
-    
+
     // Log booking details for debugging
     console.log('📅 Created bookings:', {
       count: bookings.length,
@@ -466,24 +522,26 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       setErrorText('Campaign name is required');
       return;
     }
-    
+
     if (!description || description.trim() === '') {
       setErrorText('Description is required');
       return;
     }
     let advertisementData: CreateAdvertisementRequest;
-    
+
     if (flow === 'business') {
       if (!COMPANY_ID || COMPANY_ID <= 0) {
-        setErrorText('Company ID is required for business flow. Please create a company first.');
+        setErrorText(
+          'Company ID is required for business flow. Please create a company first.',
+        );
         Alert.alert(
           'Missing Company',
           'Please create a company before creating an advertisement for business flow.',
-          [{ text: 'OK' }]
+          [{ text: 'OK' }],
         );
         return;
       }
-      
+
       // Business flow: include company_id
       advertisementData = {
         company_id: COMPANY_ID,
@@ -506,19 +564,21 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
         bookings: bookings,
       } as CreateAdvertisementRequest;
     }
-    
+
     // Validate board_id exists
     if (!BOARD_ID || BOARD_ID <= 0) {
       setErrorText('Invalid board ID. Please contact support.');
       return;
     }
-    
+
     // Additional validation: Check if bookings array is too large
     if (bookings.length > MAX_DAYS_PER_REQUEST) {
-      setErrorText(`Too many bookings (${bookings.length}). Maximum allowed: ${MAX_DAYS_PER_REQUEST}`);
+      setErrorText(
+        `Too many bookings (${bookings.length}). Maximum allowed: ${MAX_DAYS_PER_REQUEST}`,
+      );
       return;
     }
-    
+
     // Final validation of the payload
     console.log('📤 Final payload validation:', {
       hasCompanyId: !!advertisementData.company_id,
@@ -562,29 +622,38 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     createAdMutation.mutate(advertisementData, {
       onSuccess: async response => {
         console.log('upload url is :', response.upload.uploadUrl);
-        
+
         const createdCampaignId = response.advertisement?.id;
-        
+
         // Set campaign status to IN_PROGRESS by default after creation
         if (createdCampaignId) {
           try {
-            console.log('🔄 [AdvertismentCreateScreen] Setting campaign status to IN_PROGRESS...');
-            await changeAdvertisementStatus(createdCampaignId, { new_status: AdvertisementStatus.IN_PROGRESS });
-            console.log('✅ [AdvertismentCreateScreen] Campaign status set to IN_PROGRESS');
+            console.log(
+              '🔄 [AdvertismentCreateScreen] Setting campaign status to IN_PROGRESS...',
+            );
+            await changeAdvertisementStatus(createdCampaignId, {
+              new_status: AdvertisementStatus.IN_PROGRESS,
+            });
+            console.log(
+              '✅ [AdvertismentCreateScreen] Campaign status set to IN_PROGRESS',
+            );
           } catch (statusError: any) {
-            console.error('❌ [AdvertismentCreateScreen] Failed to set campaign status:', statusError);
+            console.error(
+              '❌ [AdvertismentCreateScreen] Failed to set campaign status:',
+              statusError,
+            );
             // Continue with navigation even if status update fails
           }
         }
-        
+
         // Clear selected days from local store since they're now in the API
         clearSelectedDays();
-       
+
         resetCampaignFlow();
-       
+
         // Refetch unavailable times to update booked dates immediately
         await refetchUnavailableTimes();
-       
+
         // Navigate to CampaignUploadFiles with upload info
         navigation.navigate('CampaignUploadFiles', {
           campaignId: response.advertisement?.id?.toString() || '',
@@ -597,26 +666,34 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       onError: error => {
         // Log full error details for debugging
         const anyErr: any = error as any;
-        
+
         // Extract detailed error message
         const serverData = anyErr?.response?.data;
         let errorMessage = 'Failed to create advertisement';
-        
+
         if (serverData) {
           // Try different possible error message formats
           if (serverData.message) {
             errorMessage = serverData.message;
           } else if (serverData.error) {
-            errorMessage = typeof serverData.error === 'string' 
-              ? serverData.error 
-              : JSON.stringify(serverData.error);
+            errorMessage =
+              typeof serverData.error === 'string'
+                ? serverData.error
+                : JSON.stringify(serverData.error);
           } else if (serverData.errors) {
             // Handle validation errors
             if (Array.isArray(serverData.errors)) {
-              errorMessage = `Validation errors: ${serverData.errors.join(', ')}`;
+              errorMessage = `Validation errors: ${serverData.errors.join(
+                ', ',
+              )}`;
             } else if (typeof serverData.errors === 'object') {
               const errorList = Object.entries(serverData.errors)
-                .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                .map(
+                  ([key, value]) =>
+                    `${key}: ${
+                      Array.isArray(value) ? value.join(', ') : value
+                    }`,
+                )
                 .join('; ');
               errorMessage = `Validation errors: ${errorList}`;
             } else {
@@ -631,46 +708,52 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
         } else if (anyErr?.message) {
           errorMessage = anyErr.message;
         }
-        
+
         const statusCode = anyErr?.response?.status || 'Unknown';
-        
+
         // Provide more helpful error messages for common issues
         let finalMessage = `Error (${statusCode}): ${errorMessage}`;
-        
+
         if (statusCode === 500) {
           // Provide more specific error messages based on common causes
           let specificMessage = '';
-          
+
           if (advertisementData.bookings.length > MAX_DAYS_PER_REQUEST) {
             specificMessage = `You selected ${advertisementData.bookings.length} days, which may be too many. Try selecting fewer days (max ${MAX_DAYS_PER_REQUEST}).`;
-          } else if (flow === 'individual' && advertisementData.company_id !== null && advertisementData.company_id !== undefined) {
-            specificMessage = 'Individual flow should have company_id as null. Please contact support if this persists.';
+          } else if (
+            flow === 'individual' &&
+            advertisementData.company_id !== null &&
+            advertisementData.company_id !== undefined
+          ) {
+            specificMessage =
+              'Individual flow should have company_id as null. Please contact support if this persists.';
           } else if (!BOARD_ID || BOARD_ID <= 0) {
             specificMessage = 'Invalid board ID. Please contact support.';
           } else if (flow === 'individual') {
-            specificMessage = 'Server may not accept null company_id for individual flow. Please contact support.';
+            specificMessage =
+              'Server may not accept null company_id for individual flow. Please contact support.';
           } else {
-            specificMessage = 'This may be due to invalid data or server issues.';
+            specificMessage =
+              'This may be due to invalid data or server issues.';
           }
-          
-          finalMessage = `Server Error (500): ${specificMessage} ` +
+
+          finalMessage =
+            `Server Error (500): ${specificMessage} ` +
             `Please check the console for details. ` +
             `If this persists, try selecting fewer days or contact support.`;
-          
         }
-        
+
         console.error('Final error message:', finalMessage);
         setErrorText(finalMessage);
-        
+
         // Also show alert for visibility
-        Alert.alert(
-          'Error Creating Advertisement',
-          finalMessage,
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Error Creating Advertisement', finalMessage, [
+          { text: 'OK' },
+        ]);
       },
     });
   };
+
   const renderProgressStep = (
     stepNumber: number,
     isActive: boolean,
@@ -701,133 +784,154 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       )}
     </View>
   );
+
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FFF4FD" barStyle="dark-content" />
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => {
-              // Reset campaign flow when going back without completing
-              resetCampaignFlow();
-              navigation.goBack();
-            }}
-          >
-            <Ionicons name="arrow-back" size={wp(6)} color="#000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('createScreen.title')}</Text>
-          <View style={styles.headerSpacer} />
-        </View>
-
-        <View style={styles.progressContainer}>
-          <ProgressBar currentStep={1}/>
-        </View>
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardAvoidingView}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+      <Header
+        title={t('createScreen.title')}
+        onBackPress={() => {
+          // Reset campaign flow when going back without completing
+          resetCampaignFlow();
+          navigation.goBack();
+        }}
+        showBackButton
+        showRightIcon={false}
+      />
+      {/* <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => {
+            // Reset campaign flow when going back without completing
+            resetCampaignFlow();
+            navigation.goBack();
+          }}
         >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.formCard}>
-              <CustomInput
-                label={t('createScreen.campaignName')}
-                placeholder={t('createScreen.enterCampaignName')}
-                value={campaignName}
-                onChangeText={setCampaignName}
-                containerStyle={styles.customInputContainer}
-              />
-              
-              {/* Size Field - Disabled */}
-              <CustomInput
-                label="Size"
-                placeholder="Enter size"
-                value={size}
-                onChangeText={setSize}
-                containerStyle={styles.customInputContainer}
-                disabled={true}
-              />
+          <Ionicons name="arrow-back" size={wp(6)} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{t('createScreen.title')}</Text>
+        <View style={styles.headerSpacer} />
+      </View> */}
 
-              {/* Type Field - Disabled */}
-              <CustomInput
-                label="Type"
-                placeholder="Enter type"
-                value={type}
-                onChangeText={setType}
-                containerStyle={styles.customInputContainer}
-                disabled={true}
-              />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 25}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.progressContainer}>
+            <ProgressBar currentStep={1} />
+          </View>
+          <View style={styles.formCard}>
+            <CustomInput
+              label={t('createScreen.campaignName')}
+              placeholder={t('createScreen.enterCampaignName')}
+              value={campaignName}
+              onChangeText={setCampaignName}
+              containerStyle={styles.customInputContainer}
+            />
 
-              {/* Category Field - Disabled */}
-              <CustomInput
-                label="Category"
-                placeholder="Enter category"
-                value={category}
-                onChangeText={setCategory}
-                containerStyle={styles.customInputContainer}
-                disabled={true}
-              />
+            {/* Size Field - Disabled */}
+            <CustomInput
+              label="Size"
+              placeholder="Enter size"
+              value={size}
+              onChangeText={setSize}
+              containerStyle={styles.customInputContainer}
+              disabled={true}
+            />
 
-              {/* Location Field - Disabled */}
-              <CustomInput
-                label="City"
-                placeholder="Enter location"
-                value={location}
-                onChangeText={setLocation}
-                containerStyle={styles.customInputContainer}
-                disabled={true}
-              />
+            {/* Type Field - Disabled */}
+            <CustomInput
+              label="Type"
+              placeholder="Enter type"
+              value={type}
+              onChangeText={setType}
+              containerStyle={styles.customInputContainer}
+              disabled={true}
+            />
 
-              {/* Area Field - Disabled */}
-              <CustomInput
-                label="Area"
-                placeholder="Enter area"
-                value={area}
-                onChangeText={setArea}
-                containerStyle={styles.customInputContainer}
-                disabled={true}
+            {/* Category Field - Disabled */}
+            <CustomInput
+              label="Category"
+              placeholder="Enter category"
+              value={category}
+              onChangeText={setCategory}
+              containerStyle={styles.customInputContainer}
+              disabled={true}
+            />
+
+            {/* Location Field - Disabled */}
+            <CustomInput
+              label="City"
+              placeholder="Enter location"
+              value={location}
+              onChangeText={setLocation}
+              containerStyle={styles.customInputContainer}
+              disabled={true}
+            />
+
+            {/* Area Field - Disabled */}
+            <CustomInput
+              label="Area"
+              placeholder="Enter area"
+              value={area}
+              onChangeText={setArea}
+              containerStyle={styles.customInputContainer}
+              disabled={true}
+            />
+            <View style={styles.dateTimeContainer}>
+              <Text style={styles.dateTimeLabel}>
+                {t('createScreen.startDate')}
+              </Text>
+              <TouchableOpacity
+                style={styles.calendarButton}
+                onPress={openCalendar}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="calendar-outline" size={18} color="#C12C9F" />
+                <View style={styles.dateRangeDisplay}>
+                  <Text style={styles.dateRangeText}>
+                    {formatDate(startDate)} - {formatDate(endDate)}
+                  </Text>
+                  <Text style={styles.durationText}>
+                    {calculateDays()} day{calculateDays() !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-down" size={18} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            <CustomInput
+              label={t('createScreen.description')}
+              placeholder={t('createScreen.enterDescription')}
+              value={description}
+              onChangeText={setDescription}
+              multiline={true}
+              numberOfLines={8}
+              containerStyle={styles.descriptionContainer}
+              inputStyle={styles.descriptionInput}
+            />
+
+            <View style={styles.buttonContainer}>
+              <PrimaryButton
+                title={t('createScreen.next')}
+                onPress={() => {
+                  handleSubmit();
+                }}
+                buttonStyle={styles.nextButton}
+                disabled={createAdMutation.isPending}
+                loading={createAdMutation.isPending}
               />
-              <View style={styles.dateTimeContainer}>
-                <Text style={styles.dateTimeLabel}>{t('createScreen.startDate')}</Text>
-                <TouchableOpacity
-                  style={styles.calendarButton}
-                  onPress={openCalendar}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="calendar-outline" size={18} color="#C12C9F" />
-                  <View style={styles.dateRangeDisplay}>
-                    <Text style={styles.dateRangeText}>
-                      {formatDate(startDate)} - {formatDate(endDate)}
-                    </Text>
-                    <Text style={styles.durationText}>
-                      {calculateDays()} day{calculateDays() !== 1 ? 's' : ''}
-                    </Text>
-                  </View>
-                  <Ionicons
-                    name="chevron-down"
-                    size={18}
-                    color="#6B7280"
-                  />
-                </TouchableOpacity>
-              </View>
-              <CustomInput
-                label={t('createScreen.description')}
-                placeholder={t('createScreen.enterDescription')}
-                value={description}
-                onChangeText={setDescription}
-                multiline={true}
-                numberOfLines={8}
-                containerStyle={styles.descriptionContainer}
-                inputStyle={styles.descriptionInput}
-              />
-              {/* <View style={styles.locationContainer}> */}
-                {/* <Text style={styles.locationLabel}>{t('createScreen.location')}</Text> */}
-                {/* <View style={styles.mapContainer}>
+              {!!errorText && <Text style={styles.errorText}>{errorText}</Text>}
+            </View>
+            {/* <View style={styles.locationContainer}> */}
+            {/* <Text style={styles.locationLabel}>{t('createScreen.location')}</Text> */}
+            {/* <View style={styles.mapContainer}>
                   <View style={styles.mapPlaceholder}>
                     <Ionicons
                       name="location"
@@ -837,102 +941,100 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                     <Text style={styles.mapText}>{location}</Text>
                   </View>
                 </View> */}
-              {/* </View> */}
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+            {/* </View> */}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-        {/* Calendar Modal */}
-        {showCalendar && (
-          <View style={styles.calendarModal}>
-            <View style={styles.calendarContainer}>
-              <View style={styles.calendarHeader}>
-                <Text style={styles.calendarTitle}>{t('createScreen.selectDates')}</Text>
+      {/* Calendar Modal */}
+      {showCalendar && (
+        <View style={styles.calendarModal}>
+          <View style={styles.calendarContainer}>
+            <View style={styles.calendarHeader}>
+              <Text style={styles.calendarTitle}>
+                {t('createScreen.selectDates')}
+              </Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowCalendar(false)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.customCalendar}>
+              {/* Calendar Header */}
+              <View style={styles.calendarHeaderRow}>
                 <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setShowCalendar(false)}
+                  style={styles.monthNavButton}
+                  onPress={() => navigateMonth('prev')}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="close" size={24} color="#6B7280" />
+                  <Ionicons name="chevron-back" size={22} color="#C12C9F" />
+                </TouchableOpacity>
+
+                <Text style={styles.monthYearText}>
+                  {currentMonth.toLocaleDateString('en-US', {
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.monthNavButton}
+                  onPress={() => navigateMonth('next')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-forward" size={22} color="#C12C9F" />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.customCalendar}>
-                {/* Calendar Header */}
-                <View style={styles.calendarHeaderRow}>
-                  <TouchableOpacity
-                    style={styles.monthNavButton}
-                    onPress={() => navigateMonth('prev')}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="chevron-back" size={22} color="#C12C9F" />
-                  </TouchableOpacity>
-
-                  <Text style={styles.monthYearText}>
-                    {currentMonth.toLocaleDateString('en-US', {
-                      month: 'long',
-                      year: 'numeric',
-                    })}
+              {/* Day Headers */}
+              <View style={styles.dayHeadersRow}>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <Text key={day} style={styles.dayHeaderText}>
+                    {day}
                   </Text>
+                ))}
+              </View>
 
+              {/* Calendar Grid */}
+              <View style={styles.calendarGrid}>
+                {generateCalendarDays().map((day, index) => (
                   <TouchableOpacity
-                    style={styles.monthNavButton}
-                    onPress={() => navigateMonth('next')}
-                    activeOpacity={0.7}
+                    key={index}
+                    style={[
+                      styles.calendarDay,
+                      !day.isCurrentMonth && styles.otherMonthDay,
+                      day.isToday && styles.todayDay,
+                      day.isPast && styles.pastDay,
+                      day.isSelected && styles.selectedDay,
+                      day.isBooked && styles.bookedDay,
+                    ]}
+                    onPress={() =>
+                      !day.isPast && !day.isBooked && onDayPress(day.date)
+                    }
+                    disabled={day.isPast || day.isBooked}
                   >
-                    <Ionicons
-                      name="chevron-forward"
-                      size={22}
-                      color="#C12C9F"
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Day Headers */}
-                <View style={styles.dayHeadersRow}>
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(
-                    day => (
-                      <Text key={day} style={styles.dayHeaderText}>
-                        {day}
-                      </Text>
-                    ),
-                  )}
-                </View>
-
-                {/* Calendar Grid */}
-                <View style={styles.calendarGrid}>
-                  {generateCalendarDays().map((day, index) => (
-                    <TouchableOpacity
-                      key={index}
+                    <Text
                       style={[
-                        styles.calendarDay,
-                        !day.isCurrentMonth && styles.otherMonthDay,
-                        day.isToday && styles.todayDay,
-                        day.isPast && styles.pastDay,
-                        day.isSelected && styles.selectedDay,
-                        day.isBooked && styles.bookedDay,
+                        styles.dayText,
+                        !day.isCurrentMonth && styles.otherMonthText,
+                        day.isToday && styles.todayText,
+                        day.isPast && styles.pastText,
+                        day.isSelected && styles.selectedText,
+                        day.isBooked && styles.bookedText,
                       ]}
-                      onPress={() => !day.isPast && !day.isBooked && onDayPress(day.date)}
-                      disabled={day.isPast || day.isBooked}
                     >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          !day.isCurrentMonth && styles.otherMonthText,
-                          day.isToday && styles.todayText,
-                          day.isPast && styles.pastText,
-                          day.isSelected && styles.selectedText,
-                          day.isBooked && styles.bookedText,
-                        ]}
-                      >
-                        {day.date.getDate()}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                      {day.date.getDate()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-                {/* Selection Summary */}
-                {/* <View style={styles.selectionSummary}>
+              {/* Selection Summary */}
+              {/* <View style={styles.selectionSummary}>
                   <Text style={styles.selectionText}>
                     {selectedDays.length > 0
                       ? `${selectedDays.length} day${
@@ -941,64 +1043,58 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                       : ''}
                   </Text>
                 </View> */}
-              </View>
+            </View>
 
-              <View style={styles.calendarFooter}>
-                <View style={styles.calendarButtons}>
-                  <TouchableOpacity
-                    style={styles.clearButton}
-                    onPress={() => {
-                      setSelectedDaysToStore([]);
-                      setStartDate(new Date());
-                      setEndDate(
-                        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                      );
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.clearButtonText}>{t('createScreen.cancel')}</Text>
-                  </TouchableOpacity>
+            <View style={styles.calendarFooter}>
+              <View style={styles.calendarButtons}>
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={() => {
+                    setSelectedDaysToStore([]);
+                    setStartDate(new Date());
+                    setEndDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.clearButtonText}>
+                    {t('createScreen.cancel')}
+                  </Text>
+                </TouchableOpacity>
 
-                  <TouchableOpacity
+                <TouchableOpacity
+                  style={[
+                    styles.confirmButton,
+                    selectedDays.length === 0 && styles.disabledButton,
+                  ]}
+                  onPress={confirmSelection}
+                  disabled={selectedDays.length === 0}
+                  activeOpacity={0.8}
+                >
+                  <Text
                     style={[
-                      styles.confirmButton,
-                      selectedDays.length === 0 && styles.disabledButton,
+                      styles.confirmButtonText,
+                      selectedDays.length === 0 && styles.disabledButtonText,
                     ]}
-                    onPress={confirmSelection}
-                    disabled={selectedDays.length === 0}
-                    activeOpacity={0.8}
                   >
-                    <Text
-                      style={[
-                        styles.confirmButtonText,
-                        selectedDays.length === 0 && styles.disabledButtonText,
-                      ]}
-                    >
-                      {t('createScreen.confirm')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                    {t('createScreen.confirm')}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
-        )}
-
-        <View style={styles.buttonContainer}>
-          <PrimaryButton
-            title={t('createScreen.next')}
-            onPress={() => {
-              handleSubmit();
-            }}
-            buttonStyle={styles.nextButton}
-            disabled={createAdMutation.isPending}
-            loading={createAdMutation.isPending}
-          />
-          {!!errorText && <Text style={styles.errorText}>{errorText}</Text>}
         </View>
+      )}
     </View>
   );
 };
 const styles = StyleSheet.create({
+  buttonContainer: {
+    // paddingHorizontal: width * 0.0005,
+    paddingTop: 16,
+    paddingBottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f8f8f8',
@@ -1591,12 +1687,12 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: width * 0.02,
   },
-  buttonContainer: {
-    paddingHorizontal: width * 0.05,
-    paddingBottom: height * 0.06,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  // buttonContainer: {
+  //   paddingHorizontal: width * 0.05,
+  //   paddingBottom: height * 0.06,
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
   nextButton: {
     width: '90%',
   },

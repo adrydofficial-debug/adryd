@@ -366,7 +366,6 @@ const PreviousCompanyScreen: React.FC<PreviousCompanyScreenProps> = ({
           onBackPress={handleBackPress}
           showBackButton
           showRightIcon={false}
-          // isRTL={isRTL}
         />
       )}
       <View style={styles.content}>
