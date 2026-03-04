@@ -19,7 +19,6 @@ type HeaderProps = {
   title: string;
   onBackPress?: () => void;
   onRightPress?: () => void;
-  currentLanguage;
   rightIcon?: string;
   containerStyle?: ViewStyle;
   titleStyle?: TextStyle;

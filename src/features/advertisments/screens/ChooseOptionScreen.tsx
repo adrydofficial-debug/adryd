@@ -1,3 +1,5 @@
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -7,15 +9,12 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AppStackParamList } from '../../../app/navigation/AppNavigator';
-import { useTranslation } from 'react-i18next';
-import i18n from '../../../i18n';
 import BackButton from '../../../components/BackButton';
 import PrimaryButton from '../../../components/PrimaryButton';
-import { useCompanies } from '../../companies/hooks/useCompanies';
+import i18n from '../../../i18n';
 import { useCampaignFlowStore } from '../../../store/campaignFlowStore';
+import { useCompanies } from '../../companies/hooks/useCompanies';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -28,7 +27,6 @@ const BASE_HEIGHT = 812;
 // Responsive scaling functions
 const scaleWidth = (size: number) => (width / BASE_WIDTH) * size;
 const scaleHeight = (size: number) => (height / BASE_HEIGHT) * size;
-const scaleFont = (size: number) => (width / BASE_WIDTH) * size;
 
 type NavigationProp = NativeStackNavigationProp<AppStackParamList>;
 
@@ -36,34 +34,38 @@ const ChooseOptionScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<any>();
   const boardData = route?.params?.boardData;
-  
+
   const selectedBoard = useCampaignFlowStore(s => s.selectedBoard);
   const setSelectedChoice = useCampaignFlowStore(s => s.setSelectedChoice);
   const setCompaniesList = useCampaignFlowStore(s => s.setCompaniesList);
   const resetCampaignFlow = useCampaignFlowStore(s => s.resetCampaignFlow);
-  
+
   const { data: companies, isLoading: isLoadingCompanies } = useCompanies();
-  
+
   React.useEffect(() => {
     if (companies) {
       setCompaniesList(companies);
     }
   }, [companies, setCompaniesList]);
-  
+
   React.useEffect(() => {
     console.log('ChooseOptionScreen - Received boardData:', boardData);
     console.log('ChooseOptionScreen - Store selectedBoard:', selectedBoard);
     if (!boardData && !selectedBoard) {
-      console.warn('ChooseOptionScreen - No boardData received in route params or store');
+      console.warn(
+        'ChooseOptionScreen - No boardData received in route params or store',
+      );
     }
   }, [boardData, selectedBoard]);
 
   React.useEffect(() => {
     console.log('ChooseOptionScreen - Companies:', companies);
-    console.log('ChooseOptionScreen - Companies count:', companies?.length || 0);
+    console.log(
+      'ChooseOptionScreen - Companies count:',
+      companies?.length || 0,
+    );
   }, [companies]);
-  
-  const { t, i18n: i18nInstance } = useTranslation();
+
   const [languageKey, setLanguageKey] = React.useState(0);
 
   React.useEffect(() => {
@@ -76,39 +78,36 @@ const ChooseOptionScreen: React.FC = () => {
     };
   }, []);
 
-  const handleBackPress = () => {
-    // Reset the campaign flow when going back from this screen
-    // This ensures a fresh start when user comes back later
-    resetCampaignFlow();
-    navigation.goBack();
-  };
-
   const handleIndividualPress = () => {
     setSelectedChoice('individual');
-    
+
     const board = boardData || selectedBoard;
-    navigation.navigate('AdvertismentCreateScreen', { 
+    navigation.navigate('AdvertismentCreateScreen', {
       flow: 'individual',
-      boardData: board 
+      boardData: board,
     } as never);
   };
 
   const handleBusinessPress = () => {
     setSelectedChoice('business');
-    
+
     const board = boardData || selectedBoard;
-    
+
     if (companies && companies.length > 0) {
-      console.log('ChooseOptionScreen - User has companies, navigating to PreviousCompanyScreen');
-      navigation.navigate('PreviousCompanyScreen', { 
+      console.log(
+        'ChooseOptionScreen - User has companies, navigating to CompanyListScreen',
+      );
+      navigation.navigate('CompanyListScreen', {
         isSelectable: true,
-        boardData: board 
+        boardData: board,
       } as never);
     } else {
-      console.log('ChooseOptionScreen - No companies found, navigating to CreateCompanyScreen');
-      navigation.navigate('CreateCompanyScreen', { 
+      console.log(
+        'ChooseOptionScreen - No companies found, navigating to CreateCompanyScreen',
+      );
+      navigation.navigate('CreateCompanyScreen', {
         flow: 'business',
-        boardData: board 
+        boardData: board,
       } as never);
     }
   };
@@ -116,10 +115,10 @@ const ChooseOptionScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container} key={languageKey}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+
       {/* Header with Back Button */}
       <View style={styles.header}>
-        <BackButton/>
+        <BackButton />
       </View>
 
       {/* Main Content - Two Buttons */}
