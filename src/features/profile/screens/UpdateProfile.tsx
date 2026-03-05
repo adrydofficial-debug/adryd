@@ -157,7 +157,7 @@ const UpdateProfile: React.FC = () => {
           title={t('updateProfile.screenTitle')}
           onBackPress={handleBackPress}
           showRightIcon={false}
-          currentLanguage={i18n.language}  
+          // currentLanguage={i18n.language}  
         />
         <ScrollView
           contentContainerStyle={styles.content}

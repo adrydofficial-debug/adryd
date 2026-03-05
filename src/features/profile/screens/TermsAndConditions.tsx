@@ -28,6 +28,7 @@ import { getTermsAgreed, setTermsAgreed } from '../../../services/storage';
 import { useAuthStore } from '../../../store/authStore';
 import { useTermsAndConditions } from '../../legal/hooks/useLegalDocuments';
 import { useLegalAgreements } from '../../legal/hooks/useLegalAgreements';
+import Loader from '../../../components/Loader';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -57,14 +58,14 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
   const [showHelloBanner, setShowHelloBanner] = useState<boolean>(false);
   const [isChecked, setIsChecked] = useState<boolean>(false);
   const [currentLanguage, setCurrentLanguage] = useState<string>(i18nInstance.language || 'en');
-  
+
   // Legal documents hooks
   const { content, version, loading: contentLoading, error: contentError, isCached } = useTermsAndConditions();
   const { submitAgreement } = useLegalAgreements();
-  
+
   // Refs
   const scrollViewRef = useRef<ScrollView>(null);
-  
+
   // Animation values
   const checkboxScale = useRef(new Animated.Value(1)).current;
   const checkboxOpacity = useRef(new Animated.Value(0)).current;
@@ -144,7 +145,7 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
-      
+
       Animated.parallel([
         Animated.spring(buttonTranslateY, {
           toValue: 0,
@@ -207,19 +208,19 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
             return;
           }
         }
-        
+
         // Also update local storage (for backward compatibility)
         await setTermsAgreed(true);
         setHasAgreed(true);
         setShowHelloBanner(false);
-        
+
         // Navigate based on where we came from
         setTimeout(() => {
           if (navigateTo && pendingUser) {
             // If we have a pending user from registration, set it first
             // This will cause the app to switch from AuthNavigator to AppNavigator
             setUser(pendingUser);
-            
+
             // Use a small delay to ensure the navigator has switched
             setTimeout(() => {
               navigation.dispatch(
@@ -252,7 +253,7 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
         if (androidVersion >= 33) {
           return true;
         }
-        
+
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
@@ -282,7 +283,7 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
         );
         return;
       }
-      
+
       const termsContent = content;
       const fileName = 'ADRYD_Terms_and_Conditions.txt';
 
@@ -290,32 +291,32 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
       // This is more reliable than direct file system access
       try {
         // Create file in a temporary/cache directory first
-        const tempDir = Platform.OS === 'android' 
-          ? RNFS.CachesDirectoryPath 
+        const tempDir = Platform.OS === 'android'
+          ? RNFS.CachesDirectoryPath
           : RNFS.DocumentDirectoryPath;
         const tempFilePath = `${tempDir}/${fileName}`;
-        
+
         // Remove file if it exists
         const fileExists = await RNFS.exists(tempFilePath);
         if (fileExists) {
           await RNFS.unlink(tempFilePath);
         }
-        
+
         // Write the file with full content
         await RNFS.writeFile(tempFilePath, termsContent, 'utf8');
-        
+
         // Verify file was written correctly
         const fileExistsAfter = await RNFS.exists(tempFilePath);
         if (!fileExistsAfter) {
           throw new Error('File was not created');
         }
-        
+
         // Read back to verify content
         const fileContent = await RNFS.readFile(tempFilePath, 'utf8');
         if (!fileContent || fileContent.length === 0) {
           throw new Error('File was created but is empty');
         }
-        
+
         // For Android, also try to save to Downloads if permission granted
         if (Platform.OS === 'android') {
           const hasPermission = await requestStoragePermission();
@@ -324,11 +325,11 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
               const downloadPath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
               // Copy to Downloads folder
               await RNFS.copyFile(tempFilePath, downloadPath);
-              
+
               // Verify the copy
               const downloadExists = await RNFS.exists(downloadPath);
               const downloadContent = await RNFS.readFile(downloadPath, 'utf8');
-              
+
               if (downloadExists && downloadContent.length > 0) {
                 const fileStats = await RNFS.stat(downloadPath);
                 Alert.alert(
@@ -344,20 +345,20 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
             }
           }
         }
-        
+
         // Share the file - this allows users to save it wherever they want
         // On Android, users can save to Downloads from the share menu
         // On iOS, users can save to Files app from the share menu
-        const fileUri = Platform.OS === 'android' 
-          ? `file://${tempFilePath}` 
+        const fileUri = Platform.OS === 'android'
+          ? `file://${tempFilePath}`
           : `file://${tempFilePath}`;
-        
+
         const result = await Share.share({
           url: fileUri,
           title: 'ADRYD Terms and Conditions',
           message: Platform.OS === 'android' ? 'ADRYD Terms and Conditions' : undefined,
         });
-        
+
         if (result.action === Share.sharedAction) {
           Alert.alert(
             'Shared',
@@ -373,7 +374,7 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
         }
       } catch (fileError: any) {
         console.error('Error creating file:', fileError);
-        
+
         // Final fallback: share as text
         try {
           const result = await Share.share({
@@ -479,7 +480,7 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          { 
+          {
             paddingTop: (Platform.OS === 'ios' ? hp(10) : hp(12)) + (showHelloBanner && fromAuth ? 79 + hp(2) : 0)
           }
         ]}
@@ -499,28 +500,26 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
           </View>
 
           {contentLoading && !content ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#C539A5" />
-              <Text style={styles.loadingText}>Loading Terms & Conditions...</Text>
-            </View>
-          ) : contentError && !content ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>Error loading content: {contentError}</Text>
-              <Text style={styles.errorText}>
-                Please check your internet connection and try again.
-              </Text>
-            </View>
-          ) : content ? (
-            <View style={styles.termsContent}>
-              <Text style={styles.paragraph}>{content}</Text>
-            </View>
-          ) : (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>
-                No content available. Please check your internet connection and try again.
-              </Text>
-            </View>
-          )}
+            <Loader />
+          )
+            : contentError && !content ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>Error loading content: {contentError}</Text>
+                <Text style={styles.errorText}>
+                  Please check your internet connection and try again.
+                </Text>
+              </View>
+            ) : content ? (
+              <View style={styles.termsContent}>
+                <Text style={styles.paragraph}>{content}</Text>
+              </View>
+            ) : (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>
+                  No content available. Please check your internet connection and try again.
+                </Text>
+              </View>
+            )}
         </View>
       </ScrollView>
 
@@ -565,7 +564,7 @@ const TermsAndConditions: React.FC<TermsAndConditionsProps> = () => {
               These Terms will be applied fully and affect
             </Text>
           </TouchableOpacity>
-          
+
           <Animated.View
             style={{
               transform: [
@@ -677,19 +676,19 @@ const styles = StyleSheet.create({
     zIndex: 5,
     marginTop: hp(1.5),
     marginBottom: hp(2),
-    padding: 15, 
-    backgroundColor: '#FFFFFF', 
-    borderRadius: 17, 
-    borderWidth: 0.7, 
-    borderColor: '#E5E7EB', 
-    width: Math.min(356, width - 34), 
+    padding: 15,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 17,
+    borderWidth: 0.7,
+    borderColor: '#E5E7EB',
+    width: Math.min(356, width - 34),
     minHeight: 79,
   },
   helloTitle: {
     fontSize: 26,
     fontWeight: '700',
     color: '#000000',
-    marginBottom: 6.11, 
+    marginBottom: 6.11,
   },
   helloSubtitle: {
     fontSize: 14,

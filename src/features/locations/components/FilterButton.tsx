@@ -1235,6 +1235,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     shadowRadius: 0,
     minHeight: hp(6),
+    borderTopLeftRadius: 24, 
+    borderTopRightRadius: 24,
   },
   filterOptionsScrollView: {
     flex: 1,
@@ -1254,7 +1256,7 @@ const styles = StyleSheet.create({
   },
   filterTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#111827',
     letterSpacing: -0.5,
     lineHeight: 28,

@@ -159,7 +159,7 @@ const HelpFAQsScreen: React.FC = () => {
       id: 'general',
       category: 'general',
       leadingLabel: 'Questions about',
-      title: 'How To Invest',
+      title: 'How To Advertise',
       icon: 'trending-up-outline',
       backgroundColor: '#FEEFC9',
       borderColor: '#FFFFFF',
@@ -286,7 +286,7 @@ const HelpFAQsScreen: React.FC = () => {
             ))}
           </ScrollView>
         </LinearGradient>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={() => navigation.navigate('ChatScreen' as never)}
           activeOpacity={0.8}
         >
@@ -302,7 +302,7 @@ const HelpFAQsScreen: React.FC = () => {
             />
             <Text style={styles.messageText}>Help</Text>
           </View>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <Text style={styles.sectionHeading}>Top Questions</Text>
         <Animated.View
