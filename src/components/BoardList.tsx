@@ -15,10 +15,11 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import i18n from '../i18n';
 
 const { width, height } = Dimensions.get('window');
-const CARD_WIDTH = 165;
-const CARD_WIDTH_WIDER = 185;
-const CARD_HEIGHT = 237;
-
+const wp = (percentage: number) => (width * percentage) / 100;
+const hp = (percentage: number) => (height * percentage) / 100;
+const CARD_WIDTH = wp(41);
+const CARD_WIDTH_WIDER = wp(47.4);
+const CARD_HEIGHT = hp(28);
 import { Images } from '../assets/images';
 
 const FALLBACK_IMAGE = Images.image;
@@ -514,10 +515,10 @@ const BoardList: React.FC<BoardListProps> = ({
         columnWrapperStyle={
           numColumns > 1
             ? {
-                justifyContent: 'center',
-                paddingLeft: useWiderCards ? 5 : 5, // Minimal padding for wider cards in grid
-                paddingRight: useWiderCards ? 5 : 5, // Minimal padding for wider cards in grid
-              }
+              justifyContent: 'center',
+              paddingLeft: useWiderCards ? 5 : 5, // Minimal padding for wider cards in grid
+              paddingRight: useWiderCards ? 1 : 5, // Minimal padding for wider cards in grid
+            }
             : undefined
         }
       />
@@ -564,7 +565,7 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     minHeight: CARD_HEIGHT,
-    marginRight: 5,
+     marginRight: 5,
     backgroundColor: '#FFFFFF',
     borderRadius: 19,
     borderWidth: 0.7,

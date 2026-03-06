@@ -464,6 +464,7 @@ const styles = StyleSheet.create({
     elevation: 16,
     flex: 1,
     flexDirection: 'column',
+    overflow: 'hidden',
   },
   modalScrollView: {
     paddingHorizontal: wp(4),
@@ -483,7 +484,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#111827',
     marginBottom: hp(1),
     paddingTop: hp(4),
@@ -597,7 +598,10 @@ const styles = StyleSheet.create({
     maxHeight: height * 0.35,
   },
   areasList: {
-    maxHeight: height * 0.35,
+    // maxHeight: height * 0.35,
+    borderRadius:12,
+    borderColor:"#E5E7EB",
+    borderWidth:0.7,
   },
   areaItem: {
     flexDirection: 'row',

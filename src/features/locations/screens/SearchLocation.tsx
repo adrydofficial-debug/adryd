@@ -156,11 +156,11 @@ const SearchLocation: React.FC = () => {
             : loc.province?.name || '') ||
           (loc.city && loc.province
             ? `${
-                typeof loc.city === 'string' ? loc.city : loc.city?.name || ''
+              typeof loc.city === 'string' ? loc.city : loc.city?.name || ''
               }, ${
                 typeof loc.province === 'string'
-                  ? loc.province
-                  : loc.province?.name || ''
+                ? loc.province
+                : loc.province?.name || ''
               }`.trim()
             : 'Unknown Location') ||
           'Unknown Location';
@@ -171,8 +171,8 @@ const SearchLocation: React.FC = () => {
       typeof board.price === 'number'
         ? board.price
         : board.price
-        ? Number(board.price) || 0
-        : 0;
+          ? Number(board.price) || 0
+          : 0;
     const primaryMediaUrl =
       Array.isArray(board.media) && board.media.length > 0
         ? board.media[0]?.url
@@ -206,7 +206,7 @@ const SearchLocation: React.FC = () => {
       media: Array.isArray(board.media) ? board.media : [],
     };
   };
-  
+
   const boardItems = useMemo(() => {
     return boards.map((board: any) =>
       convertBoardToBoardItem(board, draftSelectedFilters.has('recommended')),
@@ -278,8 +278,8 @@ const SearchLocation: React.FC = () => {
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#70737D" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#70737D" />
         </TouchableOpacity>
 
         <View style={styles.searchContainer}>
@@ -312,10 +312,6 @@ const SearchLocation: React.FC = () => {
                   scrollEnabled={false}
                 />
 
-                <Text style={{ textAlign: 'center', marginVertical: 12 }}>
-                  Showing {boards.length} of {filterPagination.total} results
-                </Text>
-
                 {boards.length < filterPagination.total && (
                   <TouchableOpacity
                     style={styles.loadMoreButton}
@@ -329,6 +325,9 @@ const SearchLocation: React.FC = () => {
                     )}
                   </TouchableOpacity>
                 )}
+                <Text style={{ textAlign: 'center', marginVertical: 12, fontSize: 12, color: '#6B7280' }}>
+                  Showing {boards.length} of {filterPagination.total} results
+                </Text>
               </>
             )}
 
