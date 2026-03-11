@@ -18,8 +18,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomInput from '../../../components/CustomInput';
 import PrimaryButton from '../../../components/PrimaryButton';
 import ProgressBar from '../../../components/ProgressBar';
-import { changeAdvertisementStatus } from '../api/api';
-import { AdvertisementStatus } from '../domain/entities';
+// import { changeAdvertisementStatus } from '../api/api';
 import { useCreateAdvertisement } from '../hooks/useCreateAdvertisement';
 // Removed global selected dates - now using only unavailable-times API
 import Header from '../../../components/Header';
@@ -116,10 +115,10 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     return 'Gulberg Main Boulevard';
   };
 
-  const getBoardDescription = () => {
-    if (boardData?.description) return boardData.description;
-    return 'My great test advertisement.';
-  };
+  // const getBoardDescription = () => {
+  //   if (boardData?.description) return boardData.description;
+  //   return 'My great test advertisement.';
+  // };
 
   const getBoardImage = () => {
     if (boardData?.image_url) return boardData.image_url;
@@ -181,12 +180,12 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       day: 'numeric',
     });
   };
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  // const formatTime = (date: Date) => {
+  //   return date.toLocaleTimeString('en-US', {
+  //     hour: '2-digit',
+  //     minute: '2-digit',
+  //   });
+  // };
   const formatDateForCalendar = (date: Date) => {
     return date.toISOString().split('T')[0];
   };
@@ -331,7 +330,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
+    // const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
 
@@ -549,7 +548,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
         title: campaignName.trim(),
         description: description.trim(),
         total_payment: 5000,
-        bookings: bookings,
+        // bookings: bookings,
       };
     } else {
       // Individual flow: omit company_id entirely (server doesn't accept 0 or null)
@@ -561,7 +560,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
         title: campaignName.trim(),
         description: description.trim(),
         total_payment: 5000,
-        bookings: bookings,
+        // bookings: bookings,
       } as CreateAdvertisementRequest;
     }
 
@@ -585,7 +584,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
       hasBoardId: !!advertisementData.board_id,
       hasTitle: !!advertisementData.title,
       hasDescription: !!advertisementData.description,
-      bookingsCount: advertisementData.bookings.length,
+      // bookingsCount: advertisementData.bookings.length,
       payloadSize: JSON.stringify(advertisementData).length,
     });
 
@@ -621,19 +620,27 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     // Call the API using the hook with callbacks
     createAdMutation.mutate(advertisementData, {
       onSuccess: async response => {
-        console.log('upload url is :', response.upload.uploadUrl);
+        console.log('✅ [AdvertismentCreateScreen] API response:', response);
 
         const createdCampaignId = response.advertisement?.id;
+        const upload = response.upload;
 
-        // Set campaign status to IN_PROGRESS by default after creation
+        if (!createdCampaignId) {
+          console.warn(
+            '[AdvertismentCreateScreen] No advertisement ID returned. Cannot update status or navigate properly.',
+          );
+        }
+
+        // Set campaign status to IN_PROGRESS if ID exists
         if (createdCampaignId) {
           try {
             console.log(
               '🔄 [AdvertismentCreateScreen] Setting campaign status to IN_PROGRESS...',
             );
-            await changeAdvertisementStatus(createdCampaignId, {
-              new_status: AdvertisementStatus.IN_PROGRESS,
-            });
+            // Uncomment when ready
+            // await changeAdvertisementStatus(createdCampaignId, {
+            //   new_status: AdvertisementStatus.IN_PROGRESS,
+            // });
             console.log(
               '✅ [AdvertismentCreateScreen] Campaign status set to IN_PROGRESS',
             );
@@ -642,46 +649,77 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
               '❌ [AdvertismentCreateScreen] Failed to set campaign status:',
               statusError,
             );
-            // Continue with navigation even if status update fails
           }
         }
 
-        // Clear selected days from local store since they're now in the API
-        clearSelectedDays();
+        try {
+          clearSelectedDays();
+          console.log('[AdvertismentCreateScreen] Cleared selected days.');
 
-        resetCampaignFlow();
+          resetCampaignFlow();
+          console.log('[AdvertismentCreateScreen] Reset campaign flow.');
 
-        // Refetch unavailable times to update booked dates immediately
-        await refetchUnavailableTimes();
+          if (typeof refetchUnavailableTimes === 'function') {
+            await refetchUnavailableTimes();
+            console.log(
+              '[AdvertismentCreateScreen] Refetched unavailable times successfully.',
+            );
+          } else {
+            console.warn(
+              '[AdvertismentCreateScreen] refetchUnavailableTimes is not a function.',
+            );
+          }
+        } catch (localError) {
+          console.error(
+            '[AdvertismentCreateScreen] Local update failed:',
+            localError,
+          );
+        }
 
-        // Navigate to CampaignUploadFiles with upload info
-        navigation.navigate('CampaignUploadFiles', {
-          campaignId: response.advertisement?.id?.toString() || '',
-          uploadUrl: response.upload?.uploadUrl || '',
-          publicUrl: response.upload?.publicUrl || '',
-          key: response.upload?.key || '',
-          flow,
-        });
+        if (!upload?.uploadUrl) {
+          console.warn(
+            '[AdvertismentCreateScreen] Upload URL missing, navigation may break.',
+            upload,
+          );
+        }
+
+        try {
+          navigation.navigate('CampaignUploadFiles', {
+            campaignId: createdCampaignId?.toString() || '',
+            uploadUrl: upload?.uploadUrl || '',
+            publicUrl: upload?.publicUrl || '',
+            key: upload?.key || '',
+            flow,
+          });
+          console.log(
+            '[AdvertismentCreateScreen] Navigated to CampaignUploadFiles.',
+          );
+        } catch (navError) {
+          console.error(
+            '[AdvertismentCreateScreen] Navigation failed:',
+            navError,
+          );
+        }
       },
-      onError: error => {
-        // Log full error details for debugging
-        const anyErr: any = error as any;
 
-        // Extract detailed error message
+      onError: error => {
+        console.error(
+          '❌ [AdvertismentCreateScreen] Full error object:',
+          error,
+        );
+
+        const anyErr: any = error;
         const serverData = anyErr?.response?.data;
         let errorMessage = 'Failed to create advertisement';
 
         if (serverData) {
-          // Try different possible error message formats
-          if (serverData.message) {
-            errorMessage = serverData.message;
-          } else if (serverData.error) {
+          if (serverData.message) errorMessage = serverData.message;
+          else if (serverData.error)
             errorMessage =
               typeof serverData.error === 'string'
                 ? serverData.error
                 : JSON.stringify(serverData.error);
-          } else if (serverData.errors) {
-            // Handle validation errors
+          else if (serverData.errors) {
             if (Array.isArray(serverData.errors)) {
               errorMessage = `Validation errors: ${serverData.errors.join(
                 ', ',
@@ -702,7 +740,6 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
           } else if (typeof serverData === 'string') {
             errorMessage = serverData;
           } else {
-            // Show the entire error object
             errorMessage = `Server error: ${JSON.stringify(serverData)}`;
           }
         } else if (anyErr?.message) {
@@ -711,42 +748,41 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
 
         const statusCode = anyErr?.response?.status || 'Unknown';
 
-        // Provide more helpful error messages for common issues
         let finalMessage = `Error (${statusCode}): ${errorMessage}`;
 
+        // Extra logging for 500
         if (statusCode === 500) {
-          // Provide more specific error messages based on common causes
+          console.warn(
+            '[AdvertismentCreateScreen] Server returned 500. Checking potential causes...',
+          );
           let specificMessage = '';
 
           if (advertisementData.bookings.length > MAX_DAYS_PER_REQUEST) {
-            specificMessage = `You selected ${advertisementData.bookings.length} days, which may be too many. Try selecting fewer days (max ${MAX_DAYS_PER_REQUEST}).`;
+            specificMessage = `Too many days selected (${advertisementData.bookings.length}). Max allowed is ${MAX_DAYS_PER_REQUEST}.`;
           } else if (
             flow === 'individual' &&
-            advertisementData.company_id !== null &&
-            advertisementData.company_id !== undefined
+            advertisementData.company_id != null
           ) {
             specificMessage =
-              'Individual flow should have company_id as null. Please contact support if this persists.';
+              'Individual flow should have company_id as null. Contact support if persists.';
           } else if (!BOARD_ID || BOARD_ID <= 0) {
-            specificMessage = 'Invalid board ID. Please contact support.';
+            specificMessage = 'Invalid board ID. Contact support.';
           } else if (flow === 'individual') {
             specificMessage =
-              'Server may not accept null company_id for individual flow. Please contact support.';
+              'Server may not accept null company_id for individual flow. Contact support.';
           } else {
-            specificMessage =
-              'This may be due to invalid data or server issues.';
+            specificMessage = 'Potential invalid data or server issue.';
           }
 
-          finalMessage =
-            `Server Error (500): ${specificMessage} ` +
-            `Please check the console for details. ` +
-            `If this persists, try selecting fewer days or contact support.`;
+          finalMessage = `Server Error (500): ${specificMessage} Check console logs for details.`;
         }
 
-        console.error('Final error message:', finalMessage);
+        console.error(
+          '❌ [AdvertismentCreateScreen] Final error message:',
+          finalMessage,
+        );
         setErrorText(finalMessage);
 
-        // Also show alert for visibility
         Alert.alert('Error Creating Advertisement', finalMessage, [
           { text: 'OK' },
         ]);
@@ -754,36 +790,36 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
     });
   };
 
-  const renderProgressStep = (
-    stepNumber: number,
-    isActive: boolean,
-    isCompleted: boolean,
-  ) => (
-    <View style={styles.progressStepContainer}>
-      <View
-        style={[
-          styles.progressStep,
-          isActive && styles.activeStep,
-          isCompleted && styles.completedStep,
-        ]}
-      >
-        <Text
-          style={[
-            styles.progressStepText,
-            isActive && styles.activeStepText,
-            isCompleted && styles.completedStepText,
-          ]}
-        >
-          {stepNumber}
-        </Text>
-      </View>
-      {stepNumber < 3 && (
-        <View
-          style={[styles.progressLine, isActive && styles.activeProgressLine]}
-        />
-      )}
-    </View>
-  );
+  // const renderProgressStep = (
+  //   stepNumber: number,
+  //   isActive: boolean,
+  //   isCompleted: boolean,
+  // ) => (
+  //   <View style={styles.progressStepContainer}>
+  //     <View
+  //       style={[
+  //         styles.progressStep,
+  //         isActive && styles.activeStep,
+  //         isCompleted && styles.completedStep,
+  //       ]}
+  //     >
+  //       <Text
+  //         style={[
+  //           styles.progressStepText,
+  //           isActive && styles.activeStepText,
+  //           isCompleted && styles.completedStepText,
+  //         ]}
+  //       >
+  //         {stepNumber}
+  //       </Text>
+  //     </View>
+  //     {stepNumber < 3 && (
+  //       <View
+  //         style={[styles.progressLine, isActive && styles.activeProgressLine]}
+  //       />
+  //     )}
+  //   </View>
+  // );
 
   return (
     <View style={styles.container}>
@@ -885,7 +921,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
               containerStyle={styles.customInputContainer}
               disabled={true}
             />
-            <View style={styles.dateTimeContainer}>
+            {/* <View style={styles.dateTimeContainer}>
               <Text style={styles.dateTimeLabel}>
                 {t('createScreen.startDate')}
               </Text>
@@ -905,7 +941,7 @@ const AdvertismentCreateScreen: React.FC<Props> = ({ navigation, route }) => {
                 </View>
                 <Ionicons name="chevron-down" size={18} color="#6B7280" />
               </TouchableOpacity>
-            </View>
+            </View> */}
             <CustomInput
               label={t('createScreen.description')}
               placeholder={t('createScreen.enterDescription')}

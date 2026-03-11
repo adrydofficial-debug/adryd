@@ -4,7 +4,7 @@ export interface CreateAdvertisementRequest {
   title: string;
   description: string;
   total_payment: number;
-  bookings: BookingRequest[];
+  bookings?: BookingRequest[];
 }
 
 export interface BookingRequest {

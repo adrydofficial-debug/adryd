@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   Image,
   PermissionsAndroid,
@@ -744,7 +743,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
                 if (campaignId) {
                   try {
                     console.log('🔄 [CampaignUploadFiles] Updating campaign status to PAYMENT_PENDING...');
-                    await changeStatusMutation.mutateAsync(AdvertisementStatus.PAYMENT_PENDING);
+                    // await changeStatusMutation.mutateAsync(AdvertisementStatus.PAYMENT_PENDING);
                     console.log('✅ [CampaignUploadFiles] Campaign status updated to PAYMENT_PENDING');
                   } catch (statusError: any) {
                     console.error('❌ [CampaignUploadFiles] Failed to update campaign status:', statusError);
