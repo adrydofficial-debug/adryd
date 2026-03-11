@@ -294,9 +294,8 @@ const HomeScreen: React.FC<Props> = ({ navigation, onLoadingChange }) => {
       currency: board.currency || 'USD',
       image_url: imageUrl,
       image: imageUrl,
-      rating: board.rating ?? board.avg_rating ?? 0,
-      reviewCount:
-        board.review_count || board.totalRatings || board.reviewCount || 112,
+      rating: board.avg_rating ?? 0,
+      reviewCount: board.total_ratings ?? 0,
       category: board.category?.name || board.category_name || 'Static',
       isRecommended,
       labels: labels.length > 0 ? labels : undefined,

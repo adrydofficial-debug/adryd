@@ -160,31 +160,25 @@ const BoardList: React.FC<BoardListProps> = ({
   );
 
   const handleCardPress = (item: BoardItem) => {
-    console.log('Card pressed - item:', item.image_url);
-    if (onPressDetail) {
-      onPressDetail(item);
-    } else if (navigation) {
-      navigation.navigate('CategoryScreen', {
-        categoryId: item.id,
-        categoryName: item.title,
-        showAllCategories: false,
-      });
-    }
-  };
+  if (onPressDetail) {
+    onPressDetail(item);
+  } else if (navigation) {
+    navigation.navigate('FilterCategoryList', {
+      slug: item.title,
+      autoSelectSeeAll: false,
+    });
+  }
+};
 
   const handleSeeAllPress = () => {
-    if (!showSeeAll) {
-      return;
-    }
-    if (navigation) {
-      navigation.navigate('CategoryScreen', {
-        categoryId: 'all',
-        categoryName: heading,
-        subHeading: subHeading,
-        showAllCategories: false,
-      });
-    }
-  };
+  if (!showSeeAll) return;
+  if (navigation) {
+    navigation.navigate('FilterCategoryList', {
+      slug: heading,
+      autoSelectSeeAll: true,
+    });
+  }
+};
 
   const renderItem = ({ item }: { item: BoardItem }) => {
     // Render "More" card if flag is set
@@ -282,7 +276,7 @@ const BoardList: React.FC<BoardListProps> = ({
       typeof item.rating === 'string'
         ? parseFloat(item.rating)
         : item.rating || 0;
-    const reviewCount = item.reviewCount || 112; // Default to 112 if not provided
+    const reviewCount = item.reviewCount ?? 0;
     // Ensure category is always available - check multiple possible sources
     const rawCategory =
       item.category || (item as any).category_name || 'Static';

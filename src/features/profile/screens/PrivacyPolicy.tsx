@@ -415,7 +415,7 @@ const PrivacyPolicy: React.FC<PrivacyPolicyProps> = () => {
       <View style={styles.fixedHeader}>
         {/* First Row: Back Button and Language Selector */}
         <View style={styles.headerTopRow}>
-          <BackButton iconColor="#18181B" style={styles.backButtonContainer} />
+          <BackButton iconColor="#70737D" style={styles.backButtonContainer} />
           <View style={styles.languageSelector}>
             <TouchableOpacity
               style={[
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: hp(2),
+    marginBottom: hp(4),
     paddingVertical: hp(0.5),
   },
   checkbox: {
@@ -774,7 +774,6 @@ const styles = StyleSheet.create({
     borderColor: '#C539A5',
     backgroundColor: '#FFFFFF',
     marginRight: wp(2),
-    marginTop: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -788,7 +787,7 @@ const styles = StyleSheet.create({
     color: '#000000',
     flex: 1,
     lineHeight: 18,
-    marginTop: 2,
+    marginTop: 1,
   },
   agreeButton: {
     alignSelf: 'center',

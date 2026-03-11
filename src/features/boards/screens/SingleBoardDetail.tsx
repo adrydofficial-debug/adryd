@@ -151,7 +151,7 @@ const SingleBoardDetail: React.FC = () => {
 
   const user = useAuthStore(s => s.user);
   const queryClient = useQueryClient();
-  
+
   const setSelectedBoard = useCampaignFlowStore(s => s.setSelectedBoard);
   const selectedCompany = useCampaignFlowStore(s => s.selectedCompany);
   const selectedChoice = useCampaignFlowStore(s => s.selectedChoice);
@@ -631,23 +631,26 @@ const SingleBoardDetail: React.FC = () => {
   };
 
   const handleToggleFavorite = async () => {
-    if (!canToggleFavorite || isFavoritePending) {
-      return;
-    }
+    if (!canToggleFavorite || isFavoritePending) return;
 
     if (!user?.id) {
       Alert.alert('Login Required', 'Please log in to manage favorites.');
       return;
     }
 
+    // ✅ Update UI instantly BEFORE API call
+    const previousValue = isFavorite;
+    setIsFavorite(prev => !prev);
+
     try {
       const result = await toggleFavoriteMutation.mutateAsync();
+      // Sync with server response if available
       if (result && typeof result.is_favorite === 'boolean') {
         setIsFavorite(result.is_favorite);
-      } else {
-        setIsFavorite(prev => !prev);
       }
     } catch (error) {
+      // ✅ Revert on failure
+      setIsFavorite(previousValue);
       console.error('Error toggling favorite:', error);
       Alert.alert('Error', 'Unable to update favorite. Please try again.');
     }
@@ -657,9 +660,9 @@ const SingleBoardDetail: React.FC = () => {
 
   const renderRatingCard = (variant: 'page' | 'modal' = 'page') => (
     <View style={[styles.ratingCard, variant === 'modal' && styles.ratingCardModal]}>
-       <View style={{width: '100%', justifyContent: "center", alignItems: "center"}}>
-            <Text style={[styles.ratingTitle, {textAlign: 'center', width: '100%',fontSize: 18}]}>Rate this Static Wall Panels</Text>
-          </View>
+      <View style={{ width: '100%', justifyContent: "center", alignItems: "center" }}>
+        <Text style={[styles.ratingTitle, { textAlign: 'center', width: '100%', fontSize: 18 }]}>Rate this Static Wall Panels</Text>
+      </View>
       <Text style={styles.ratingHint}>Rate this Backer and tell others what you think</Text>
 
       <View style={styles.ratingStarRow}>
@@ -706,7 +709,7 @@ const SingleBoardDetail: React.FC = () => {
         </TouchableOpacity>
       </View>
       <View style={styles.ratingSummaryRow}>
-        
+
 
         <View style={styles.ratingSummaryLeft}>
           <Text style={styles.ratingSummaryNumber}>{averageRating.toFixed(1)}</Text>
@@ -746,45 +749,47 @@ const SingleBoardDetail: React.FC = () => {
               imageStyle={styles.heroImageStyle}
             >
               <View style={styles.heroTopBar}>
-                <BackButton  />
+                <BackButton/>
                 <View style={styles.heroActions}>
                   <TouchableOpacity style={styles.actionIcon}>
-                  <Ionicons name="share-social-outline" size={20} color="#70737D" />
+                    <Ionicons name="share-social-outline" size={20} color="#70737D" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionIcon, isFavorite && styles.favoriteActionIcon]}
                     onPress={handleToggleFavorite}
                     activeOpacity={0.85}
-                    disabled={!canToggleFavorite || isFavoritePending}
+                    disabled={!canToggleFavorite}
                   >
-                 
-                      <Ionicons
-                        name={isFavorite ? 'heart' : 'heart-outline'}
-                        size={22}
-                        color={isFavorite ? '#C539A5' : '#70737D'}
-                      />
-                    
+
+                    <Ionicons
+                      name={isFavorite ? 'heart' : 'heart-outline'}
+                      size={22}
+                      color={isFavorite ? '#C539A5' : '#70737D'}
+                    />
+
                   </TouchableOpacity>
                 </View>
               </View>
 
-              <View style={styles.thumbnailTray}>
-                <View style={styles.thumbnailStrip}>
-                  {images.map((src: ImageSourcePropType, idx: number) => {
-                    const isSelected = idx === selectedIndex;
-                    return (
-                      <TouchableOpacity
-                        key={`thumb-${idx}`}
-                        onPress={() => selectImageIndex(idx)}
-                        style={[styles.thumbnailButton, isSelected && styles.thumbnailButtonActive]}
-                        activeOpacity={0.85}
-                      >
-                        <Image source={src} style={styles.thumbnailImage} resizeMode="cover" />
-                      </TouchableOpacity>
-                    );
-                  })}
+              {images.filter(src => src !== placeholder).length > 1 && (
+                <View style={styles.thumbnailTray}>
+                  <View style={styles.thumbnailStrip}>
+                    {images.map((src: ImageSourcePropType, idx: number) => {
+                      const isSelected = idx === selectedIndex;
+                      return (
+                        <TouchableOpacity
+                          key={`thumb-${idx}`}
+                          onPress={() => selectImageIndex(idx)}
+                          style={[styles.thumbnailButton, isSelected && styles.thumbnailButtonActive]}
+                          activeOpacity={0.85}
+                        >
+                          <Image source={src} style={styles.thumbnailImage} resizeMode="cover" />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-              </View>
+              )}
             </ImageBackground>
           </View>
         </View>
@@ -857,20 +862,20 @@ const SingleBoardDetail: React.FC = () => {
             onPress={() => {
               console.log('Let\'s Connect pressed with boardData:', item);
               console.log('Current flow state:', { selectedCompany, selectedChoice });
-              
+
               try {
                 setSelectedBoard(item);
-                
+
                 if (selectedCompany && selectedChoice === 'business') {
                   console.log('Company already selected, navigating directly to campaign form');
-                  const companyId = typeof selectedCompany.id === 'string' 
-                    ? parseInt(selectedCompany.id) 
+                  const companyId = typeof selectedCompany.id === 'string'
+                    ? parseInt(selectedCompany.id)
                     : selectedCompany.id;
-                  
-                  navigation.navigate('AdvertismentCreateScreen', { 
+
+                  navigation.navigate('AdvertismentCreateScreen', {
                     flow: 'business',
                     companyId: companyId,
-                    boardData: item 
+                    boardData: item
                   });
                 } else {
                   console.log('No company selected, navigating to ChooseOptionScreen');
@@ -895,7 +900,7 @@ const SingleBoardDetail: React.FC = () => {
             }}
           />
 
-         
+
 
           {renderRatingCard()}
 
@@ -982,7 +987,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     borderTopLeftRadius: 0,
-    borderTopRightRadius: 0,  
+    borderTopRightRadius: 0,
     overflow: 'hidden',
     backgroundColor: '#E5E7EB',
   },
@@ -1005,9 +1010,9 @@ const styles = StyleSheet.create({
   heroActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    position:"absolute",
-    top:22,
-    right:22,
+    position: "absolute",
+    top: 22,
+    right: 22,
   },
   actionIcon: {
     width: 38,
@@ -1268,10 +1273,10 @@ const styles = StyleSheet.create({
   },
   ratingHint: {
     fontSize: 12,
-    fontWeight:"400",
+    fontWeight: "400",
     marginBottom: 10,
     color: '#70737D',
-    alignSelf:"center",
+    alignSelf: "center",
   },
   commentRow: {
     flexDirection: 'row',
