@@ -21,6 +21,9 @@ import { SUPABASE_URL } from '../../../config';
 import { AdvertisementStatus } from '../domain/entities';
 import BackButton from '../../../components/BackButton';
 import { useNotificationsStore } from '../../notifications/store/notifications';
+import { BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -71,15 +74,15 @@ interface CampaignCard {
   locationDetail?: string;
   date: string;
   status:
-    | 'Publish'
-    | 'Active'
-    | 'Schedule'
-    | 'Review'
-    | 'Blocked'
-    | 'Completed'
-    | 'Payment Pending'
-    | 'Draft'
-    | 'InProgress';
+  | 'Publish'
+  | 'Active'
+  | 'Schedule'
+  | 'Review'
+  | 'Blocked'
+  | 'Completed'
+  | 'Payment Pending'
+  | 'Draft'
+  | 'InProgress';
   statusColor: string;
   daysLeft?: string;
   estimatedTime?: string;
@@ -101,7 +104,22 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
   const [activeBottomTab, setActiveBottomTab] = useState<string>('Boards');
   const [activeTab, setActiveTab] = useState<string>('all');
   const { notifications } = useNotificationsStore();
-  
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (onBackToHome) {
+          onBackToHome();
+        } else {
+          navigation.navigate('BottomTab' as never, { tab: 'Home' } as never);
+        }
+        return true;
+      };
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+      return () => backHandler.remove(); // ✅ correct way
+    }, [navigation, onBackToHome])
+  );
   const {
     advertisements: advertisementList,
     loading,
@@ -115,13 +133,13 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
       if (n.read) return false;
       const notificationAdId = n.data?.advertisement_id || n.data?.advertisementId;
       // Convert to number for comparison
-      const adId = typeof notificationAdId === 'string' 
-        ? parseInt(notificationAdId, 10) 
+      const adId = typeof notificationAdId === 'string'
+        ? parseInt(notificationAdId, 10)
         : notificationAdId;
       return adId === campaignId;
     }).length;
   };
-  
+
   // Debug: Log what we received
   React.useEffect(() => {
     console.log('📋 SCREEN - Advertisement list updated:', {
@@ -137,8 +155,8 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
   React.useEffect(() => {
     setActiveTab('all');
   }, [advertisementList]);
-  
-  
+
+
   const handleBottomTabPress = (tabName: string) => {
     console.log('Bottom tab pressed:', tabName);
     setActiveBottomTab(tabName);
@@ -209,7 +227,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
       },
     ];
   }, [advertisementList]);
-  
+
   // Map API status to UI status based on the correct flow
   const mapStatusToUI = (status: string) => {
     switch (status) {
@@ -234,7 +252,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
         return { uiStatus: 'Draft', color: '#9E9E9E', tab: 'Draft' };
     }
   };
-  
+
   // Get status description based on API status
   const getStatusDescription = (status: string) => {
     const statusDescriptions: { [key: string]: string } = {
@@ -250,8 +268,8 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
     };
     return statusDescriptions[status] || 'Status update pending';
   };
-  
-  
+
+
   // Convert API advertisements to UI format - NO FILTERING, SHOW ALL
   const campaignData: CampaignCard[] = useMemo(() => {
     // Always show data, even if empty array
@@ -259,15 +277,15 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
       inputCount: advertisementList?.length || 0,
       inputIds: advertisementList?.map((ad: any) => ad.id) || [],
     });
-    
+
     // NO EARLY RETURNS - Process all data
     if (!advertisementList || advertisementList.length === 0) {
       console.log('⚠️ No advertisements to map - returning empty array');
       return [];
     }
-    
+
     console.log(`✅ Mapping ${advertisementList.length} advertisements to UI format`);
-    
+
     return advertisementList.map((ad: any) => {
       const rawStatus = (ad.status || 'DRAFT').toUpperCase();
       const statusInfo = mapStatusToUI(rawStatus);
@@ -277,9 +295,9 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
 
       const daysDuration = booking && endDateObj
         ? Math.max(
-            1,
-            Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24))
-          )
+          1,
+          Math.ceil((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24))
+        )
         : null;
 
       const board = ad.board || {};
@@ -309,18 +327,18 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
         });
         return (found || 'N/A').toString();
       })();
-    const boardCity = (() => {
-      const candidates = [
-        board?.location?.city?.name,
-        board?.location?.name,
-        boardLocationName,
-      ];
-      const found = candidates.find(value => {
-        if (typeof value !== 'string') return false;
-        return value.trim().length > 0;
-      });
-      return (found || 'N/A').toString();
-    })();
+      const boardCity = (() => {
+        const candidates = [
+          board?.location?.city?.name,
+          board?.location?.name,
+          boardLocationName,
+        ];
+        const found = candidates.find(value => {
+          if (typeof value !== 'string') return false;
+          return value.trim().length > 0;
+        });
+        return (found || 'N/A').toString();
+      })();
 
       const normalizeMediaUrl = (url?: string | null) => {
         if (!url) return undefined;
@@ -378,7 +396,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
       };
     });
   }, [advertisementList]);
-  
+
   // Debug: Log mapped data
   React.useEffect(() => {
     console.log('🎯 CAMPAIGN DATA MAPPED:', {
@@ -387,19 +405,19 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
       rawStatuses: campaignData.map((item) => item.rawStatus),
     });
   }, [campaignData]);
-  
-  
+
+
   // Filter data based on active tab
   const listData = useMemo(() => {
     const data = campaignData || [];
-    
+
     console.log('📊 LIST DATA - BEFORE FILTERING:', {
       totalItems: data.length,
       activeTab,
       allItemIds: data.map((item) => item.id),
       allRawStatuses: data.map((item) => item.rawStatus),
     });
-    
+
     // If 'all' tab is selected, show all data
     if (activeTab === 'all') {
       console.log('📊 LIST DATA - Showing ALL items:', {
@@ -408,7 +426,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
       });
       return data;
     }
-    
+
     // Filter by status based on active tab
     const filtered = data.filter((item) => {
       if (activeTab === AdvertisementStatus.DRAFT) {
@@ -430,7 +448,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
       // For other tabs, match the rawStatus with the tab's status
       return item.rawStatus === activeTab;
     });
-    
+
     console.log('📊 LIST DATA (filtered):', {
       activeTab,
       showingCount: filtered.length,
@@ -438,7 +456,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
       rawStatuses: filtered.map((item) => item.rawStatus),
       allStatusesInData: [...new Set(data.map((item) => item.rawStatus))],
     });
-    
+
     return filtered;
   }, [campaignData, activeTab]);
 
@@ -503,8 +521,8 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
       typeof originalAd?.board?.type === 'string'
         ? originalAd.board.type
         : typeof originalAd?.ad_type === 'string'
-        ? originalAd.ad_type
-        : undefined,
+          ? originalAd.ad_type
+          : undefined,
     );
     const typeFromGroup = (() => {
       if (!rawGroup) return undefined;
@@ -639,7 +657,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
       typeof company.company_name === 'string' &&
       company.company_name.trim().length > 0
     );
-    
+
     // Both conditions must be true
     // For individual flow campaigns (company_id = 0), hasCompanyInfo will always be false
     const hasCompanyInfo = hasValidCompanyId && hasValidCompanyObject;
@@ -686,7 +704,14 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
         // endDate={endDate}
         timelineProgress={timelineProgress}
         isExpanded={expandedCard === item.id}
-        onPress={() => toggleCardExpansion(item.id)}
+        // After - navigates to chat screen on tap
+        onPress={() => {
+          navigation.navigate('CampaignChatDetail', {
+            campaignId: item.id,
+            campaignName: item.title,
+            boardLocation: item.location,
+          });
+        }}
         navigation={navigation}
         estimatedTimeLabel={estimatedTimeLabel}
         statusMessage={statusMessage}
@@ -743,7 +768,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
         <View style={[styles.paymentCardHeader, { backgroundColor: item.backgroundColor }]}>
           <Text style={[styles.paymentHeaderTitle, { color: item.textColor }]}>{item.title}</Text>
         </View>
-        
+
         {/* Content */}
         <View style={styles.paymentAdSection}>
           <View style={styles.paymentAdHeader}>
@@ -755,21 +780,21 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
             </View>
             <View style={[styles.paymentStatusDot, { backgroundColor: item.ad.statusDot }]} />
           </View>
-          
+
           <Text style={styles.paymentAdTitle}>{item.ad.title}</Text>
-          
+
           <View style={styles.paymentLocationRow}>
             <Ionicons name="location" size={wp(3.5)} color="#666" />
             <Text style={styles.paymentLocationText}>{item.ad.location}</Text>
           </View>
-          
+
           <Text style={styles.paymentDateText}>{item.ad.date}</Text>
           <Text style={[styles.paymentStatusText, { color: item.ad.statusColor }]}>{item.ad.status}</Text>
         </View>
-        
+
         {/* Separator */}
         <View style={styles.paymentSeparator} />
-        
+
         {/* Payment Summary */}
         <View style={styles.paymentSummary}>
           <View style={styles.paymentRow}>
@@ -781,13 +806,13 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
             <Text style={styles.paymentValue}>{item.payment.tax}</Text>
           </View>
         </View>
-        
+
         {/* Total Bar */}
         <View style={[styles.paymentTotalRow, {}]}>
           <Text style={styles.paymentTotalLabel}>TOTAL</Text>
           <Text style={styles.paymentTotalValue}>{item.payment.total}</Text>
         </View>
-        
+
         {/* Action Buttons */}
         <View style={styles.paymentButtonContainer}>
           <TouchableOpacity style={styles.paymentCancelButton}>
@@ -809,121 +834,128 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
     const isRecentHistory = item.rawStatus === AdvertisementStatus.COMPLETED;
 
     return (
-        <View key={item.id} style={[
-             styles.campaignCard,
-             isActive && styles.activeCard,
-             isReview && styles.reviewCard,
-             isBlocked && styles.blockedCard,
-             isRecentHistory && styles.recentHistoryCard,
-           ]}>
-             <View style={styles.cardHeader}>
-               <View style={styles.cardContent}>
-                 <Text style={styles.campaignTitle}>{item.title}</Text>
-                 <View style={styles.locationRow}>
-                   <Ionicons 
-                     name="location" 
-                     size={wp(3.5)} 
-                     color="#666" 
-                     style={styles.locationIcon} 
-                   />
-                   <Text style={styles.locationText}>
-                     {item.location}
-                   </Text>
-                 </View>
-                 <Text style={styles.dateText}>
-                   {item.date}
-                 </Text>
-               </View>
-               <View style={styles.cardRight}>
-                 <View style={[styles.statusDot, { backgroundColor: item.statusColor }]} />
-               </View>
-             </View>
-             <View style={styles.statusSection}>
-               <View style={[styles.statusLine, { backgroundColor: item.statusColor }]} />
-               <Text style={[styles.statusText, { color: item.statusColor }]}>
-                 {item.daysLeft || item.estimatedTime}
-               </Text>
-               <TouchableOpacity 
-                 onPress={() => toggleCardExpansion(item.id)}
-                 style={styles.chevronButton}>
-                 <Ionicons 
-                   name={isExpanded ? "chevron-down" : "chevron-up"} 
-                   size={wp(4.9)} 
-                   color={item.statusColor} 
-                 />
-               </TouchableOpacity>
-             </View>
-             
-             {/* Timeline Section - Only show for Active cards */}
-             {isActive && (
-               <View style={styles.timelineSection}>
-                 <Text style={styles.timelineLabel}>Timeline</Text>
-                 <View style={styles.timelineContainer}>
-                   <View style={[styles.timelineDot, { backgroundColor: item.statusColor }]} />
-                   <View style={[styles.timelineLine, { backgroundColor: item.statusColor }]} />
-                   <View style={[styles.timelineDot, { backgroundColor: '#D8D8D8' }]} />
-                   <View style={[styles.timelineLine, { backgroundColor: '#D8D8D8' }]} />
-                   <View style={[styles.timelineDot, { backgroundColor: '#D8D8D8' }]} />
-                   <View style={[styles.timelineLine, { backgroundColor: '#E0E0E0' }]} />
-                   <View style={[styles.timelineDot, { backgroundColor: '#E0E0E0' }]} />
-                   <View style={[styles.timelineLine, { backgroundColor: '#E0E0E0' }]} />
-                   <View style={[styles.timelineDot, { backgroundColor: '#E0E0E0' }]} />
-                 </View>
-               </View>
-             )}
-             {isExpanded && item.details && (
-               <View style={styles.expandedContent}>
-                 <View style={styles.dashedLine} />
-                 <Text style={styles.reviewTitle}>
-                   YOUR <Text style={[styles.reviewHighlight, { color: item.statusColor }]}>{item.rawStatus}</Text> CAMPAIGN AD DETAIL
-                 </Text>
-                 <View style={styles.detailsBox}>
-                   <View style={styles.detailItem}>
-                     <Ionicons name="document-text" size={wp(4)} color={item.statusColor} />
-                     <Text style={[styles.detailText, { color: item.statusColor }]}>Name: {item.details?.name}</Text>
-                   </View>
-                   <View style={styles.detailItem}>
-                     <Ionicons name="checkmark-circle" size={wp(4)} color={item.statusColor} />
-                     <Text style={[styles.detailText, { color: item.statusColor }]}>How many days: {item.details?.days}</Text>
-                   </View>
-                   <View style={styles.detailItem}>
-                     <Ionicons name="checkmark-circle" size={wp(4)} color={item.statusColor} />
-                     <Text style={[styles.detailText, { color: item.statusColor }]}>Category: {item.details?.category}</Text>
-                   </View>
-                   <View style={styles.detailItem}>
-                     <Ionicons name="location" size={wp(4)} color={item.statusColor} />
-                     <Text style={[styles.detailText, { color: item.statusColor }]}>Location: {item.details.location}</Text>
-                   </View>
-                   <View style={styles.detailItem}>
-                     <Ionicons name="time" size={wp(4)} color={item.statusColor} />
-                     <Text style={[styles.detailText, { color: item.statusColor }]}>{item.details.reviewTime}</Text>
-                   </View>
-                   <View style={styles.detailItem}>
-                     <Ionicons name="time" size={wp(4)} color={item.statusColor} />
-                     <Text style={[styles.detailText, { color: item.statusColor }]}>{item.details.reviewStatus}</Text>
-                   </View>
-                 </View>
-     
-                 {/* Payment Summary */}
-                 <View style={styles.paymentSummary}>
-                   <View style={styles.paymentRow}>
-                     <Text style={[styles.paymentLabel, { color: item.statusColor }]}>Date</Text>
-                     <Text style={[styles.paymentValue, { color: item.statusColor }]}>{item.payment.date}</Text>
-                   </View>
-                   <View style={styles.paymentRow}>
-                     <Text style={[styles.paymentLabel, { color: item.statusColor }]}>TAX</Text>
-                     <Text style={[styles.paymentValue, { color: item.statusColor }]}>{item.payment.tax}</Text>
-                   </View>
-                 
-                 </View>
-               </View>
-             )}
-           </View>
+      <View key={item.id} style={[
+        styles.campaignCard,
+        isActive && styles.activeCard,
+        isReview && styles.reviewCard,
+        isBlocked && styles.blockedCard,
+        isRecentHistory && styles.recentHistoryCard,
+      ]}>
+        <View style={styles.cardHeader}>
+          <View style={styles.cardContent}>
+            <Text style={styles.campaignTitle}>{item.title}</Text>
+            <View style={styles.locationRow}>
+              <Ionicons
+                name="location"
+                size={wp(3.5)}
+                color="#666"
+                style={styles.locationIcon}
+              />
+              <Text style={styles.locationText}>
+                {item.location}
+              </Text>
+            </View>
+            <Text style={styles.dateText}>
+              {item.date}
+            </Text>
+          </View>
+          <View style={styles.cardRight}>
+            <View style={[styles.statusDot, { backgroundColor: item.statusColor }]} />
+          </View>
+        </View>
+        <View style={styles.statusSection}>
+          <View style={[styles.statusLine, { backgroundColor: item.statusColor }]} />
+          <Text style={[styles.statusText, { color: item.statusColor }]}>
+            {item.daysLeft || item.estimatedTime}
+          </Text>
+          <TouchableOpacity
+            // After - navigates to chat screen on tap
+            onPress={() => {
+              navigation.navigate('CampaignChatDetail', {
+                campaignId: item.id,
+                campaignName: item.title,
+                boardLocation: item.location,
+              });
+            }}
+            style={styles.chevronButton}>
+            <Ionicons
+              name={isExpanded ? "chevron-down" : "chevron-up"}
+              size={wp(4.9)}
+              color={item.statusColor}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Timeline Section - Only show for Active cards */}
+        {isActive && (
+          <View style={styles.timelineSection}>
+            <Text style={styles.timelineLabel}>Timeline</Text>
+            <View style={styles.timelineContainer}>
+              <View style={[styles.timelineDot, { backgroundColor: item.statusColor }]} />
+              <View style={[styles.timelineLine, { backgroundColor: item.statusColor }]} />
+              <View style={[styles.timelineDot, { backgroundColor: '#D8D8D8' }]} />
+              <View style={[styles.timelineLine, { backgroundColor: '#D8D8D8' }]} />
+              <View style={[styles.timelineDot, { backgroundColor: '#D8D8D8' }]} />
+              <View style={[styles.timelineLine, { backgroundColor: '#E0E0E0' }]} />
+              <View style={[styles.timelineDot, { backgroundColor: '#E0E0E0' }]} />
+              <View style={[styles.timelineLine, { backgroundColor: '#E0E0E0' }]} />
+              <View style={[styles.timelineDot, { backgroundColor: '#E0E0E0' }]} />
+            </View>
+          </View>
+        )}
+        {isExpanded && item.details && (
+          <View style={styles.expandedContent}>
+            <View style={styles.dashedLine} />
+            <Text style={styles.reviewTitle}>
+              YOUR <Text style={[styles.reviewHighlight, { color: item.statusColor }]}>{item.rawStatus}</Text> CAMPAIGN AD DETAIL
+            </Text>
+            <View style={styles.detailsBox}>
+              <View style={styles.detailItem}>
+                <Ionicons name="document-text" size={wp(4)} color={item.statusColor} />
+                <Text style={[styles.detailText, { color: item.statusColor }]}>Name: {item.details?.name}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Ionicons name="checkmark-circle" size={wp(4)} color={item.statusColor} />
+                <Text style={[styles.detailText, { color: item.statusColor }]}>How many days: {item.details?.days}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Ionicons name="checkmark-circle" size={wp(4)} color={item.statusColor} />
+                <Text style={[styles.detailText, { color: item.statusColor }]}>Category: {item.details?.category}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Ionicons name="location" size={wp(4)} color={item.statusColor} />
+                <Text style={[styles.detailText, { color: item.statusColor }]}>Location: {item.details.location}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Ionicons name="time" size={wp(4)} color={item.statusColor} />
+                <Text style={[styles.detailText, { color: item.statusColor }]}>{item.details.reviewTime}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Ionicons name="time" size={wp(4)} color={item.statusColor} />
+                <Text style={[styles.detailText, { color: item.statusColor }]}>{item.details.reviewStatus}</Text>
+              </View>
+            </View>
+
+            {/* Payment Summary */}
+            <View style={styles.paymentSummary}>
+              <View style={styles.paymentRow}>
+                <Text style={[styles.paymentLabel, { color: item.statusColor }]}>Date</Text>
+                <Text style={[styles.paymentValue, { color: item.statusColor }]}>{item.payment.date}</Text>
+              </View>
+              <View style={styles.paymentRow}>
+                <Text style={[styles.paymentLabel, { color: item.statusColor }]}>TAX</Text>
+                <Text style={[styles.paymentValue, { color: item.statusColor }]}>{item.payment.tax}</Text>
+              </View>
+
+            </View>
+          </View>
+        )}
+      </View>
     );
   };
 
   return (
-  <View style={styles.container}>
+    <View style={styles.container}>
       <StatusBar backgroundColor="#ffffff" barStyle="dark-content" />
       {/* Header with Campaign Tabs */}
       <View style={styles.header}>
@@ -956,7 +988,7 @@ const CompaignStatus: React.FC<ActiveCampaignProps> = ({ onBackToHome }) => {
           <Text style={styles.errorText}>
             Failed to load campaigns. Please try again.
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.retryButton}
             onPress={() => refetch()}
           >
@@ -1004,12 +1036,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   cardImg:{
-    width: width * 0.14, 
+    width: width * 0.14,
     height: width * 0.18,
-     resizeMode: 'contain',
-     borderRadius:2,
+    resizeMode: 'contain',
+    borderRadius:2,
     marginRight:10},
-   header: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

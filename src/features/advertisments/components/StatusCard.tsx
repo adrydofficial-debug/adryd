@@ -212,9 +212,9 @@ const StatusCard: React.FC<StatusCardProps> = ({
           )}
         </View>
         {/* Info Icon */}
-        <TouchableOpacity style={styles.alertIcon}>
+        {/* <TouchableOpacity style={styles.alertIcon}>
           <Ionicons name="information-circle-outline" size={wp(5)} color="#9E9E9E" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
       <View style={[styles.bodyContainer, isPaymentPending && styles.bodyContainerPaymentPending]}>
       <View
@@ -423,7 +423,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
         />
 
         {/* Timeline Section with Expand Icon - Inside the wrapper */}
-          <View style={styles.timelineSectionWithIcon}>
+          {/* <View style={styles.timelineSectionWithIcon}>
             <View style={styles.timelineSection}>
               <View style={styles.timelineHeader}>
                 <Ionicons name="time-outline" size={wp(3.5)} color="#666" />
@@ -442,7 +442,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                 </View>
               </View>
             </View>
-            {/* Expand/Collapse Icon */}
+            
             <TouchableOpacity style={styles.expandIcon} onPress={onPress}>
               <Ionicons
                 name={isExpanded ? 'chevron-down' : 'chevron-up'}
@@ -450,7 +450,7 @@ const StatusCard: React.FC<StatusCardProps> = ({
                 color="#1E1E1E"
               />
             </TouchableOpacity>
-          </View>
+          </View> */}
        </View>
       </View>
 
@@ -794,7 +794,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
     position: 'relative',
     width: '100%',
-    minHeight: hp(28),
+    minHeight: hp(20),
     alignSelf: 'stretch',
   },
   cardPaymentPending: {
@@ -806,7 +806,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
     position: 'relative',
     width: '100%',
-    minHeight: hp(28),
+    minHeight: hp(20),
     alignSelf: 'stretch',
   },
   header: {
