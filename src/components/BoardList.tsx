@@ -12,7 +12,9 @@ import {
   View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Images } from '../assets/images';
 import i18n from '../i18n';
+import { useAppStore } from '../store/appStore';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -20,7 +22,6 @@ const hp = (percentage: number) => (height * percentage) / 100;
 const CARD_WIDTH = wp(41);
 const CARD_WIDTH_WIDER = wp(47.4);
 const CARD_HEIGHT = hp(28);
-import { Images } from '../assets/images';
 
 const FALLBACK_IMAGE = Images.image;
 
@@ -124,6 +125,9 @@ const BoardList: React.FC<BoardListProps> = ({
   // Language change tracking for forced re-render
   const [languageKey, setLanguageKey] = useState(0);
 
+  const resetStore = useAppStore(state => state.resetStore);
+  const setAppliedFilters = useAppStore(state => state.setAppliedFilters);
+
   // Listen for language changes and force re-render
   useEffect(() => {
     const handleLanguageChange = (lang: string) => {
@@ -160,25 +164,31 @@ const BoardList: React.FC<BoardListProps> = ({
   );
 
   const handleCardPress = (item: BoardItem) => {
-  if (onPressDetail) {
-    onPressDetail(item);
-  } else if (navigation) {
-    navigation.navigate('FilterCategoryList', {
-      slug: item.title,
-      autoSelectSeeAll: false,
-    });
-  }
-};
+    if (onPressDetail) {
+      onPressDetail(item);
+    } else if (navigation) {
+      navigation.navigate('FilterCategoryList', {
+        slug: item.title,
+        autoSelectSeeAll: false,
+      });
+    }
+  };
 
-  const handleSeeAllPress = () => {
-  if (!showSeeAll) return;
-  if (navigation) {
-    navigation.navigate('FilterCategoryList', {
-      slug: heading,
-      autoSelectSeeAll: true,
-    });
-  }
-};
+  const handleSeeAllPress = async () => {
+    if (!showSeeAll) return;
+
+    // reset everything
+    resetStore();
+
+    // set filter based on heading (slug)
+    const slug = heading.toLowerCase().replace(/\s+/g, '-');
+
+    await setAppliedFilters(new Set([slug]));
+
+    if (navigation) {
+      navigation.navigate('SearchLocation');
+    }
+  };
 
   const renderItem = ({ item }: { item: BoardItem }) => {
     // Render "More" card if flag is set
@@ -509,10 +519,10 @@ const BoardList: React.FC<BoardListProps> = ({
         columnWrapperStyle={
           numColumns > 1
             ? {
-              justifyContent: 'center',
-              paddingLeft: useWiderCards ? 5 : 5, // Minimal padding for wider cards in grid
-              paddingRight: useWiderCards ? 1 : 5, // Minimal padding for wider cards in grid
-            }
+                justifyContent: 'center',
+                paddingLeft: useWiderCards ? 5 : 5, // Minimal padding for wider cards in grid
+                paddingRight: useWiderCards ? 1 : 5, // Minimal padding for wider cards in grid
+              }
             : undefined
         }
       />
@@ -559,7 +569,7 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     minHeight: CARD_HEIGHT,
-     marginRight: 5,
+    marginRight: 5,
     backgroundColor: '#FFFFFF',
     borderRadius: 19,
     borderWidth: 0.7,
