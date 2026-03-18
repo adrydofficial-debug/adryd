@@ -224,7 +224,8 @@ const FilterButton: React.FC = () => {
             // If deselecting a category, also deselect "See All" and "Recommended"
             newSet.delete('see-all');
             newSet.delete('recommended');
-          } else {
+          }
+           else {
             newSet.add(filterId);
             // Check if all categories are now selected, if so, also select "See All" and "Recommended"
             const allCategoriesSelected = filterGroups.every(group =>
@@ -262,14 +263,14 @@ const FilterButton: React.FC = () => {
   }, [draftSelectedFilters, filterOptionsMap]);
 
   // Auto-scroll to latest tag when a new filter is selected
-  useEffect(() => {
-    if (selectedFilterNames.length > 0 && tagsScrollViewRef.current) {
-      // Small delay to ensure the tag is rendered
-      setTimeout(() => {
-        tagsScrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  }, [selectedFilterNames.length]);
+  //  useEffect(() => {
+  //   if (selectedFilterNames.length > 0 && tagsScrollViewRef.current) {
+  //     // Small delay to ensure the tag is rendered
+  //     setTimeout(() => {
+  //       tagsScrollViewRef.current?.scrollToEnd({ animated: true });
+  //     }, 100);
+  //   }
+  // }, [selectedFilterNames.length]);
 
   //   const appliedFilterTags = useMemo(() => {
   //     return appliedFilterOrder
@@ -622,26 +623,20 @@ const FilterButton: React.FC = () => {
                                   styles.filterGroupHeader,
                                   filteredCategories.length === 0 &&
                                     styles.filterOptionLast,
-                                  (allChildrenSelected ||
-                                    isGroupIndeterminate) &&
-                                    styles.filterOptionSelected,
+                                  allChildrenSelected && styles.filterOptionSelected, 
                                 ]}
                                 onPress={() => toggleFilter(group.slug, true)}
                               >
                                 <View
                                   style={[
                                     styles.checkbox,
-                                    (allChildrenSelected ||
-                                      isGroupIndeterminate) &&
-                                      styles.checkboxSelected,
+                                    allChildrenSelected && styles.checkboxSelected,
                                   ]}
                                 ></View>
                                 <Text
                                   style={[
                                     styles.filterOptionText,
-                                    (allChildrenSelected ||
-                                      isGroupIndeterminate) &&
-                                      styles.filterOptionTextSelected,
+                                    allChildrenSelected && styles.filterOptionTextSelected,
                                   ]}
                                 >
                                   {group.name}
@@ -1330,6 +1325,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 0,
     borderColor: 'transparent',
+     
   },
   filterOption: {
     flexDirection: 'row',
