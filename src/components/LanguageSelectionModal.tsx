@@ -51,7 +51,7 @@ const LanguageSelectionModal: React.FC<LanguageSelectionModalProps> = ({
               <LinearGradient
                 colors={
                   selectedLang === 'en'
-                    ? ['#C539A5', '#E91E63']
+                    ? ['#C539A5', '#c539a5']
                     : ['#f5f5f5', '#f5f5f5']
                 }
                 style={styles.languageButtonGradient}

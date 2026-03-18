@@ -709,11 +709,11 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({
                                 styles.languageOptionTextActive,
                             ]}
                           >
-                            URDU
+                            اردو
                           </Text>
                         </TouchableOpacity>
                       </View>
-                    </View>
+                    </View> 
                   </View>
 
                   <View style={styles.menuCard}>

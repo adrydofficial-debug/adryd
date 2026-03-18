@@ -59,7 +59,7 @@ const formatStatusForDisplay = (status: string): string => {
 const InboxScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { notifications } = useNotificationsStore();
-  
+
   const {
     advertisements: campaigns,
     loading,
@@ -72,8 +72,8 @@ const InboxScreen: React.FC = () => {
     return notifications.filter(n => {
       if (n.read) return false;
       const notificationAdId = n.data?.advertisement_id || n.data?.advertisementId;
-      const adId = typeof notificationAdId === 'string' 
-        ? parseInt(notificationAdId, 10) 
+      const adId = typeof notificationAdId === 'string'
+        ? parseInt(notificationAdId, 10)
         : notificationAdId;
       return adId === campaignId;
     }).length;
@@ -91,11 +91,12 @@ const InboxScreen: React.FC = () => {
       if (!chatMap.has(campaign.id)) {
         // Extract campaign name from board
         const board = campaign.board || {};
+
         const campaignName =
+          campaign.title ||         // check campaign title FIRST
           board.title ||
           board.name ||
           `${board.location?.name || board.location || 'Board'} ${board.category?.name || ''}`.trim() ||
-          campaign.title ||
           'Campaign';
 
         // Get board location
@@ -105,20 +106,20 @@ const InboxScreen: React.FC = () => {
             : board.location?.name || 'Unknown Location';
 
         // Format last message time
-        const lastMessageTime = campaign.last_message_time 
-          ? new Date(campaign.last_message_time).toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true 
+        const lastMessageTime = campaign.last_message_time
+          ? new Date(campaign.last_message_time).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          })
+          : campaign.updated_at
+            ? new Date(campaign.updated_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric'
             })
-          : campaign.updated_at 
-          ? new Date(campaign.updated_at).toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric' 
-            })
-          : 'Just now';
+            : 'Just now';
 
         // Combine unread count from messages and notifications
         const messageUnreadCount = campaign.unread_count || 0;
@@ -127,10 +128,10 @@ const InboxScreen: React.FC = () => {
 
         // Get campaign status
         const campaignStatus = campaign.status || 'DRAFT';
-        
+
         // If there's no last message, show the formatted status instead
-        const lastMessage = campaign.last_message 
-          ? campaign.last_message 
+        const lastMessage = campaign.last_message
+          ? campaign.last_message
           : formatStatusForDisplay(campaignStatus);
 
         chatMap.set(campaign.id, {
@@ -161,7 +162,7 @@ const InboxScreen: React.FC = () => {
 
   const renderMessageItem = ({ item }: { item: CampaignChat }) => {
     const isUnread = (item.unreadCount || 0) > 0;
-    
+
     return (
       <TouchableOpacity
         style={[

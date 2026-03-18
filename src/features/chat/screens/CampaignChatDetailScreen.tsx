@@ -667,9 +667,9 @@ const CampaignChatDetailScreen: React.FC = () => {
               {statusInfo.label}
             </Text>
           </View>
-          <TouchableOpacity style={styles.alertIcon}>
+          {/* <TouchableOpacity style={styles.alertIcon}>
             <Ionicons name="information-circle-outline" size={wp(5)} color="#9E9E9E" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {/* Body Container */}
@@ -1241,14 +1241,14 @@ const CampaignChatDetailScreen: React.FC = () => {
       />
 
       {/* Campaign Info Bar */}
-      <View style={styles.infoBar}>
+      {/* <View style={styles.infoBar}>
         <Text style={styles.infoBarText} numberOfLines={1}>
           {displayCampaignName}
         </Text>
         <TouchableOpacity onPress={handleSeeDetail}>
           <Text style={styles.seeDetailText}>See Detail</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {/* Messages List */}
       <FlatList
@@ -1339,7 +1339,7 @@ const CampaignChatDetailScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F5F5',
   },
   infoBar: {
     flexDirection: 'row',
