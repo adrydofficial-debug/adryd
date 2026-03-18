@@ -156,11 +156,11 @@ const SearchLocation: React.FC = () => {
             : loc.province?.name || '') ||
           (loc.city && loc.province
             ? `${
-              typeof loc.city === 'string' ? loc.city : loc.city?.name || ''
+                typeof loc.city === 'string' ? loc.city : loc.city?.name || ''
               }, ${
                 typeof loc.province === 'string'
-                ? loc.province
-                : loc.province?.name || ''
+                  ? loc.province
+                  : loc.province?.name || ''
               }`.trim()
             : 'Unknown Location') ||
           'Unknown Location';
@@ -171,8 +171,8 @@ const SearchLocation: React.FC = () => {
       typeof board.price === 'number'
         ? board.price
         : board.price
-          ? Number(board.price) || 0
-          : 0;
+        ? Number(board.price) || 0
+        : 0;
     const primaryMediaUrl =
       Array.isArray(board.media) && board.media.length > 0
         ? board.media[0]?.url
@@ -278,7 +278,10 @@ const SearchLocation: React.FC = () => {
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={24} color="#70737D" />
         </TouchableOpacity>
 
@@ -325,7 +328,14 @@ const SearchLocation: React.FC = () => {
                     )}
                   </TouchableOpacity>
                 )}
-                <Text style={{ textAlign: 'center', marginVertical: 12, fontSize: 12, color: '#6B7280' }}>
+                <Text
+                  style={{
+                    textAlign: 'center',
+                    marginVertical: 12,
+                    fontSize: 12,
+                    color: '#6B7280',
+                  }}
+                >
                   Showing {boards.length} of {filterPagination.total} results
                 </Text>
               </>

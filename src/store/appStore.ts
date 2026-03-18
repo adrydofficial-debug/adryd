@@ -320,7 +320,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // 🔄 Reset
   resetStore: () => {
     set({
-      selectedCity: null,
+      // selectedCity: null,
       selectedLocation: null,
       cities: [],
       locationsByCity: {},

@@ -4,7 +4,7 @@ import React from 'react';
 import AdvertismentCreateScreen from '../../features/advertisments/screens/AdvertismentCreateScreen';
 import CampaignUploadFiles from '../../features/advertisments/screens/CampaignUploadFiles';
 import CompaignStatus from '../../features/advertisments/screens/CompaignStatus';
-import FilterCategoryList from '../../features/boards/screens/FilterCategoryList';
+// import FilterCategoryList from '../../features/boards/screens/FilterCategoryList';
 import HomeScreen from '../../features/boards/screens/HomeScreen';
 import SingleBoardDetail from '../../features/boards/screens/SingleBoardDetail';
 import CampaignChatDetailScreen from '../../features/chat/screens/CampaignChatDetailScreen';
@@ -151,7 +151,7 @@ const AppNavigator = () => {
       <Stack.Screen name="FavouritesScreen" component={FavouritesScreen} />
       <Stack.Screen name="SingleBoardDetail" component={SingleBoardDetail} />
       <Stack.Screen name="CompaignStatus" component={CompaignStatus} />
-      <Stack.Screen name="FilterCategoryList" component={FilterCategoryList} />
+      {/* <Stack.Screen name="FilterCategoryList" component={FilterCategoryList} /> */}
       <Stack.Screen
         name="AdvertismentCreateScreen"
         component={AdvertismentCreateScreen}
