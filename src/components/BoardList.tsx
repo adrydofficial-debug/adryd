@@ -511,15 +511,14 @@ const BoardList: React.FC<BoardListProps> = ({
           paddingLeft: useWiderCards ? 5 : 15, // Minimal left padding for wider cards to maximize space
           paddingRight: useWiderCards ? 5 : 15, // Minimal right padding for wider cards
           ...(numColumns > 1 && {
-            alignItems: 'center',
-            justifyContent: 'center',
+            alignItems: 'flex-start',
             paddingVertical: 10,
           }),
         }}
         columnWrapperStyle={
           numColumns > 1
             ? {
-                justifyContent: 'center',
+                justifyContent: 'flex-start',
                 paddingLeft: useWiderCards ? 5 : 5, // Minimal padding for wider cards in grid
                 paddingRight: useWiderCards ? 1 : 5, // Minimal padding for wider cards in grid
               }
