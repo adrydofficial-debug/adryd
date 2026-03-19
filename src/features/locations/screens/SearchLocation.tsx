@@ -233,7 +233,7 @@ const SearchLocation: React.FC = () => {
     setAppliedFilters(new Set(validCategorySlugs));
     setAppliedFilterOrder(validCategorySlugs);
 
-    await applyFilters({ page: 1 });
+    // await applyFilters({ page: 1 });
 
     setAppliedSearchQuery(searchQuery.trim());
   }, [

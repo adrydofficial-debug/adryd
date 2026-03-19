@@ -121,7 +121,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
 
     if (appliedFilters.size > 0) {
-      payload.slugs = Array.from(appliedFilters);
+      payload.slug = Array.from(appliedFilters);
     }
 
     if (location?.location_id) {
@@ -189,7 +189,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     await get().applyFilters({ page: nextPage });
   },
 
-  setAppliedFilters: async filters => {
+  setAppliedFilters: async (filters) => {
     set({ appliedFilters: filters });
     await get().applyFilters({ page: 1 });
   },
@@ -208,18 +208,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     const { boardFiltersByCity, locationsByCity } = get();
 
-    if (!boardFiltersByCity[city.id]) {
-      await get().fetchBoardFilters(city.id);
-    }
+    await Promise.all([
+      !boardFiltersByCity[city.id] ? get().fetchBoardFilters(city.id) : Promise.resolve(),
+      !locationsByCity[city.id] ? get().fetchLocations(city.id) : Promise.resolve(),
+    ]);
 
-    if (!locationsByCity[city.id]) {
-      await get().fetchLocations(city.id);
-    }
+    await get().applyFilters({ page: 1 });
   },
 
   // 📍 Location
-  setSelectedLocation: location => {
+  setSelectedLocation: (location) => {
     set({ selectedLocation: location });
+    get().applyFilters({ page: 1 });
   },
 
   // 🌆 Cities

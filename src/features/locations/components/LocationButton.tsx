@@ -27,6 +27,7 @@ const LocationButton: React.FC = () => {
     fetchCities,
     setSelectedLocation,
     selectedLocation,
+    applyFilters,
   } = useAppStore();
 
   const [isLocationDropdownVisible, setIsLocationDropdownVisible] =
@@ -42,32 +43,35 @@ const LocationButton: React.FC = () => {
     useLocations(draftSelectedCity?.id);
 
   const handleApplyLocation = () => {
-    let hasChanged = false;
+    // Close modal immediately
+    setIsLocationDropdownVisible(false);
+    setIsCitiesDropdownOpen(false);
 
-    // 1. City change
-    if (draftSelectedCity?.id !== selectedCity?.id) {
-      if (draftSelectedCity) {
-        setSelectedCity(draftSelectedCity);
-        hasChanged = true;
-      }
-    }
-
-    // 2. Location change (convert ID → object)
+    const cityChanged = draftSelectedCity?.id !== selectedCity?.id;
     const selectedLocationObj = locations.find(
       loc => loc.id === draftSelectedLocationId,
     );
+    const locationChanged = selectedLocationObj?.id !== selectedLocation?.id;
 
-    if (selectedLocationObj?.id !== selectedLocation?.id) {
-      setSelectedLocation(selectedLocationObj);
-      hasChanged = true;
+    if (cityChanged && draftSelectedCity) {
+      setSelectedCity(draftSelectedCity); // triggers applyFilters inside
+      return; // setSelectedCity already calls applyFilters, stop here
     }
 
-    setIsLocationDropdownVisible(false);
+    if (locationChanged) {
+      setSelectedLocation(selectedLocationObj ?? null); // triggers applyFilters inside
+      return;
+    }
+
+    // Nothing changed — still refresh
+    applyFilters({ page: 1 });
   };
 
   const handleCancelLocation = () => {
+    setDraftSelectedCity(selectedCity);
+    setDraftSelectedLocationId(selectedLocation?.id);
+    setIsCitiesDropdownOpen(false);
     setIsLocationDropdownVisible(false);
-    // Cancel logic here if needed
   };
 
   return (
@@ -96,13 +100,13 @@ const LocationButton: React.FC = () => {
         visible={isLocationDropdownVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setIsLocationDropdownVisible(false)}
+        onRequestClose={handleCancelLocation}
       >
         <View style={styles.modalOverlay}>
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
-            onPress={() => setIsLocationDropdownVisible(false)}
+            onPress={handleCancelLocation}
           />
           <View style={styles.modalContent}>
             <ScrollView style={styles.modalScrollView} nestedScrollEnabled>
@@ -118,7 +122,7 @@ const LocationButton: React.FC = () => {
                     {draftSelectedCity?.name || 'Select City'}
                   </Text>
                   <Ionicons
-                    name={isCitiesDropdownOpen ? 'chevron-down' : 'chevron-up'}
+                    name={isCitiesDropdownOpen ? 'chevron-up' : 'chevron-down'}
                     size={20}
                     color="#666"
                   />
