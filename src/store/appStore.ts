@@ -197,24 +197,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   // 🏙️ City
   setSelectedCity: async (city: City) => {
-    const currentCity = get().selectedCity;
+  const currentCity = get().selectedCity;
+  if (currentCity?.id === city.id) return;
 
-    if (currentCity?.id === city.id) return;
+  set({ 
+    selectedCity: city, 
+    selectedLocation: null
+   });
 
-    set({
-      selectedCity: city,
-      selectedLocation: null,
-    });
+  // fetch boards immediately without waiting
+  get().applyFilters({ page: 1 });
 
-    const { boardFiltersByCity, locationsByCity } = get();
-
-    await Promise.all([
-      !boardFiltersByCity[city.id] ? get().fetchBoardFilters(city.id) : Promise.resolve(),
-      !locationsByCity[city.id] ? get().fetchLocations(city.id) : Promise.resolve(),
-    ]);
-
-    await get().applyFilters({ page: 1 });
-  },
+  // fetch these in background — not blocking
+  const { boardFiltersByCity, locationsByCity } = get();
+  if (!boardFiltersByCity[city.id]) get().fetchBoardFilters(city.id);
+  if (!locationsByCity[city.id]) get().fetchLocations(city.id);
+},
 
   // 📍 Location
   setSelectedLocation: (location) => {

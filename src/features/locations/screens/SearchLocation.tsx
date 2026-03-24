@@ -1,4 +1,4 @@
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import React, {
   useCallback,
   useEffect,
@@ -53,6 +53,19 @@ const SearchLocation: React.FC = () => {
     appliedFilters,
     appliedFilterOrder,
   } = useAppStore();
+
+  useFocusEffect(
+    useCallback(() => {
+      // When screen focuses — load boards
+      applyFilters({ page: 1 });
+
+      return () => {
+        // When screen unfocuses — clear search
+        setSearchQuery('');
+      };
+    }, [])
+  );
+
 
   const boards = filteredBoards;
 
@@ -156,11 +169,11 @@ const SearchLocation: React.FC = () => {
             : loc.province?.name || '') ||
           (loc.city && loc.province
             ? `${
-                typeof loc.city === 'string' ? loc.city : loc.city?.name || ''
+              typeof loc.city === 'string' ? loc.city : loc.city?.name || ''
               }, ${
                 typeof loc.province === 'string'
-                  ? loc.province
-                  : loc.province?.name || ''
+                ? loc.province
+                : loc.province?.name || ''
               }`.trim()
             : 'Unknown Location') ||
           'Unknown Location';
@@ -171,8 +184,8 @@ const SearchLocation: React.FC = () => {
       typeof board.price === 'number'
         ? board.price
         : board.price
-        ? Number(board.price) || 0
-        : 0;
+          ? Number(board.price) || 0
+          : 0;
     const primaryMediaUrl =
       Array.isArray(board.media) && board.media.length > 0
         ? board.media[0]?.url
@@ -191,9 +204,8 @@ const SearchLocation: React.FC = () => {
       currency: board.currency || 'USD',
       image_url: imageUrl,
       image: imageUrl,
-      rating: board.rating ?? board.avg_rating ?? 0,
-      reviewCount:
-        board.review_count || board.totalRatings || board.reviewCount || 112,
+      rating: board.avg_rating ?? 0,
+      reviewCount: board.total_ratings ?? 0,
       category: board.category?.name || board.category_name || 'Static',
       isRecommended,
       labels: labels.length > 0 ? labels : undefined,
@@ -245,8 +257,12 @@ const SearchLocation: React.FC = () => {
     setAppliedFilterOrder,
   ]);
 
-  const handleLoadMore = useCallback(() => {
-    loadMoreBoards();
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const handleLoadMore = useCallback(async () => {
+    setIsLoadingMore(true);
+    await loadMoreBoards();
+    setIsLoadingMore(false);
   }, [loadMoreBoards]);
 
   const selectedFilterNames = useMemo(() => {
@@ -292,6 +308,7 @@ const SearchLocation: React.FC = () => {
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
+            numberOfLines={1}
           />
           <LocationButton />
         </View>
@@ -319,9 +336,9 @@ const SearchLocation: React.FC = () => {
                   <TouchableOpacity
                     style={styles.loadMoreButton}
                     onPress={handleLoadMore}
-                    disabled={isFiltering}
+                    disabled={isLoadingMore}
                   >
-                    {isFiltering ? (
+                    {isLoadingMore ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
                       <Text style={{ color: '#fff' }}>Load More</Text>
@@ -368,7 +385,7 @@ const SearchLocation: React.FC = () => {
         </View>
       )}
 
-      {isFiltering && <Loader />}
+      {isFiltering && !isLoadingMore && <Loader />}
     </SafeAreaView>
   );
 };

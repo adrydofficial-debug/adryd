@@ -13,6 +13,9 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAppStore } from '../../../store/appStore';
 import { useLocations } from '../hooks/hooks';
+import { useQueryClient } from '@tanstack/react-query';
+import { LocationApi } from '../api/api';
+import { mapLocation } from '../domain/mappers';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -29,6 +32,32 @@ const LocationButton: React.FC = () => {
     selectedLocation,
     applyFilters,
   } = useAppStore();
+
+  const queryClient = useQueryClient();
+
+  const handleOpenModal = () => {
+    setIsLocationDropdownVisible(true);
+
+    // ✅ Only fetch if cities not already loaded
+    if (cities.length === 0) {
+      fetchCities();
+    }
+
+    setDraftSelectedCity(selectedCity);
+    setDraftSelectedLocationId(selectedLocation?.id);
+    setIsCitiesDropdownOpen(false);
+
+    cities.forEach(city => {
+      queryClient.prefetchQuery({
+        queryKey: ['locations', city.id],
+        queryFn: async () => {
+          const res = await LocationApi.getLocations(city.id);
+          return res.data!.map(mapLocation);
+        },
+        staleTime: 10 * 60 * 1000,
+      });
+    });
+  };
 
   const [isLocationDropdownVisible, setIsLocationDropdownVisible] =
     useState(false);
@@ -79,18 +108,14 @@ const LocationButton: React.FC = () => {
       {/* Button */}
       <TouchableOpacity
         style={styles.locationTag}
-        onPress={() => {
-          setIsLocationDropdownVisible(true);
-          fetchCities(); // optional, refetch cities when opening
+        onPress={handleOpenModal}
 
-          // initialize draft from store
-          setDraftSelectedCity(selectedCity);
-          setDraftSelectedLocationId(selectedLocation?.id);
-
-          setIsCitiesDropdownOpen(false);
-        }}
       >
-        <Text style={styles.locationTagText}>
+        <Text
+          style={styles.locationTagText}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
           {selectedCity?.name || 'Select City'}
         </Text>
       </TouchableOpacity>
@@ -219,7 +244,11 @@ const LocationButton: React.FC = () => {
                               styles.areaItem,
                               isSelected && styles.areaItemSelected,
                             ]}
-                            onPress={() => setDraftSelectedLocationId(area.id)}
+                            onPress={() =>
+                              setDraftSelectedLocationId(prev =>
+                                prev === area.id ? undefined : area.id
+                              )
+                            }
                           >
                             <View
                               style={[
@@ -320,11 +349,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 0.7,
+    maxWidth: wp(20),
+    flexShrink: 1,     
   },
   locationTagText: {
     fontSize: 13,
     color: '#333',
     fontWeight: '500',
+    flexShrink: 1,   
   },
   locationTagActive: {
     // Add any background or border changes when active if needed

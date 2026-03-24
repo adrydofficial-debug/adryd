@@ -340,12 +340,12 @@ const FilterButton: React.FC = () => {
   }, []);
 
   const handleApplyFilters = useCallback(async () => {
-  const validCategorySlugs = sortedDraftFilterIds.filter(id => {
-    if (id === 'see-all' || id === 'recommended') return false;
-    return !filterGroups.some(g => g.slug === id);
-  });
+    const validCategorySlugs = sortedDraftFilterIds.filter(id => {
+      if (id === 'see-all' || id === 'recommended') return false;
+      return !filterGroups.some(g => g.slug === id);
+    });
 
-  setAppliedFilters(new Set(validCategorySlugs));
+    setAppliedFilters(new Set(validCategorySlugs));
     // setAppliedFilterOrder(validCategorySlugs);
 
     // OPTIONAL: if you're fetching immediately
@@ -709,9 +709,9 @@ const FilterButton: React.FC = () => {
                 ]}
                 // activeOpacity={hasChanges && !isApplyingFilters ? 0.7 : 1}
                 activeOpacity={1}
-                onPress={async () => {
-                  await handleApplyFilters();
+                onPress={() => {
                   setIsFilterSectionVisible(false);
+                  handleApplyFilters();
                 }}
               // disabled={!hasChanges || isApplyingFilters}
               >
