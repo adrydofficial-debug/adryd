@@ -121,7 +121,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
 
     if (appliedFilters.size > 0) {
-      payload.slugs = Array.from(appliedFilters);
+      payload.slug = Array.from(appliedFilters);
     }
 
     if (location?.location_id) {
@@ -189,7 +189,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     await get().applyFilters({ page: nextPage });
   },
 
-  setAppliedFilters: async filters => {
+  setAppliedFilters: async (filters) => {
     set({ appliedFilters: filters });
     await get().applyFilters({ page: 1 });
   },
@@ -197,29 +197,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   // 🏙️ City
   setSelectedCity: async (city: City) => {
-    const currentCity = get().selectedCity;
+  const currentCity = get().selectedCity;
+  if (currentCity?.id === city.id) return;
 
-    if (currentCity?.id === city.id) return;
+  set({ 
+    selectedCity: city, 
+    selectedLocation: null
+   });
 
-    set({
-      selectedCity: city,
-      selectedLocation: null,
-    });
+  // fetch boards immediately without waiting
+  get().applyFilters({ page: 1 });
 
-    const { boardFiltersByCity, locationsByCity } = get();
-
-    if (!boardFiltersByCity[city.id]) {
-      await get().fetchBoardFilters(city.id);
-    }
-
-    if (!locationsByCity[city.id]) {
-      await get().fetchLocations(city.id);
-    }
-  },
+  // fetch these in background — not blocking
+  const { boardFiltersByCity, locationsByCity } = get();
+  if (!boardFiltersByCity[city.id]) get().fetchBoardFilters(city.id);
+  if (!locationsByCity[city.id]) get().fetchLocations(city.id);
+},
 
   // 📍 Location
-  setSelectedLocation: location => {
+  setSelectedLocation: (location) => {
     set({ selectedLocation: location });
+    get().applyFilters({ page: 1 });
   },
 
   // 🌆 Cities

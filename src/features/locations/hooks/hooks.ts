@@ -1,5 +1,5 @@
 // src/features/location/hooks.ts
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { LocationApi } from '../api/api';
 import { City, Location } from '../domain/entities';
 import { mapCity, mapLocation } from '../domain/mappers';
@@ -11,8 +11,8 @@ export const useLocations = (cityId?: number) => {
       const res = await LocationApi.getLocations(cityId);
       return res.data!.map(mapLocation);
     },
-    staleTime: 5000,
-    placeholderData: keepPreviousData,
+    enabled: !!cityId,
+    staleTime: 10 * 60 * 1000,
   });
 };
 
@@ -31,8 +31,7 @@ export const useCities = () => {
       console.log('[useCities] Mapped cities:', mapped);
       return mapped;
     },
-    staleTime: 5000,
-    placeholderData: keepPreviousData,
+    staleTime: 10 * 60 * 1000,
   });
 };
 
@@ -44,6 +43,6 @@ export const useCityById = (id: number) => {
       return mapCity(res.data);
     },
     enabled: !!id,
-    staleTime: 5000,
+    staleTime: 10 * 60 * 1000,
   });
 };

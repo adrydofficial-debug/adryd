@@ -114,24 +114,7 @@ const FilterButton: React.FC = () => {
     return order;
   }, [filterOptions]);
 
-  useEffect(() => {
-    if (filterGroups.length > 0 && boardFiltersData?.groups) {
-      const newFilters = new Set<string>();
-      newFilters.add('see-all');
-      newFilters.add('recommended');
 
-      const categorySlugs: string[] = [];
-
-      filterGroups.forEach(group => {
-        group.categories.forEach(cat => {
-          newFilters.add(cat.slug);
-          categorySlugs.push(cat.slug);
-        });
-      });
-
-      setDraftSelectedFilters(newFilters);
-    }
-  }, [filterGroups, boardFiltersData]);
 
   // Get all child category slugs for a group
   const getGroupChildSlugs = useCallback(
@@ -225,7 +208,7 @@ const FilterButton: React.FC = () => {
             newSet.delete('see-all');
             newSet.delete('recommended');
           }
-           else {
+          else {
             newSet.add(filterId);
             // Check if all categories are now selected, if so, also select "See All" and "Recommended"
             const allCategoriesSelected = filterGroups.every(group =>
@@ -357,13 +340,11 @@ const FilterButton: React.FC = () => {
   }, []);
 
   const handleApplyFilters = useCallback(async () => {
-    // remove junk filters
     const validCategorySlugs = sortedDraftFilterIds.filter(id => {
       if (id === 'see-all' || id === 'recommended') return false;
       return !filterGroups.some(g => g.slug === id);
     });
 
-    // update store
     setAppliedFilters(new Set(validCategorySlugs));
     // setAppliedFilterOrder(validCategorySlugs);
 
@@ -391,27 +372,21 @@ const FilterButton: React.FC = () => {
   ]);
 
   const handleOpenFilters = useCallback(() => {
-    const newDraft = new Set<string>();
+    // Restore previously applied filters when opening
+    const { appliedFilters } = useAppStore.getState();
+    const newDraft = new Set<string>(appliedFilters);
 
-    // restore applied category filters
-    // appliedFilterOrder.forEach(id => newDraft.add(id));
-
-    // restore special filters logic
-    // if (appliedFilterOrder.length > 0) {
-    //   newDraft.add('recommended');
-    // }
-
-    // check if ALL categories are selected → add "see-all"
+    // Check if all categories selected → show see-all as checked
     const allCategorySlugs = filterGroups.flatMap(g =>
       g.categories.map(c => c.slug),
     );
-
     const isAllSelected =
       allCategorySlugs.length > 0 &&
       allCategorySlugs.every(slug => newDraft.has(slug));
 
     if (isAllSelected) {
       newDraft.add('see-all');
+      newDraft.add('recommended');
     }
 
     setDraftSelectedFilters(newDraft);
@@ -567,7 +542,7 @@ const FilterButton: React.FC = () => {
                                       style={[
                                         styles.filterOptionText,
                                         isSelected &&
-                                          styles.filterOptionTextSelected,
+                                        styles.filterOptionTextSelected,
                                       ]}
                                     >
                                       {option.name}
@@ -622,8 +597,8 @@ const FilterButton: React.FC = () => {
                                   styles.filterOption,
                                   styles.filterGroupHeader,
                                   filteredCategories.length === 0 &&
-                                    styles.filterOptionLast,
-                                  allChildrenSelected && styles.filterOptionSelected, 
+                                  styles.filterOptionLast,
+                                  allChildrenSelected && styles.filterOptionSelected,
                                 ]}
                                 onPress={() => toggleFilter(group.slug, true)}
                               >
@@ -674,7 +649,7 @@ const FilterButton: React.FC = () => {
                                       style={[
                                         styles.filterOptionText,
                                         isSelected &&
-                                          styles.filterOptionTextSelected,
+                                        styles.filterOptionTextSelected,
                                       ]}
                                     >
                                       {category.name}
@@ -734,11 +709,11 @@ const FilterButton: React.FC = () => {
                 ]}
                 // activeOpacity={hasChanges && !isApplyingFilters ? 0.7 : 1}
                 activeOpacity={1}
-                onPress={async () => {
-                  await handleApplyFilters();
+                onPress={() => {
                   setIsFilterSectionVisible(false);
+                  handleApplyFilters();
                 }}
-                // disabled={!hasChanges || isApplyingFilters}
+              // disabled={!hasChanges || isApplyingFilters}
               >
                 <Text style={styles.applyButtonText}>
                   {/* {isApplyingFilters ? 'Applying…' : 'Apply'} */}
@@ -1230,7 +1205,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     shadowRadius: 0,
     minHeight: hp(6),
-    borderTopLeftRadius: 24, 
+    borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
   filterOptionsScrollView: {
@@ -1325,7 +1300,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 0,
     borderColor: 'transparent',
-     
+
   },
   filterOption: {
     flexDirection: 'row',
