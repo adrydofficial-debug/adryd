@@ -21,6 +21,7 @@ import {
   mapCreateAdvertisementRequest,
   mapUpdateAdvertisementRequest,
 } from '../domain/mappers';
+import apiClient from '../../../services/apiClient';
 
 import { uploadToSignedUrl } from '../../../services/uploadFile';
 
@@ -42,7 +43,7 @@ export function useUploadAdvertisementFiles() {
       console.log('🔵 [useUploadAdvertisementFiles] Upload URL:', uploadUrl);
       console.log('🔵 [useUploadAdvertisementFiles] Files count:', files?.length || 0);
       console.log('🔵 [useUploadAdvertisementFiles] Files:', JSON.stringify(files, null, 2));
-      
+
       if (!uploadUrl) {
         console.error('❌ [useUploadAdvertisementFiles] No upload URL provided');
         throw new Error('No upload URL provided');
@@ -60,7 +61,7 @@ export function useUploadAdvertisementFiles() {
           type: file.type,
           uri: file.uri.substring(0, 50) + '...',
         });
-        
+
         try {
           await uploadToSignedUrl(uploadUrl, file);
           console.log(`✅ [useUploadAdvertisementFiles] File ${i + 1}/${files.length} uploaded successfully`);
@@ -74,7 +75,7 @@ export function useUploadAdvertisementFiles() {
           throw error;
         }
       }
-      
+
       console.log('✅ [useUploadAdvertisementFiles] All files uploaded successfully');
     },
   });
@@ -190,11 +191,11 @@ export const useChangeAdvertisementStatus = (id: number) => {
     onSuccess: (data, new_status) => {
       queryClient.invalidateQueries({ queryKey: AD_KEYS.detail(id) });
       queryClient.invalidateQueries({ queryKey: AD_KEYS.lists() });
-      
+
       // Invalidate campaign chats to show status update message
       queryClient.invalidateQueries({ queryKey: ['campaignChats'] });
       queryClient.invalidateQueries({ queryKey: ['campaignMessages', id] });
-      
+
       // Note: Backend should automatically create a status_update message
       // when status changes. If not, you may need to call an API endpoint
       // to send the status update message here.
@@ -315,26 +316,26 @@ export const useGlobalSelectedDates = () => {
  */
 export const useAddGlobalSelectedDate = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (date: Date | string): Promise<string[]> => {
       const normalized = normalizeDate(date);
-      
+
       // Get current dates
       const currentData = queryClient.getQueryData<string[]>(SELECTED_DATES_QUERY_KEY) || [];
       const current = currentData.map(normalizeDate);
-      
+
       // Add if not already present
       if (!current.includes(normalized)) {
         const updated = [...current, normalized];
-        
+
         // Save to AsyncStorage
         await AsyncStorage.setItem(GLOBAL_SELECTED_DATES_KEY, JSON.stringify(updated));
         console.log('✅ Added date to global selected dates (TanStack Query):', normalized);
-        
+
         return updated;
       }
-      
+
       return current;
     },
     onSuccess: (data) => {
@@ -350,22 +351,22 @@ export const useAddGlobalSelectedDate = () => {
  */
 export const useRemoveGlobalSelectedDate = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (date: Date | string): Promise<string[]> => {
       const normalized = normalizeDate(date);
-      
+
       // Get current dates
       const currentData = queryClient.getQueryData<string[]>(SELECTED_DATES_QUERY_KEY) || [];
       const current = currentData.map(normalizeDate);
-      
+
       // Remove the date
       const updated = current.filter(d => d !== normalized);
-      
+
       // Save to AsyncStorage
       await AsyncStorage.setItem(GLOBAL_SELECTED_DATES_KEY, JSON.stringify(updated));
       console.log('✅ Removed date from global selected dates (TanStack Query):', normalized);
-      
+
       return updated;
     },
     onSuccess: (data) => {
@@ -381,13 +382,13 @@ export const useRemoveGlobalSelectedDate = () => {
  */
 export const useClearGlobalSelectedDates = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (): Promise<string[]> => {
       // Clear AsyncStorage
       await AsyncStorage.removeItem(GLOBAL_SELECTED_DATES_KEY);
       console.log('✅ Cleared all global selected dates (TanStack Query)');
-      
+
       return [];
     },
     onSuccess: (data) => {
@@ -396,3 +397,40 @@ export const useClearGlobalSelectedDates = () => {
     },
   });
 };
+
+
+export function useUploadChatMedia(campaignId: number) {
+  type UploadInput = { uri: string; type: string; name: string; fileSize?: number };
+  type UploadOutput = { publicUrl: string; filename: string };
+
+  return useMutation({
+    mutationFn: async (file: UploadInput): Promise<UploadOutput> => {
+
+      // ✅ Double-check size limit (50MB)
+      if (file.fileSize) {
+        const fileSizeMB = file.fileSize / (1024 * 1024);
+        if (fileSizeMB > 25) {
+          throw new Error(`File size ${fileSizeMB.toFixed(1)}MB exceeds the 25MB limit.`);
+        }
+      }
+
+      const { data } = await apiClient.post('/api/advertisements/upload-url', {
+        filename: file.name,
+        contentType: file.type,
+        advertisement_id: campaignId,
+      });
+
+      await uploadToSignedUrl(data.uploadUrl, {
+        uri: file.uri,
+        type: file.type,
+        name: file.name,
+      });
+
+      const fixedPublicUrl = (data.publicUrl as string)
+        .replace('supabase.in', 'supabase.co')
+        .replace('/object/public/', '/object/authenticated/');
+
+      return { publicUrl: fixedPublicUrl, filename: file.name };
+    },
+  });
+}
