@@ -98,23 +98,24 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const [isPickerOpen, setIsPickerOpen] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<boolean>(false);
 
   const advertisementData = useCampaignStore(state => state.advertisementData);
   const setAdvertisementData = useCampaignStore(state => state.setAdvertisementData);
 
   // Extract params - could be direct string or nested in object
-  const params = typeof route?.params === 'string' 
-    ? { uploadUrl: route.params } 
+  const params = typeof route?.params === 'string'
+    ? { uploadUrl: route.params }
     : (route?.params as any) || {};
-  
+
   const uploadUrl = params.uploadUrl;
   const campaignId = params.campaignId ? parseInt(params.campaignId, 10) : null;
   const publicUrl = params.publicUrl;
   const flow = params.flow || 'business';
-  
+
   // Hook to change campaign status
   const changeStatusMutation = useChangeAdvertisementStatus(campaignId || 0);
-  
+
   // Fetch campaign details for navigation
   const { data: campaign } = useAdvertisement(campaignId || undefined);
 
@@ -180,24 +181,24 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
   const detectFileType = (fileName: string, mimeType: string = ''): { isImage: boolean; isVideo: boolean; isDocument: boolean; type: string } => {
     const fileExtension = fileName.toLowerCase().split('.').pop() || '';
     const lowerMimeType = mimeType.toLowerCase();
-    
+
     const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'heic', 'heif'];
-    const isImage = 
+    const isImage =
       lowerMimeType.startsWith('image/') ||
       imageExtensions.includes(fileExtension);
-    
+
     const videoExtensions = ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp', 'm4v'];
-    const isVideo = 
+    const isVideo =
       lowerMimeType.startsWith('video/') ||
       videoExtensions.includes(fileExtension);
-    
+
     const documentExtensions = ['pdf', 'psd', 'ai'];
-    const isDocument = 
+    const isDocument =
       lowerMimeType.includes('pdf') ||
       lowerMimeType.includes('psd') ||
       lowerMimeType.includes('illustrator') ||
       documentExtensions.includes(fileExtension);
-    
+
     let detectedType = mimeType;
     if (!detectedType) {
       if (isImage) {
@@ -214,7 +215,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
         detectedType = 'application/octet-stream';
       }
     }
-    
+
     return { isImage, isVideo, isDocument, type: detectedType };
   };
 
@@ -262,11 +263,11 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
         }
 
         const fileTypeInfo = detectFileType(fileName, file.type || '');
-        
+
         // Validate supported formats
         const supportedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'mp4', 'pdf', 'psd', 'ai'];
         const fileExtension = fileName.toLowerCase().split('.').pop() || '';
-        
+
         if (!supportedExtensions.includes(fileExtension)) {
           console.warn(`⚠️ [CampaignUploadFiles] Unsupported file format: ${fileExtension}`);
           return;
@@ -294,6 +295,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
         });
 
         setSelectedFiles([newFile]);
+        setUploadError(false);
 
         if (advertisementData) {
           setAdvertisementData({
@@ -358,7 +360,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
       // Handle successful selection
       if (response.assets && response.assets.length > 0) {
         const asset = response.assets[0]; // Only process the first asset (selectionLimit: 1)
-        
+
         if (!asset.uri) {
           console.warn('⚠️ [CampaignUploadFiles] Selected asset has no URI');
           return;
@@ -366,7 +368,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
 
         const fileSize = asset.fileSize || 0;
         const maxSize = 25 * 1024 * 1024;
-        
+
         if (fileSize > maxSize) {
           console.warn(`⚠️ [CampaignUploadFiles] File "${asset.fileName || 'selected file'}" exceeds 25MB`);
           return;
@@ -398,6 +400,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
 
         // Replace existing files with the new one (only one file allowed)
         setSelectedFiles([newFile]);
+        setUploadError(false);
 
         if (advertisementData) {
           setAdvertisementData({
@@ -480,7 +483,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <View
+      <View
         style={styles.container}
       >
         <StatusBar backgroundColor="#F8F8F8" barStyle="dark-content" />
@@ -489,14 +492,14 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={wp(6)} color="#000" />
+            <Ionicons name="arrow-back" size={wp(6)} color="#70737D" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('uploadFiles.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
         <View style={styles.progressContainer}>
-           <ProgressBar currentStep={2}/>
+          <ProgressBar currentStep={2}/>
         </View>
 
         <ScrollView
@@ -525,6 +528,7 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
                     styles.uploadArea,
                     isDragOver && styles.uploadAreaDragOver,
                     selectedFiles.length > 0 && styles.uploadAreaWithImage,
+                    uploadError && { borderColor: '#EF4444', borderWidth: 1.5 },
                   ]}
                   onPress={openFilePicker}
                   activeOpacity={0.8}
@@ -597,7 +601,11 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
                 </View>
               )}
             </View>
-
+            {uploadError && (
+              <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
+                Please upload a file before continuing
+              </Text>
+            )}
             {/* Uploading Section */}
             {selectedFiles.filter(f => f.progress > 0 && f.progress < 100).length > 0 && (
               <View style={styles.statusSection}>
@@ -672,148 +680,67 @@ const CampaignUploadFiles: React.FC<Props> = ({ navigation, route }) => {
             disabled={isPending || isAddingMedia}
             loading={isPending || isAddingMedia || isUploading}
             onPress={async () => {
-              console.log('🚀 [CampaignUploadFiles] Upload button clicked');
-              console.log('📋 [CampaignUploadFiles] Upload URL:', uploadUrl);
-              console.log('📋 [CampaignUploadFiles] Selected files count:', selectedFiles.length);
-              
-              if (!uploadUrl) {
-                console.error('❌ [CampaignUploadFiles] No upload URL provided');
-                return;
-              }
+              if (!uploadUrl) return;
+
+              // ✅ Fix 1: Remove duplicate, keep only this
               if (selectedFiles.length === 0) {
-                console.error('❌ [CampaignUploadFiles] No files selected');
+                setUploadError(true);
                 return;
               }
-              
+
               try {
-                console.log('⏳ [CampaignUploadFiles] Starting upload process...');
                 setIsUploading(true);
-                
+
                 const formattedFiles = selectedFiles.map(f => ({
                   uri: f.uri,
                   type: f.type,
                   name: f.name,
                 }));
-                
-                console.log('📦 [CampaignUploadFiles] Formatted files:', JSON.stringify(formattedFiles, null, 2));
-                console.log('🔗 [CampaignUploadFiles] Upload URL to use:', uploadUrl);
-                console.log('📤 [CampaignUploadFiles] Calling uploadFiles mutation...');
-                
+
                 await uploadFiles({ uploadUrl, files: formattedFiles });
-                
-                console.log('✅ [CampaignUploadFiles] Files uploaded to storage successfully!');
-                
-                // After successful upload, register the media with the advertisement
+                console.log('✅ Files uploaded to storage');
+
                 if (campaignId && publicUrl) {
-                  console.log('📝 [CampaignUploadFiles] Registering media with advertisement...');
-                  console.log('📝 [CampaignUploadFiles] Campaign ID:', campaignId);
-                  console.log('📝 [CampaignUploadFiles] Public URL:', publicUrl);
-                  
                   const mediaArray = formattedFiles.map(file => ({
-                    url: publicUrl, // Use the public URL from the upload response
+                    url: publicUrl,
                     filename: file.name,
                     size: selectedFiles.find(f => f.uri === file.uri)?.size || 0,
                     type: file.type || 'image/jpeg',
                   }));
-                  
-                  console.log('📝 [CampaignUploadFiles] Media array to register:', JSON.stringify(mediaArray, null, 2));
-                  
+
                   try {
-                    await addMedia(mediaArray);
-                    console.log('✅ [CampaignUploadFiles] Media registered successfully!');
+                    await addMedia(mediaArray); // ✅ Fix 2: restore this line
+                    console.log('✅ Media registered successfully');
                   } catch (mediaError: any) {
-                    console.error('❌ [CampaignUploadFiles] Failed to register media:', mediaError);
-                    console.error('❌ [CampaignUploadFiles] Media error details:', {
-                      name: mediaError?.name,
-                      message: mediaError?.message,
-                      stack: mediaError?.stack,
-                    });
-                    // Don't throw - files are uploaded, just not registered
-                    console.warn('⚠️ [CampaignUploadFiles] Files uploaded but failed to register media');
-                  }
-                } else {
-                  console.warn('⚠️ [CampaignUploadFiles] Cannot register media - missing campaignId or publicUrl');
-                  console.warn('⚠️ [CampaignUploadFiles] Campaign ID:', campaignId);
-                  console.warn('⚠️ [CampaignUploadFiles] Public URL:', publicUrl);
-                }
-                
-                console.log('✅ [CampaignUploadFiles] Upload process completed successfully!');
-                
-                // Update campaign status to PAYMENT_PENDING after upload
-                if (campaignId) {
-                  try {
-                    console.log('🔄 [CampaignUploadFiles] Updating campaign status to PAYMENT_PENDING...');
-                    // await changeStatusMutation.mutateAsync(AdvertisementStatus.PAYMENT_PENDING);
-                    console.log('✅ [CampaignUploadFiles] Campaign status updated to PAYMENT_PENDING');
-                  } catch (statusError: any) {
-                    console.error('❌ [CampaignUploadFiles] Failed to update campaign status:', statusError);
-                    // Continue with navigation even if status update fails
+                    console.error('❌ Failed to register media:', mediaError?.response?.data);
                   }
                 }
-                
-                // Navigate directly to the campaign's chat detail screen after upload
+
+                // Navigate
                 if (campaignId) {
-                  // Get campaign details for navigation
-                  // The chat screen will fetch full details, but we can pass basic info
-                  const board = campaign?.board || {};
-                  const campaignName = 
-                    campaign?.title ||
-                    (board && 'title' in board ? board.title : undefined) ||
-                    (board && 'name' in board ? board.name : undefined) ||
-                    'Campaign';
-                  const boardLocation = 
-                    board && 'location' in board
-                      ? (typeof board.location === 'string'
-                          ? board.location
-                          : (board.location && typeof board.location === 'object' && 'name' in board.location
-                              ? board.location.name
-                              : 'Unknown Location'))
-                      : 'Unknown Location';
-                  
-                  console.log('📱 Navigating to campaign chat:', {
-                    campaignId,
-                    campaignName,
-                    boardLocation,
-                  });
-                  
+                  const board = campaign?.board as any;
+                  const campaignName = campaign?.title || board?.title || 'Campaign';
+                  const boardLocation = typeof board?.location === 'string'
+                    ? board.location
+                    : board?.location?.name || 'Unknown Location';
+
                   navigation.reset({
                     index: 0,
                     routes: [
                       { name: 'BottomTab' },
-                      { 
-                        name: 'CampaignChatDetail', 
-                        params: {
-                          campaignId: campaignId, // Should be number according to AppNavigator
-                          campaignName: campaignName,
-                          boardLocation: boardLocation,
-                        }
-                      },
+                      { name: 'CampaignChatDetail', params: { campaignId, campaignName, boardLocation } },
                     ],
                   });
                 } else {
-                  // Fallback to inbox if no campaignId
-                  console.warn('⚠️ No campaignId available, navigating to InboxScreen');
                   navigation.reset({
                     index: 0,
-                    routes: [
-                      { name: 'BottomTab' },
-                      { name: 'InboxScreen' },
-                    ],
+                    routes: [{ name: 'BottomTab' }, { name: 'InboxScreen' }],
                   });
                 }
+
               } catch (error: any) {
-                console.error('❌ [CampaignUploadFiles] Upload failed with error:', error);
-                console.error('❌ [CampaignUploadFiles] Error name:', error?.name);
-                console.error('❌ [CampaignUploadFiles] Error message:', error?.message);
-                console.error('❌ [CampaignUploadFiles] Error stack:', error?.stack);
-                if (error?.response) {
-                  console.error('❌ [CampaignUploadFiles] Error response:', error.response);
-                }
-                if (error?.request) {
-                  console.error('❌ [CampaignUploadFiles] Error request:', error.request);
-                }
+                console.error('❌ Upload failed:', error?.message);
               } finally {
-                console.log('🏁 [CampaignUploadFiles] Upload process finished');
                 setIsUploading(false);
               }
             }}
@@ -926,7 +853,7 @@ const styles = StyleSheet.create({
   uploadAreaWithImage: {
     paddingVertical: 0,
     paddingHorizontal: 0,
-    height: width * 0.6, 
+    height: width * 0.6,
     minHeight: 200,
     maxHeight: height * 0.3,
   },
@@ -1048,7 +975,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 12,
   },
-  statusSection: { 
+  statusSection: {
     marginBottom: hp(2),
   },
   uploadingFileItem: {
@@ -1137,7 +1064,7 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: 16,
     textAlign: 'center',
-    
+
   },
   uploadedFileItem: {
     borderWidth: 1,
