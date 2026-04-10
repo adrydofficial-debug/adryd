@@ -140,3 +140,11 @@ export interface PaymentTransaction {
   created_at: string;
   updated_at: string;
 }
+export interface ChatMediaUpload {
+  uri: string;
+  type: string;
+  name: string;
+  fileSize?: number;
+  publicUrl?: string;
+  filename?: string;
+}

@@ -24,6 +24,25 @@ import {
 import apiClient from '../../../services/apiClient';
 
 import { uploadToSignedUrl } from '../../../services/uploadFile';
+import {
+  GenerateChatMediaUploadUrlRequest,
+} from '../api/types/requests';
+
+import {
+  ChatMediaUploadResponse,
+} from '../api/types/responses';
+
+import {
+  generateChatMediaUploadUrl,
+} from '../api/api';
+
+import {
+  ChatMediaUpload,
+} from '../domain/entities';
+
+import {
+  mapChatMediaPublicUrl,
+} from '../domain/mappers';
 
 export interface UploadFile {
   uri: string;
@@ -398,39 +417,38 @@ export const useClearGlobalSelectedDates = () => {
   });
 };
 
-
 export function useUploadChatMedia(campaignId: number) {
-  type UploadInput = { uri: string; type: string; name: string; fileSize?: number };
   type UploadOutput = { publicUrl: string; filename: string };
 
   return useMutation({
-    mutationFn: async (file: UploadInput): Promise<UploadOutput> => {
+    mutationFn: async (file: ChatMediaUpload): Promise<UploadOutput> => {
 
-      // ✅ Double-check size limit (50MB)
-      if (file.fileSize) {
-        const fileSizeMB = file.fileSize / (1024 * 1024);
-        if (fileSizeMB > 25) {
-          throw new Error(`File size ${fileSizeMB.toFixed(1)}MB exceeds the 25MB limit.`);
-        }
+      // Validate file size (25MB limit)
+      if (file.fileSize && file.fileSize / (1024 * 1024) > 25) {
+        throw new Error(
+          `File size ${(file.fileSize / (1024 * 1024)).toFixed(1)}MB exceeds the 25MB limit.`
+        );
       }
 
-      const { data } = await apiClient.post('/api/advertisements/upload-url', {
+      // 1. Get signed upload URL (via clean API function)
+      const uploadData = await generateChatMediaUploadUrl({
         filename: file.name,
         contentType: file.type,
         advertisement_id: campaignId,
       });
 
-      await uploadToSignedUrl(data.uploadUrl, {
+      // 2. Upload file to signed URL
+      await uploadToSignedUrl(uploadData.uploadUrl, {
         uri: file.uri,
         type: file.type,
         name: file.name,
       });
 
-      const fixedPublicUrl = (data.publicUrl as string)
-        .replace('supabase.in', 'supabase.co')
-        .replace('/object/public/', '/object/authenticated/');
-
-      return { publicUrl: fixedPublicUrl, filename: file.name };
+      // 3. Map and return public URL
+      return {
+        publicUrl: mapChatMediaPublicUrl(uploadData.publicUrl),
+        filename: file.name,
+      };
     },
   });
 }

@@ -38,3 +38,9 @@ export interface DeleteTemporaryBookingRequest {
   board_id: number;
   date: string; // Date in YYYY-MM-DD format
 }
+
+export interface GenerateChatMediaUploadUrlRequest {
+  filename: string;
+  contentType: string;
+  advertisement_id: number;
+}

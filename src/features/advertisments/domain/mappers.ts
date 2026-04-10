@@ -96,3 +96,9 @@ export const mapUpdateAdvertisementRequest = (
     type: m.type ?? 'image/jpeg',
   })),
 });
+
+export const mapChatMediaPublicUrl = (publicUrl: string): string => {
+  return publicUrl
+    .replace('supabase.in', 'supabase.co')
+    .replace('/object/public/', '/object/authenticated/');
+};
