@@ -5,6 +5,7 @@ import {
   CreateAdvertisementRequest,
   GenerateUploadUrlRequest,
   UpdateAdvertisementRequest,
+  GenerateChatMediaUploadUrlRequest,
 } from './types/requests';
 import {
   AdvertisementUploadResponse,
@@ -12,6 +13,7 @@ import {
   PaginatedAdvertisementsResponse,
   SingleAdvertisementResponse,
   TemporaryBookingsResponse,
+   ChatMediaUploadResponse,
 } from './types/responses';
 import {
   CreateTemporaryBookingRequest,
@@ -205,6 +207,17 @@ export const clearTemporaryBookings = async (
 ): Promise<{ message: string }> => {
   const { data } = await apiClient.delete(`${BASE}/temporary-bookings/clear`, {
     params: { board_id: boardId },
+  });
+  return data;
+};
+
+export const generateChatMediaUploadUrl = async (
+  payload: GenerateChatMediaUploadUrlRequest,
+): Promise<ChatMediaUploadResponse> => {
+  const { data } = await apiClient.post(`${BASE}/upload-url`, {
+    filename: payload.filename,
+    contentType: payload.contentType,
+    advertisement_id: payload.advertisement_id,
   });
   return data;
 };

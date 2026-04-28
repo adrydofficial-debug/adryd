@@ -13,6 +13,7 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -27,6 +28,11 @@ import { GetCampaignMessagesResponse } from '../api/campaignChatApi';
 import { useNotificationsStore } from '../../notifications/store/notifications';
 import { markNotificationAsRead } from '../../notifications/api/api';
 import { useProfile } from '../../profile/hooks/useProfile';
+import { useUploadChatMedia } from '../../advertisments/hooks/hooks';
+import SecureImage from '../../../components/SecureImage';
+import SecureVideo from '../../../components/SecureVideo';
+import { isVideoUrl } from '../../../utils/secureMedia';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 const { width, height } = Dimensions.get('window');
 const wp = (percentage: number) => (width * percentage) / 100;
@@ -37,7 +43,10 @@ interface CampaignMessage {
   text: string;
   isUser: boolean;
   timestamp: Date;
-  messageType?: 'text' | 'status_update' | 'system';
+  messageType?: 'text' | 'status_update' | 'system' | 'media';
+  mediaUrl?: string;
+  mediaType?: string;
+
   statusUpdate?: {
     oldStatus: string;
     newStatus: string;
@@ -54,6 +63,11 @@ interface CampaignMessage {
     startDate?: string;
     endDate?: string;
   };
+
+  media_url?: string;
+  uri?: string;
+  media?: Array<{ url: string } | string>;
+
 }
 
 const CampaignChatDetailScreen: React.FC = () => {
@@ -63,7 +77,7 @@ const CampaignChatDetailScreen: React.FC = () => {
   const { campaignId: routeCampaignId, campaignName, boardLocation } = route.params || {};
 
   // Normalize campaignId to number for consistent comparison
-  const campaignId = routeCampaignId 
+  const campaignId = routeCampaignId
     ? (typeof routeCampaignId === 'string' ? parseInt(routeCampaignId, 10) : routeCampaignId)
     : null;
 
@@ -71,9 +85,15 @@ const CampaignChatDetailScreen: React.FC = () => {
   const [ratingComment, setRatingComment] = useState('');
   const [userRating, setUserRating] = useState(0);
   const [isWaitingForMessage, setIsWaitingForMessage] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<{ uri: string; type: string; name: string; fileSize?: number } | null>(null);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [uploadedMediaMessages, setUploadedMediaMessages] = useState<CampaignMessage[]>([]);
   const flatListRef = useRef<FlatList>(null);
   const ratingCardShownRef = useRef(false);
   const { notifications, markAsRead } = useNotificationsStore();
+  const uploadChatMediaMutation = useUploadChatMedia(campaignId || 0);
+  const [optimisticTextMessages, setOptimisticTextMessages] = useState<CampaignMessage[]>([]);
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
 
   // Fetch user profile for avatar
   const { data: profile } = useProfile();
@@ -88,7 +108,6 @@ const CampaignChatDetailScreen: React.FC = () => {
     .trim();
   const looksLikeUrl = /^(https?:\/\/|file:\/\/|content:\/\/)/i.test(avatarUrl);
   const hasBadToken = /null|undefined/i.test(avatarUrl);
-  const isValidAvatarUrl = avatarUrl.length > 0 && looksLikeUrl && !hasBadToken;
   const [avatarError, setAvatarError] = useState(false);
 
   // Reset avatar error when URL changes
@@ -124,6 +143,8 @@ const CampaignChatDetailScreen: React.FC = () => {
     }
   }, [campaignId]);
 
+
+
   // Debug: Log API response to see what messages are being returned
   useEffect(() => {
     if (messagesData) {
@@ -131,7 +152,7 @@ const CampaignChatDetailScreen: React.FC = () => {
       console.log('📨 API Response - All messages:', data.messages);
       console.log('📊 Total messages from API:', data.messages?.length || 0);
       console.log('🎯 Current Campaign ID:', campaignId);
-      
+
       // Check if messages have campaign_id or advertisement_id
       if (data.messages && data.messages.length > 0) {
         const firstMsg = data.messages[0] as any;
@@ -142,13 +163,13 @@ const CampaignChatDetailScreen: React.FC = () => {
           advertisementId: firstMsg.advertisement_id,
           conversationId: firstMsg.conversation_id,
         });
-        
+
         // Check for messages from different campaigns
         const messagesFromOtherCampaigns = data.messages.filter((m: any) => {
           const msgCampaignId = m.campaign_id || m.advertisement_id;
           return msgCampaignId && msgCampaignId !== campaignId;
         });
-        
+
         if (messagesFromOtherCampaigns.length > 0) {
           console.warn('⚠️ Found messages from other campaigns:', {
             count: messagesFromOtherCampaigns.length,
@@ -157,7 +178,7 @@ const CampaignChatDetailScreen: React.FC = () => {
           });
         }
       }
-      
+
       const statusUpdates = data.messages?.filter((m: any) => m.message_type === 'status_update') || [];
       console.log('📋 Status update messages:', statusUpdates.length);
       statusUpdates.forEach((msg: any, index: number) => {
@@ -188,7 +209,7 @@ const CampaignChatDetailScreen: React.FC = () => {
       if (campaignId) {
         console.log('🔄 Refetching messages for campaign:', campaignId);
         refetchMessages();
-        
+
         // Scroll to bottom after a short delay to allow message to render
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
@@ -212,8 +233,8 @@ const CampaignChatDetailScreen: React.FC = () => {
       const campaignNotifications = notifications.filter(n => {
         if (n.read) return false;
         const notificationAdId = n.data?.advertisement_id || n.data?.advertisementId;
-        const adId = typeof notificationAdId === 'string' 
-          ? parseInt(notificationAdId, 10) 
+        const adId = typeof notificationAdId === 'string'
+          ? parseInt(notificationAdId, 10)
           : notificationAdId;
         return adId === campaignId;
       });
@@ -250,21 +271,21 @@ const CampaignChatDetailScreen: React.FC = () => {
     // 3. Messages array is empty
     // Show it even while loading if we have campaign data
     const messagesResponseData = messagesData as GetCampaignMessagesResponse | undefined;
-    const shouldShowDefault = 
-      messagesError || 
-      !messagesResponseData || 
-      !messagesResponseData.messages || 
+    const shouldShowDefault =
+      messagesError ||
+      !messagesResponseData ||
+      !messagesResponseData.messages ||
       messagesResponseData.messages.length === 0;
 
     if (shouldShowDefault) {
       // Wait for campaign to load
       if (!campaign && campaignLoading) return [];
       if (!campaign) return [];
-      
+
       // Always show "InProgress" status for all advertisements
       const board = campaign.board || {};
       const booking = campaign.bookings?.[0];
-      
+
       let estimatedTime: string | undefined;
       if (booking) {
         const days = Math.ceil(
@@ -275,8 +296,9 @@ const CampaignChatDetailScreen: React.FC = () => {
         estimatedTime = '10 to 12 days';
       }
 
+      const actualStatus = (campaign.status || 'DRAFT').toUpperCase();
       const campaignDetails = {
-        status: 'IN_PROGRESS',
+        status: actualStatus,
         campaignName: displayCampaignName,
         location: boardLocation || board.location?.name || board.location?.city?.name,
         area: board.description || board.slug?.replace(/-/g, ' '),
@@ -286,14 +308,14 @@ const CampaignChatDetailScreen: React.FC = () => {
       };
 
       return [{
-        id: 'in-progress-status',
-        text: `Estimated Time ${estimatedTime}`,
+        id: 'default-status',
+        text: actualStatus === 'IN_PROGRESS' ? `Estimated Time ${estimatedTime}` : actualStatus,
         isUser: false,
         timestamp: new Date(campaign.created_at || campaign.updated_at),
         messageType: 'status_update' as const,
         statusUpdate: {
           oldStatus: 'DRAFT',
-          newStatus: 'IN_PROGRESS',
+          newStatus: actualStatus,
         },
         campaignDetails,
       }];
@@ -303,17 +325,17 @@ const CampaignChatDetailScreen: React.FC = () => {
     if (!messagesData) {
       return [];
     }
-    
+
     const messagesResponse = messagesData as GetCampaignMessagesResponse;
-    
-  
+
+
     const filteredMessages = messagesResponse.messages.filter((msg: any) => {
       const msgCampaignId = msg.campaign_id || msg.advertisement_id;
-      
+
       if (msgCampaignId) {
         const msgIdNum = typeof msgCampaignId === 'string' ? parseInt(msgCampaignId, 10) : msgCampaignId;
         const currentIdNum = typeof campaignId === 'string' ? parseInt(campaignId, 10) : campaignId;
-        
+
         if (msgIdNum !== currentIdNum) {
           console.warn('⚠️ Filtering out message from different campaign:', {
             messageId: msg.id,
@@ -329,7 +351,7 @@ const CampaignChatDetailScreen: React.FC = () => {
         // Message belongs to this campaign
         return true;
       }
-      
+
       // If message doesn't have campaign_id/advertisement_id, we can't verify
       // Log a warning but include it (backend should provide campaign_id)
       console.warn('⚠️ Message missing campaign_id/advertisement_id:', {
@@ -340,7 +362,7 @@ const CampaignChatDetailScreen: React.FC = () => {
       });
       return true; // Include it for now, but backend should fix this
     });
-    
+
     // Log filtering results
     if (filteredMessages.length !== messagesResponse.messages.length) {
       console.warn('⚠️ Filtered out messages:', {
@@ -350,7 +372,7 @@ const CampaignChatDetailScreen: React.FC = () => {
         campaignId,
       });
     }
-    
+
     const transformedMessages = filteredMessages.map((msg: any) => {
       const isUser = msg.sender_id === user?.id;
 
@@ -358,30 +380,30 @@ const CampaignChatDetailScreen: React.FC = () => {
       if (msg.message_type === 'status_update' && msg.status_update) {
         const statusUpdate = msg.status_update;
         const board = campaign?.board || {};
-        
+
         // Use campaign_details from backend if available, otherwise fallback to local data
         const backendDetails = statusUpdate.campaign_details || {};
-        
+
         // Prefer backend data, fallback to local campaign data
         const campaignDetails = {
           status: statusUpdate.new_status,
-          campaignName: backendDetails.campaignName || 
-                        campaign?.title || 
-                        board.title || 
-                        campaignName || 
-                        'Campaign',
-          location: backendDetails.location || 
-                    boardLocation || 
-                    board.location?.name || 
-                    board.location?.city?.name,
-          area: backendDetails.area || 
-                board.description || 
-                board.slug?.replace(/-/g, ' '),
-          type: backendDetails.type || 
-                (board.category?.name?.toLowerCase().includes('digital') ? 'Digital' : 'Static'),
-          category: backendDetails.category || 
-                    board.category?.name || 
-                    'Billboard',
+          campaignName: backendDetails.campaignName ||
+            campaign?.title ||
+            board.title ||
+            campaignName ||
+            'Campaign',
+          location: backendDetails.location ||
+            boardLocation ||
+            board.location?.name ||
+            board.location?.city?.name,
+          area: backendDetails.area ||
+            board.description ||
+            board.slug?.replace(/-/g, ' '),
+          type: backendDetails.type ||
+            (board.category?.name?.toLowerCase().includes('digital') ? 'Digital' : 'Static'),
+          category: backendDetails.category ||
+            board.category?.name ||
+            'Billboard',
           estimatedTime: backendDetails.estimatedTime,
           startDate: backendDetails.startDate,
           endDate: backendDetails.endDate,
@@ -402,12 +424,22 @@ const CampaignChatDetailScreen: React.FC = () => {
         };
       }
 
+      const isMediaContent = msg.content &&
+        // NEW - extension can appear anywhere in the URL path
+        /https?:\/\/.+\.(jpg|jpeg|png|gif|webp|mp4|mov|avi|webm)/i.test(msg.content);
+      const isVideoContent = msg.content &&
+        /\.(mp4|mov|avi|webm)(\?.*)?$/i.test(msg.content);
+
       return {
         id: msg.id.toString(),
         text: msg.content,
         isUser,
         timestamp: new Date(msg.created_at),
-        messageType: (msg.message_type || 'text') as 'text' | 'status_update' | 'system',
+        messageType: isMediaContent
+          ? 'media' as const
+          : (msg.message_type || 'text') as 'text' | 'status_update' | 'system',
+        mediaUrl: isMediaContent ? msg.content : undefined,
+        mediaType: isVideoContent ? 'video/mp4' : (isMediaContent ? 'image/jpeg' : undefined),
       };
     });
 
@@ -423,11 +455,11 @@ const CampaignChatDetailScreen: React.FC = () => {
     if (campaign) {
       const board = campaign.board || {};
       const booking = campaign.bookings?.[0];
-      
+
       // Check if first message is already a status update
-      const firstMessageIsStatus = transformedMessages.length > 0 && 
+      const firstMessageIsStatus = transformedMessages.length > 0 &&
         transformedMessages[0].messageType === 'status_update';
-      
+
       // Only add if there's no status message at the start
       if (!firstMessageIsStatus) {
         let estimatedTime: string | undefined;
@@ -438,8 +470,9 @@ const CampaignChatDetailScreen: React.FC = () => {
           estimatedTime = `${days} days`;
         }
 
+        const actualStatus = (campaign.status || 'DRAFT').toUpperCase();
         const inProgressCampaignDetails = {
-          status: 'IN_PROGRESS',
+          status: actualStatus,
           campaignName: displayCampaignName,
           location: boardLocation || board.location?.name || board.location?.city?.name,
           area: board.description || board.slug?.replace(/-/g, ' '),
@@ -449,26 +482,174 @@ const CampaignChatDetailScreen: React.FC = () => {
         };
 
         const inProgressMessage: CampaignMessage = {
-          id: 'in-progress-status',
-          text: estimatedTime ? `Estimated Time ${estimatedTime}` : 'Campaign in progress',
+          id: 'default-status',
+          text: actualStatus === 'IN_PROGRESS' && estimatedTime
+            ? `Estimated Time ${estimatedTime}`
+            : actualStatus,
           isUser: false,
           timestamp: new Date(campaign.created_at || Date.now()),
           messageType: 'status_update' as const,
           statusUpdate: {
             oldStatus: 'DRAFT',
-            newStatus: 'IN_PROGRESS',
+            newStatus: actualStatus,
             campaignDetails: inProgressCampaignDetails,
           },
           campaignDetails: inProgressCampaignDetails,
         };
 
-        // Prepend the InProgress status card at the beginning
-        return [inProgressMessage, ...transformedMessages];
+        const extractFilename = (url: string) => {
+          try { return new URL(url).pathname.split('/').pop() || url; }
+          catch { return url.split('/').pop() || url; }
+        };
+
+        const serverMediaUrls = new Set(
+          transformedMessages
+            .filter(m => m.mediaUrl)
+            .map(m => extractFilename(m.mediaUrl!))
+        );
+
+        console.log('🖼️ Server media URLs:', [...serverMediaUrls]);
+        console.log('🖼️ Optimistic messages:', uploadedMediaMessages.map(m => extractFilename(m.mediaUrl || '')));
+
+        const filteredOptimistic = uploadedMediaMessages.filter(optMsg => {
+          if (!optMsg.mediaUrl) return false;
+          return !serverMediaUrls.has(extractFilename(optMsg.mediaUrl));
+        });
+
+        return [inProgressMessage, ...transformedMessages, ...filteredOptimistic, ...optimisticTextMessages];
       }
     }
 
-    return transformedMessages;
-  }, [messagesData, user, campaign, campaignName, boardLocation, displayCampaignName, messagesError, campaignLoading]);
+    const extractFilename = (url: string) => {
+      try { return new URL(url).pathname.split('/').pop() || url; }
+      catch { return url.split('/').pop() || url; }
+    };
+
+    const serverMediaUrls = new Set(
+      transformedMessages
+        .filter(m => m.mediaUrl)
+        .map(m => extractFilename(m.mediaUrl!))
+    );
+
+    console.log('🖼️ Server media URLs:', [...serverMediaUrls]);
+    console.log('🖼️ Optimistic messages:', uploadedMediaMessages.map(m => extractFilename(m.mediaUrl || '')));
+
+    const allMessages: CampaignMessage[] = [...transformedMessages];
+
+    uploadedMediaMessages.forEach(optMsg => {
+      if (!optMsg.mediaUrl) return;
+      if (!serverMediaUrls.has(extractFilename(optMsg.mediaUrl))) {
+        allMessages.push(optMsg);
+      }
+    });
+
+    return [...allMessages, ...optimisticTextMessages];
+  }, [messagesData, user, campaign, campaignName, boardLocation, displayCampaignName, messagesError, campaignLoading, uploadedMediaMessages, optimisticTextMessages]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      }, 100);
+    }
+  }, [messages.length]);
+
+  // ─── Then handlePickMedia becomes clean ───────────────────────────────────────
+  const handlePickMedia = useCallback(() => {
+    launchImageLibrary(
+      { mediaType: 'mixed', quality: 0.8 },
+      (response) => {
+        if (response.didCancel || response.errorCode) return;
+
+        const asset = response.assets?.[0];
+        if (!asset?.uri) return;
+
+        // ✅ Check file size before allowing selection
+        const fileSizeMB = (asset.fileSize || 0) / (1024 * 1024);
+        if (fileSizeMB > 25) {
+          Alert.alert(
+            'File Too Large',
+            `Your file is ${fileSizeMB.toFixed(1)}MB. Maximum allowed size is 25MB.`,
+          );
+          return;
+        }
+
+        setSelectedMedia({
+          uri: asset.uri,
+          type: asset.type || 'image/jpeg',
+          name: asset.fileName || 'media_file',
+          fileSize: asset.fileSize, // ✅ store it here
+        });
+      },
+    );
+  }, []);
+  const handleSendMedia = useCallback(async () => {
+    if (!selectedMedia || !campaignId) return;
+
+    const mediaToUpload = { ...selectedMedia };
+    const tempId = `media-temp-${Date.now()}`;
+
+    // 1. Optimistic bubble with local URI
+    const optimisticMessage: CampaignMessage = {
+      id: tempId,
+      text: mediaToUpload.uri,
+      isUser: true,
+      timestamp: new Date(),
+      messageType: 'media',
+      mediaUrl: mediaToUpload.uri,
+      mediaType: mediaToUpload.type,
+    };
+
+    setUploadedMediaMessages(prev => [...prev, optimisticMessage]);
+    setSelectedMedia(null);
+    setIsUploadingMedia(true);
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+
+    try {
+      // 2. Upload — URL fixing now handled inside hook
+      const { publicUrl } = await uploadChatMediaMutation.mutateAsync({
+        uri: mediaToUpload.uri,
+        type: mediaToUpload.type,
+        name: mediaToUpload.name,
+        fileSize: mediaToUpload.fileSize,
+      });
+
+      // 3. Update optimistic message with real URL
+      setUploadedMediaMessages(prev =>
+        prev.map(msg =>
+          msg.id === tempId
+            ? { ...msg, mediaUrl: publicUrl, text: publicUrl }
+            : msg,
+        ),
+      );
+
+      // 4. Send message to DB
+      const numericCampaignId =
+        typeof campaignId === 'string' ? parseInt(campaignId, 10) : campaignId;
+
+      await sendMessageMutation.mutateAsync({
+        campaignId: numericCampaignId,
+        content: publicUrl,
+        message_type: 'text',
+      });
+
+      // 5. Refetch to sync with server
+      setTimeout(async () => {
+        await refetchMessages();
+        setIsUploadingMedia(false);
+      }, 2000);
+
+    } catch (error: any) {
+      // 6. Rollback optimistic message on failure
+      setUploadedMediaMessages(prev => prev.filter(msg => msg.id !== tempId));
+      setSelectedMedia(mediaToUpload);
+      setIsUploadingMedia(false);
+      Alert.alert(
+        'Upload Failed',
+        error?.message || 'Could not upload media. Please try again.',
+      );
+    }
+  }, [selectedMedia, campaignId, uploadChatMediaMutation, sendMessageMutation, refetchMessages]);
 
   const handleSendMessage = useCallback(async () => {
     if (!inputText.trim() || !campaignId) {
@@ -480,6 +661,15 @@ const CampaignChatDetailScreen: React.FC = () => {
     const messageText = text;
     setInputText('');
 
+    const tempMessage: CampaignMessage = {
+      id: `temp-${Date.now()}`,
+      text: messageText,
+      isUser: true,
+      timestamp: new Date(),
+      messageType: 'text',
+    };
+    setOptimisticTextMessages(prev => [...prev, tempMessage]);
+
     // Ensure campaignId is a number
     const numericCampaignId = typeof campaignId === 'string' ? parseInt(campaignId, 10) : campaignId;
     if (isNaN(numericCampaignId)) {
@@ -488,23 +678,11 @@ const CampaignChatDetailScreen: React.FC = () => {
       return;
     }
 
-    // Optimistically add message to UI
-    const tempMessage: CampaignMessage = {
-      id: `temp-${Date.now()}`,
-      text: messageText,
-      isUser: true,
-      timestamp: new Date(),
-      messageType: 'text',
-    };
-
-    // Add temporary message to show immediately
-    // Note: This is a workaround since we're using useMemo for messages
-    // In a real implementation, you'd use state management
 
     try {
       setIsWaitingForMessage(true);
-      console.log('📤 Sending message:', { 
-        campaignId: numericCampaignId, 
+      console.log('📤 Sending message:', {
+        campaignId: numericCampaignId,
         campaignIdType: typeof numericCampaignId,
         content: messageText,
         requestBody: { content: messageText, message_type: 'text' }
@@ -517,8 +695,10 @@ const CampaignChatDetailScreen: React.FC = () => {
       console.log('✅ Message sent successfully:', result);
 
       // Refetch messages to get the new one
-      await refetchMessages();
-
+      setTimeout(async () => {
+        await refetchMessages();        // wait for server
+        setOptimisticTextMessages([]);  // ✅ then clear
+      }, 1500);
       // Wait a bit for the message to appear in the chat, then hide loader
       setTimeout(() => {
         setIsWaitingForMessage(false);
@@ -533,10 +713,10 @@ const CampaignChatDetailScreen: React.FC = () => {
         response: error?.response?.data,
         status: error?.response?.status,
       });
-      
+
       // Restore input text on error
       setInputText(messageText);
-      
+
       // Extract error message
       let errorMessage = 'Failed to send message. Please try again.';
       if (error?.message) {
@@ -546,7 +726,7 @@ const CampaignChatDetailScreen: React.FC = () => {
       } else if (error?.response?.data?.error) {
         errorMessage = error.response.data.error;
       }
-      
+
       // Show error message
       Alert.alert('Error', errorMessage);
     }
@@ -570,7 +750,7 @@ const CampaignChatDetailScreen: React.FC = () => {
     // Use statusUpdate details if available (from backend), otherwise use campaignDetails
     const statusUpdateDetails = message.statusUpdate?.campaignDetails;
     const messageDetails = message.campaignDetails;
-    
+
     // Prefer status update details (from backend), fallback to message details, then local campaign data
     const campaignDetails = statusUpdateDetails || messageDetails || {
       status: message.statusUpdate?.newStatus || campaign?.status || 'DRAFT',
@@ -579,7 +759,7 @@ const CampaignChatDetailScreen: React.FC = () => {
       area: campaign?.board?.description || campaign?.board?.slug?.replace(/-/g, ' '),
       type: campaign?.board?.category?.name?.toLowerCase().includes('digital') ? 'Digital' : 'Static',
       category: campaign?.board?.category?.name || 'Billboard',
-      estimatedTime: campaign?.bookings?.[0] 
+      estimatedTime: campaign?.bookings?.[0]
         ? `${Math.ceil((new Date(campaign.bookings[0].end_at).getTime() - new Date(campaign.bookings[0].start_at).getTime()) / (1000 * 60 * 60 * 24))} days`
         : undefined,
     };
@@ -611,39 +791,39 @@ const CampaignChatDetailScreen: React.FC = () => {
     const statusInfo = getStatusInfo();
     const normalizedEstimatedTime = campaignDetails.estimatedTime;
     const normalizedStatusMessage = campaignDetails.estimatedTime ? `Estimated Time ${campaignDetails.estimatedTime}` : undefined;
-    
+
     // Get booking data for purchase duration and campaign period
     const booking = campaign?.bookings?.[0];
     let purchaseDuration: string | undefined;
     let startDate: string | undefined;
     let endDate: string | undefined;
-    
+
     if (booking) {
       const start = new Date(booking.start_at);
       const end = new Date(booking.end_at);
       const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       const formatDate = (date: Date) => {
         const day = date.getDate().toString().padStart(2, '0');
         const month = date.getMonth() + 1;
         const monthName = date.toLocaleDateString('en-US', { month: 'short' });
         return `${day}.${month.toString().padStart(2, '0')}. ${monthName}`;
       };
-      
+
       startDate = formatDate(start);
       endDate = formatDate(end);
       purchaseDuration = `${daysDiff} days`;
     }
-    
+
     // Determine what to show
     const showPurchaseDurationRow = !isPaymentPending && !isBlocked && !isDraft && (isCompleted || isActive) && purchaseDuration;
     const showCampaignPeriod = !isPaymentPending && !isBlocked && !isDraft && !isSchedule && !isInProgress && (startDate || endDate);
-    
+
     // Card background and border styling (matching Figma - white background)
-    const cardStyle = isPaymentPending 
-      ? styles.cardPaymentPending 
+    const cardStyle = isPaymentPending
+      ? styles.cardPaymentPending
       : styles.card;
-    
+
     // Card background color - always white per Figma design
     const cardBackgroundColor = '#FFFFFF';
 
@@ -740,58 +920,58 @@ const CampaignChatDetailScreen: React.FC = () => {
               </View>
             )}
 
-          {/* Draft Message Row */}
-          {isDraft && (
-            <View style={styles.paymentPendingMessageRow}>
-              <View style={styles.draftBadgeSmall}>
-                <Text style={styles.draftBadgeSmallText}>Draft</Text>
+            {/* Draft Message Row */}
+            {isDraft && (
+              <View style={styles.paymentPendingMessageRow}>
+                <View style={styles.draftBadgeSmall}>
+                  <Text style={styles.draftBadgeSmallText}>Draft</Text>
+                </View>
+                <View style={styles.connectionLineLabel} />
+                <Text style={styles.draftMessage}>
+                  Continue from here whenever you're ready
+                </Text>
               </View>
-              <View style={styles.connectionLineLabel} />
-              <Text style={styles.draftMessage}>
-                Continue from here whenever you're ready
-              </Text>
-            </View>
-          )}
+            )}
 
-          {/* In Progress Message Row */}
-          {isInProgress && (normalizedStatusMessage || normalizedEstimatedTime) && (
-            <View style={styles.statusInfoRow}>
-              <View style={styles.statusInfoBadge}>
-                <Text style={[styles.statusInfoBadgeText, { color: '#70737D' }]}>Estimated Time</Text>
+            {/* In Progress Message Row */}
+            {isInProgress && (normalizedStatusMessage || normalizedEstimatedTime) && (
+              <View style={styles.statusInfoRow}>
+                <View style={styles.statusInfoBadge}>
+                  <Text style={[styles.statusInfoBadgeText, { color: '#70737D' }]}>Estimated Time</Text>
+                </View>
+                <View style={styles.connectionLineLabel} />
+                <Text style={styles.statusInfoMessage}>
+                  {normalizedStatusMessage || `Estimated Time ${normalizedEstimatedTime}`}
+                </Text>
               </View>
-              <View style={styles.connectionLineLabel} />
-              <Text style={styles.statusInfoMessage}>
-                {normalizedStatusMessage || `Estimated Time ${normalizedEstimatedTime}`}
-              </Text>
-            </View>
-          )}
+            )}
 
-          {/* Scheduled Message Row */}
-          {isSchedule && normalizedStatusMessage && (
-            <View style={styles.statusInfoRow}>
-              <View style={styles.statusInfoBadge}>
-                <Text style={[styles.statusInfoBadgeText, { color: '#70737D' }]}>Scheduled</Text>
+            {/* Scheduled Message Row */}
+            {isSchedule && normalizedStatusMessage && (
+              <View style={styles.statusInfoRow}>
+                <View style={styles.statusInfoBadge}>
+                  <Text style={[styles.statusInfoBadgeText, { color: '#70737D' }]}>Scheduled</Text>
+                </View>
+                <View style={styles.connectionLineLabel} />
+                <Text style={styles.statusInfoMessage}>
+                  Your campaign is all set to go live as scheduled
+                </Text>
               </View>
-              <View style={styles.connectionLineLabel} />
-              <Text style={styles.statusInfoMessage}>
-                Your campaign is all set to go live as scheduled
-              </Text>
-            </View>
-          )}
+            )}
 
-          {/* Blocked Message Row */}
-          {isBlocked && normalizedStatusMessage && (
-            <View style={styles.statusInfoRow}>
-              <View style={styles.statusInfoBadge}>
-                <Text style={[styles.statusInfoBadgeText, { color: '#70737D' }]}>Blocked</Text>
+            {/* Blocked Message Row */}
+            {isBlocked && normalizedStatusMessage && (
+              <View style={styles.statusInfoRow}>
+                <View style={styles.statusInfoBadge}>
+                  <Text style={[styles.statusInfoBadgeText, { color: '#70737D' }]}>Blocked</Text>
+                </View>
+                <View style={styles.connectionLineLabel} />
+                <Text style={[styles.statusInfoMessage, { color: '#70737D' }]}>
+                  {normalizedStatusMessage}
+                  {normalizedEstimatedTime ? ` • Estimated Time ${normalizedEstimatedTime}` : ''}
+                </Text>
               </View>
-              <View style={styles.connectionLineLabel} />
-              <Text style={[styles.statusInfoMessage, { color: '#70737D' }]}>
-                {normalizedStatusMessage}
-                {normalizedEstimatedTime ? ` • Estimated Time ${normalizedEstimatedTime}` : ''}
-              </Text>
-            </View>
-          )}
+            )}
 
             {/* Details Section */}
             <View style={styles.detailsSection}>
@@ -819,7 +999,7 @@ const CampaignChatDetailScreen: React.FC = () => {
                   </View>
                 </View>
               )}
-              
+
               {/* Location and Area */}
               {campaignDetails.location && !isBlocked && !isDraft && (
                 <View style={styles.locationBadgesRow}>
@@ -854,7 +1034,7 @@ const CampaignChatDetailScreen: React.FC = () => {
                   )}
                 </View>
               )}
-              
+
               {/* Campaign period start / end */}
               {showCampaignPeriod && (
                 <View style={styles.dateTags}>
@@ -891,15 +1071,15 @@ const CampaignChatDetailScreen: React.FC = () => {
                   const amount = campaign?.total_payment || 0;
                   const customerEmail = user?.email || '';
                   const customerPhone = user?.phone || '';
-                  
+
                   if (!amount || !customerEmail) {
                     Alert.alert('Error', 'Payment information is missing. Please contact support.');
                     return;
                   }
-                  
+
                   // Check if campaign has a company
                   const hasCompany = campaign?.company_id || campaign?.company;
-                  
+
                   if (hasCompany) {
                     // Navigate to CompanyWithInfoScreen (with company)
                     navigation.navigate('CompanyWithInfoScreen', {
@@ -949,7 +1129,7 @@ const CampaignChatDetailScreen: React.FC = () => {
             )}
           </View>
         </View>
-        
+
         {/* Message Text inside Card */}
         {showMessageText && message.text && (
           <View style={styles.cardMessageContainer}>
@@ -970,7 +1150,7 @@ const CampaignChatDetailScreen: React.FC = () => {
     const stars = [];
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 >= 0.5;
-    
+
     for (let i = 0; i < fullStars; i++) {
       stars.push(
         <Ionicons key={`full-${i}`} name="star" size={size} color={color} />
@@ -1000,11 +1180,81 @@ const CampaignChatDetailScreen: React.FC = () => {
   ];
   const totalRatings = 2256896;
   const averageRating = 4.5;
+  const renderMediaUploadCard = () => {
+    const isUploading = isUploadingMedia;
 
+    return (
+      <View style={uploadCardStyles.row}>
+        <View style={styles.adminAvatar}>
+          <Image source={Images.adrydLogo} style={styles.adminAvatarImage} resizeMode="contain" />
+        </View>
+
+        <View style={uploadCardStyles.tile}>
+          {isUploading ? (
+            // UPLOADING STATE: show spinner + uploading text
+            <>
+              <View style={uploadCardStyles.tileIcon}>
+                <ActivityIndicator size="small" color="#C539A5" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={uploadCardStyles.tileTitle}>Uploading...</Text>
+                <Text style={uploadCardStyles.tileSub}>Please wait</Text>
+              </View>
+              <View style={[uploadCardStyles.tileBtn, { backgroundColor: '#D1D5DB' }]}>
+                <ActivityIndicator size="small" color="#fff" />
+              </View>
+            </>
+          ) : !selectedMedia ? (
+            // DEFAULT STATE
+            <TouchableOpacity
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+              onPress={handlePickMedia}
+              activeOpacity={0.7}
+            >
+              <View style={uploadCardStyles.tileIcon}>
+                <Ionicons name="image-outline" size={14} color="#C539A5" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={uploadCardStyles.tileTitle}>Upload creative</Text>
+                <Text style={uploadCardStyles.tileSub}>JPG, PNG, MP4 · max 25MB</Text>
+              </View>
+              <View style={uploadCardStyles.tileBtn}>
+                <Ionicons name="cloud-upload-outline" size={15} color="#fff" />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            // AFTER PICK STATE
+            <>
+              <View style={uploadCardStyles.thumb}>
+                {selectedMedia.type.startsWith('image') ? (
+                  <Image source={{ uri: selectedMedia.uri }} style={uploadCardStyles.thumbImg} resizeMode="cover" />
+                ) : (
+                  <View style={uploadCardStyles.thumbVideo}>
+                    <Ionicons name="videocam" size={14} color="#C539A5" />
+                  </View>
+                )}
+                <TouchableOpacity onPress={() => setSelectedMedia(null)} style={uploadCardStyles.removeBtn} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                  <Ionicons name="close" size={10} color="#fff" />
+                </TouchableOpacity>
+              </View>
+              <Text style={uploadCardStyles.fileName} numberOfLines={1}>{selectedMedia.name}</Text>
+              <TouchableOpacity
+                style={uploadCardStyles.tileBtn}
+                onPress={handleSendMedia}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="send" size={14} color="#fff" />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      </View>
+    );
+  };
   const renderRatingCard = () => {
     const board = campaign?.board || {};
     const campaignNameForRating = displayCampaignName || campaign?.title || 'Campaign';
-    
+
     return (
       <View style={styles.statusMessageContainer}>
         <View style={styles.adminAvatar}>
@@ -1018,10 +1268,10 @@ const CampaignChatDetailScreen: React.FC = () => {
           <View style={styles.ratingCard}>
             {/* Campaign Name */}
             <Text style={styles.ratingCampaignName}>{campaignNameForRating}</Text>
-            
+
             {/* Rating Prompt */}
             <Text style={styles.ratingPrompt}>Rate this Backer and tell others what you think</Text>
-            
+
             {/* Overall Rating Section */}
             <View style={styles.ratingSummarySection}>
               <View style={styles.ratingSummaryLeft}>
@@ -1031,33 +1281,33 @@ const CampaignChatDetailScreen: React.FC = () => {
                 </View>
                 <Text style={styles.ratingCount}>{totalRatings.toLocaleString()}</Text>
               </View>
-              
+
               {/* Rating Breakdown */}
               <View style={styles.ratingBreakdown}>
                 {ratingBreakdown.map((item, index) => (
                   <View key={item.stars} style={styles.ratingBarRow}>
                     <Text style={styles.ratingBarLabel}>{item.stars}</Text>
                     <View style={styles.ratingBarContainer}>
-                      <View 
+                      <View
                         style={[
-                          styles.ratingBarFill, 
-                          { 
+                          styles.ratingBarFill,
+                          {
                             width: `${item.percentage}%`,
                             backgroundColor: item.stars >= 4 ? '#C539A5' : '#E5E7EB'
                           }
-                        ]} 
+                        ]}
                       />
                     </View>
                   </View>
                 ))}
               </View>
             </View>
-            
+
             {/* Feedback Request */}
             <Text style={styles.ratingFeedbackText}>
               We'd love your feedback. How was your experience with this campaign? Please rate us.
             </Text>
-            
+
             {/* Star Rating Input */}
             <View style={styles.ratingInputSection}>
               <Text style={styles.ratingInputLabel}>Rate this Backer and tell others what you think</Text>
@@ -1078,7 +1328,7 @@ const CampaignChatDetailScreen: React.FC = () => {
                 ))}
               </View>
             </View>
-            
+
             {/* Comment Input */}
             <View style={styles.ratingCommentRow}>
               <TextInput
@@ -1105,14 +1355,14 @@ const CampaignChatDetailScreen: React.FC = () => {
                 disabled={!userRating || !ratingComment.trim()}
                 activeOpacity={0.8}
               >
-                <Ionicons 
-                  name="send" 
-                  size={18} 
-                  color={(!userRating || !ratingComment.trim()) ? '#9CA3AF' : '#FFFFFF'} 
+                <Ionicons
+                  name="send"
+                  size={18}
+                  color={(!userRating || !ratingComment.trim()) ? '#9CA3AF' : '#FFFFFF'}
                 />
               </TouchableOpacity>
             </View>
-            
+
             {/* Timestamp */}
             <Text style={styles.ratingTimestamp}>
               {formatTime(new Date())}
@@ -1124,28 +1374,43 @@ const CampaignChatDetailScreen: React.FC = () => {
   };
 
   const renderMessage = ({ item }: { item: CampaignMessage }) => {
+    const msg = item as any;
+
     const isUser = item.isUser;
+
+    const displayUrl = item.messageType === 'media' ? (item.mediaUrl || msg.mediaUrl) : undefined;
+    const displayDate = msg.created_at ? new Date(msg.created_at) : msg.timestamp;
     const isStatusMessage = !!(item.campaignDetails || item.statusUpdate);
 
-    // For status messages, render the card directly without chat bubble styling
+    // --- 1. Handle Status Messages (Cards) ---
     if (isStatusMessage && !isUser) {
+      const rawStatus = (item.statusUpdate?.newStatus || item.campaignDetails?.status || '').toUpperCase();
+      const isDraftStatus = rawStatus === 'DRAFT';
+
       return (
-        <View style={styles.statusMessageContainer}>
-          <View style={styles.adminAvatar}>
-            <Image
-              source={Images.adrydLogo}
-              style={styles.adminAvatarImage}
-              resizeMode="contain"
-            />
-          </View>
+        <View style={[styles.statusMessageContainer, isDraftStatus && { justifyContent: 'flex-end' }]}>
+          {!isDraftStatus && (
+            <View style={styles.adminAvatar}>
+              <Image source={Images.adrydLogo} style={styles.adminAvatarImage} resizeMode="contain" />
+            </View>
+          )}
           <View style={styles.statusCardWrapper}>
             {renderStatusMessage(item, true)}
           </View>
+          {isDraftStatus && (
+            <View style={styles.userAvatar}>
+              <Image
+                source={avatarError ? Images.profilePlaceholder : { uri: avatarUrl }}
+                style={styles.userAvatarImage}
+                onError={() => setAvatarError(true)}
+              />
+            </View>
+          )}
         </View>
       );
     }
 
-    // Regular chat messages
+    // --- 2. Handle Chat Messages (Text or Media) ---
     return (
       <View
         style={[
@@ -1162,69 +1427,114 @@ const CampaignChatDetailScreen: React.FC = () => {
             />
           </View>
         )}
+
         <View
           style={[
             styles.messageBubble,
             isUser ? styles.userBubble : styles.adminBubble,
-          ]}
-        >
-          <Text
-            style={[
-              styles.messageText,
-              isUser ? styles.userMessageText : styles.adminMessageText,
-            ]}
-          >
-            {item.text}
-          </Text>
-          <Text
-            style={[
-              styles.messageTime,
-              isUser ? styles.userMessageTime : styles.adminMessageTime,
-            ]}
-          >
-            {formatTime(item.timestamp)}
-            {isUser && (
-              <Ionicons
-                name="checkmark"
-                size={12}
-                color="#9CA3AF"
-                style={styles.checkIcon}
-              />
-            )}
-          </Text>
+            displayUrl && { padding: 0, overflow: 'hidden', minWidth: 200, backgroundColor: isUser ? '#C539A5' : '#F3F4F6' }
+          ]}>
+
+
+          {displayUrl ? (
+            isVideoUrl(displayUrl) ? (
+              // ✅ STATIC THUMBNAIL — no Video surface in the list
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setFullScreenImage(displayUrl)}>
+                <View style={{
+                  width: 200,
+                  height: 200,
+                  backgroundColor: '#111',
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  {/* Dark placeholder background */}
+                  <View style={{
+                    ...StyleSheet.absoluteFillObject,
+                    backgroundColor: '#1a1a1a',
+                  }} />
+
+                  {/* Video file icon */}
+                  <Ionicons name="film-outline" size={40} color="#9CA3AF" />
+                  <Text style={{
+                    color: '#9CA3AF',
+                    fontSize: 11,
+                    marginTop: 6,
+                  }}>
+                    Tap to play
+                  </Text>
+
+                  {/* Play button overlay */}
+                  <View style={styles.playOverlay}>
+                    <View style={styles.playButton}>
+                      <Ionicons name="play" size={24} color="#FFFFFF" />
+                    </View>
+                  </View>
+
+                  {/* Timestamp */}
+                  <Text style={styles.mediaTime}>
+                    {formatTime(displayDate)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ) : (
+              // IMAGE — unchanged
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setFullScreenImage(displayUrl)}>
+                <View>
+                  <SecureImage
+                    uri={displayUrl}
+                    style={{ width: 200, height: 200 }}
+                    resizeMode="cover"
+                  />
+                  <Text style={styles.mediaTime}>
+                    {formatTime(displayDate)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )
+          ) : (
+            // TEXT — unchanged
+            <View>
+              <Text style={[
+                styles.messageText,
+                isUser ? styles.userMessageText : styles.adminMessageText,
+              ]}>
+                {item.text || msg.content}
+              </Text>
+              <Text style={[
+                styles.messageTime,
+                isUser ? styles.userMessageTime : styles.adminMessageTime,
+              ]}>
+                {formatTime(displayDate)}
+              </Text>
+            </View>
+          )}
         </View>
+
         {isUser && (
           <View style={styles.userAvatar}>
-            {isValidAvatarUrl && !avatarError ? (
-              <Image
-                source={{ uri: avatarUrl }}
-                style={styles.userAvatarImage}
-                onError={() => setAvatarError(true)}
-                resizeMode="cover"
-              />
-            ) : (
-              <Image
-                source={Images.profilePlaceholder}
-                style={styles.userAvatarImage}
-                resizeMode="cover"
-              />
-            )}
+            <Image
+              source={avatarError ? Images.profilePlaceholder : { uri: avatarUrl }}
+              style={styles.userAvatarImage}
+              onError={() => setAvatarError(true)}
+            />
           </View>
         )}
       </View>
     );
   };
 
-  const handleSeeDetail = () => {
-    // Navigate to campaign detail
-    navigation.navigate('CompanyWithInfoScreen', { campaignId: campaignId.toString() });
-  };
+  // const handleSeeDetail = () => {
+  //   // Navigate to campaign detail
+  //   navigation.navigate('CompanyWithInfoScreen', { campaignId: campaignId.toString() });
+  // };
 
-  // Only show loader if we don't have campaign data yet
-  // If we have campaign data, we can show default message even while loading messages
-  if (campaignLoading && !campaign) {
-    return <Loader />;
-  }
+
 
   return (
     <KeyboardAvoidingView
@@ -1250,37 +1560,29 @@ const CampaignChatDetailScreen: React.FC = () => {
         </TouchableOpacity>
       </View> */}
 
+
       {/* Messages List */}
       <FlatList
         ref={flatListRef}
         data={messages}
         renderItem={({ item, index }) => {
           const renderedMessage = renderMessage({ item });
-          
-          // Check if this is a completed status message
           const newStatus = item.statusUpdate?.newStatus?.toUpperCase();
           const campaignStatus = item.campaignDetails?.status?.toUpperCase();
-          const isCompletedStatus = item.messageType === 'status_update' && 
+          const isCompletedStatus = item.messageType === 'status_update' &&
             (newStatus === 'COMPLETED' || campaignStatus === 'COMPLETED');
-          
-          // Show rating card only once, after the last completed status message
           const nextMessage = messages[index + 1];
-          const nextIsCompletedStatus = nextMessage?.messageType === 'status_update' && 
+          const nextIsCompletedStatus = nextMessage?.messageType === 'status_update' &&
             (nextMessage?.statusUpdate?.newStatus?.toUpperCase() === 'COMPLETED' ||
-             nextMessage?.campaignDetails?.status?.toUpperCase() === 'COMPLETED');
-          
-          // Show rating card if this is a completed status AND:
-          // 1. Next message is NOT a completed status (so we show after the last completed one), AND
-          // 2. We haven't shown it yet
-          const shouldShowRatingCard = isCompletedStatus && 
-            !nextIsCompletedStatus && 
+              nextMessage?.campaignDetails?.status?.toUpperCase() === 'COMPLETED');
+          const shouldShowRatingCard = isCompletedStatus &&
+            !nextIsCompletedStatus &&
             !ratingCardShownRef.current;
-          
-          // Mark as shown if we're going to show it
+
           if (shouldShowRatingCard) {
             ratingCardShownRef.current = true;
           }
-          
+
           return (
             <>
               {renderedMessage}
@@ -1291,16 +1593,26 @@ const CampaignChatDetailScreen: React.FC = () => {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: true })
-        }
-        onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+        removeClippedSubviews={false}
+        windowSize={21}
+        maxToRenderPerBatch={20}
+        initialNumToRender={30}
+        updateCellsBatchingPeriod={50}
+        maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No messages yet</Text>
           </View>
         }
       />
+      {/* Media Upload Card - always visible  */}
+      <View style={{
+        paddingHorizontal: 16,
+        paddingBottom: 8,
+        backgroundColor: '#F5F5F5',
+      }}>
+        {renderMediaUploadCard()}
+      </View>
 
       {/* Input Container */}
       <View style={styles.inputContainer}>
@@ -1332,6 +1644,40 @@ const CampaignChatDetailScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
+      {/* Full Screen Image Modal */}
+      <Modal
+        visible={!!fullScreenImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setFullScreenImage(null)}>
+        <View style={styles.fullScreenContainer}>
+          <TouchableOpacity
+            style={styles.fullScreenClose}
+            onPress={() => setFullScreenImage(null)}>
+            <Ionicons name="close" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {fullScreenImage && (
+            isVideoUrl(fullScreenImage) ? (
+              // ✅ SecureVideo ONLY here — outside FlatList, no surface conflict
+              <SecureVideo
+                uri={fullScreenImage}
+                style={{ width: '100%', height: '80%' }}
+                resizeMode="contain"
+                controls={true}
+                paused={false}   // auto-play when modal opens
+                muted={false}
+              />
+            ) : (
+              <SecureImage
+                uri={fullScreenImage}
+                style={{ width: '100%', height: '80%' }}
+                resizeMode="contain"
+              />
+            )
+          )}
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -1406,6 +1752,46 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 4,
   },
+  playOverlay: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playButton: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 30,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mediaTime: {
+    position: 'absolute',
+    bottom: 5,
+    right: 8,
+    color: '#FFF',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    fontSize: 11,
+  },
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
+    padding: 8,
+  },
   messageContainer: {
     flexDirection: 'row',
     marginBottom: 16,
@@ -1454,7 +1840,7 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     backgroundColor: '#C539A5',
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: 12,
   },
   adminBubble: {
     backgroundColor: '#FFFFFF',
@@ -1473,11 +1859,12 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     marginBottom: 0,
     position: 'relative',
-    width: '100%',
+    width: '95%',
     minHeight: hp(28),
     alignSelf: 'stretch',
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    backgroundColor: "#fff",
     elevation: 0,
     shadowColor: 'transparent',
     shadowOpacity: 0,
@@ -2148,7 +2535,91 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 8,
   },
+
 });
 
+const uploadCardStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  tile: {
+    flex: 1,
+    marginLeft: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  tileIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#FDF4FC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tileTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#18181B',
+    lineHeight: 16,
+  },
+  tileSub: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    lineHeight: 14,
+  },
+  tileBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#C539A5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  thumb: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    overflow: 'hidden',
+    position: 'relative',
+    flexShrink: 0,
+  },
+  thumbImg: {
+    width: 32,
+    height: 32,
+  },
+  thumbVideo: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#FDF4FC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeBtn: {
+    position: 'absolute',
+    top: 1,
+    right: 1,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fileName: {
+    flex: 1,
+    fontSize: 11,
+    color: '#374151',
+  },
+});
 export default CampaignChatDetailScreen;
 

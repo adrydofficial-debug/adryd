@@ -33,3 +33,9 @@ export interface TemporaryBooking {
 export interface TemporaryBookingsResponse {
   data: TemporaryBooking[];
 }
+
+export interface ChatMediaUploadResponse {
+  uploadUrl: string;
+  key: string;
+  publicUrl: string;
+}
